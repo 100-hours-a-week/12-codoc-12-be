@@ -1,0 +1,80 @@
+name: backend-ci
+
+on:
+  pull_request:
+    branches: [develop, chore/#27-ci-cd]
+  push:
+    branches: [chore/#27-ci-cd]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 체크아웃
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 자바 설정
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      # 실행 권한
+      - name: Grant execute permission
+        run: chmod +x ./gradlew
+
+      # 정적검사 / 의존성 취약 검사
+      # 체크스타일
+      - name: Checkstyle
+        run: ./gradlew checkstyleMain
+
+      # 포멧 체크
+      - name: Check format
+        run: ./gradlew spotlessCheck
+
+
+      - name: Build & Test & Check
+        run: ./gradlew clean build --no-daemon
+
+      # 아티팩트 업로드 (main만)
+      - name: Upload Artifact (JAR)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar-${{ github.sha }}
+          path: build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 14
+
+      # 디스코드 알림
+      - name: Notify Discord
+        if: always()                             # 항상 알림
+        run: |
+          STATUS="${{ job.status == 'success' && '성공' || '실패' }}"
+          COLOR="${{ job.status == 'success' && '65280' || '16711680' }}"
+
+          curl -X POST -H "Content-Type: application/json" \
+          -d '{
+            "embeds": [{
+              "title": "BE 배포 알림",
+              "description": "**상태**: '"$STATUS"'\n**브랜치**: ${{ github.ref_name }}\n**담당자**: ${{ github.actor }}",
+              "color": '"$COLOR"',
+              "fields": [{
+                "name": "로그 확인",
+                "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              }]
+            }]
+          }' \
+          ${{ secrets.DISCORD_WEBHOOK }}          # 디스코드 알림 전송

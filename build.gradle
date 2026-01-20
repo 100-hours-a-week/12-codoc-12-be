@@ -56,9 +56,10 @@ checkstyle {
 spotless {
 	java {
 		target 'src/**/*.java'
-		googleJavaFormat('1.28.0')
-		removeUnusedImports()
-		trimTrailingWhitespace()
-		endWithNewline()
+		googleJavaFormat()
+		removeUnusedImports() // 사용되지 않는 import 문 삭제
+		trimTrailingWhitespace() // 라인 끝에 존재하는 공백 문자 제거
+		endWithNewline() // 파일 마지막에 newline(\n) 보장
+        indentWithSpaces(4) // 들여쓰기를 공백 4개로 설정
 	}
 }

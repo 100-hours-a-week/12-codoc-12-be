@@ -1,6 +1,7 @@
 name: backend-ci
 
 on:
+  workflow_call: {}
   pull_request:
     branches: [chore/#27-ci-cd-test, chore/#27-ci-cd]
   push:
@@ -46,7 +47,7 @@ jobs:
 
 
       - name: Build & Test & Check
-        run: ./gradlew clean build --no-daemon
+        run: ./gradlew clean bootjar --no-daemon
 
       # 아티팩트 업로드 (main만)
       - name: Upload Artifact (JAR)

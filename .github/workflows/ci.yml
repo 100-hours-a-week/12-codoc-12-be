@@ -2,7 +2,7 @@ name: backend-ci
 
 on:
   pull_request:
-    branches: [develop, chore/#27-ci-cd]
+    branches: [chore/#27-ci-cd-test, chore/#27-ci-cd]
   push:
     branches: [chore/#27-ci-cd]
   workflow_dispatch: {}
@@ -50,7 +50,7 @@ jobs:
 
       # 아티팩트 업로드 (main만)
       - name: Upload Artifact (JAR)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/chore/#27-ci-cd'
         uses: actions/upload-artifact@v4
         with:
           name: backend-jar-${{ github.sha }}

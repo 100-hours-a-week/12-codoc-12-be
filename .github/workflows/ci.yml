@@ -1,6 +1,7 @@
 name: backend-ci
 
 on:
+  workflow_call: {}
   pull_request:
     branches: [chore/#27-ci-cd-test, chore/#27-ci-cd]
   push:

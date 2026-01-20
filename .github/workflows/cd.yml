@@ -1,0 +1,70 @@
+name: backend-cd
+
+on:
+  push:
+    branches: [chore/#27-ci-cd-test]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: ./.github/workflows/backend-ci.yml
+  deploy:
+    needs: [ci]
+    runs-on: ubuntu-latest
+
+    steps:
+      # backend-cd.yml의 해당 부분 수정
+      - name: Download Backend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-jar-${{ github.event.workflow_run.head_sha || github.sha }}
+          path: ./artifact
+
+      - name: Upload JAR to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.BE_HOST }}           # BE 서버 주소
+          username: ${{ secrets.DEPLOY_USER }}  # 배포 계정
+          key: ${{ secrets.SSH_PRIVATE_KEY }}   # SSH 키
+          source: "artifact/*.jar"              # 전송 대상 JAR
+          target: "/home/ubuntu/be/incoming"    # 서버 수신 디렉터리
+          strip_components: 1
+
+      - name: Execute Backend Deploy Script
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.BE_HOST }}           # BE 서버 접속
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            chmod +x /home/ubuntu/be/deploy.sh   # 실행 권한 부여
+            bash /home/ubuntu/be/deploy.sh \     # 배포 스크립트 실행
+              "${{ secrets.DB_PASSWORD }}" \     # DB 비밀번호 전달
+              "${{ secrets.JWT_SECRET }}"        # JWT 시크릿 전달
+
+      - name: Notify Discord
+        if: always()                             # 항상 알림
+        run: |
+          STATUS="${{ job.status == 'success' && '성공' || '실패' }}"
+          COLOR="${{ job.status == 'success' && '65280' || '16711680' }}"
+
+          curl -X POST -H "Content-Type: application/json" \
+          -d '{
+            "embeds": [{
+              "title": "BE 배포 알림",
+              "description": "**상태**: '"$STATUS"'\n**브랜치**: ${{ github.ref_name }}\n**담당자**: ${{ github.actor }}",
+              "color": '"$COLOR"',
+              "fields": [{
+                "name": "로그 확인",
+                "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              }]
+            }]
+          }' \
+          ${{ secrets.DISCORD_WEBHOOK }}          # 디스코드 알림 전송

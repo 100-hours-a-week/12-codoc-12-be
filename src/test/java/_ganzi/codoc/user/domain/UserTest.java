@@ -139,6 +139,20 @@ class UserTest {
     }
 
     @Test
+    void 아바타를_제거하면_아바타가_NULL이_된다() {
+        // given
+        User user = newActiveUser("dino");
+        Avatar avatar = newAvatar("ian", "ian");
+        user.updateAvatar(avatar);
+
+        // when
+        user.removeAvatar();
+
+        // then
+        assertThat(user.getAvatar()).isNull();
+    }
+
+    @Test
     void 일일_목표를_변경하면_목표가_갱신된다() {
         // given
         User user = newActiveUser("dino");

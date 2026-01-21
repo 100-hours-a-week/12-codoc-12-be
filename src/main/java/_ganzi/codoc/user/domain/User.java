@@ -52,6 +52,50 @@ public class User {
         this.status = status;
     }
 
+    public static User createOnboardingUser(String nickname) {
+        return new User(nickname, UserStatus.ONBOARDING);
+    }
+
+    public void activate() {
+        if (status == UserStatus.ONBOARDING) {
+            this.status = UserStatus.ACTIVE;
+        }
+    }
+
+    public void markDormant() {
+        if (this.status == UserStatus.ACTIVE) {
+            this.status = UserStatus.DORMANT;
+        }
+    }
+
+    public void reviveFromDormant() {
+        if (this.status == UserStatus.DORMANT) {
+            this.status = UserStatus.ACTIVE;
+        }
+    }
+
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public void updateAvatar(Avatar avatar) {
+        this.avatar = avatar;
+    }
+
+    public void initializeInitLevel(InitLevel initLevel) {
+        if (this.initLevel == null) {
+            this.initLevel = initLevel;
+        }
+    }
+
+    public void updateDailyGoal(DailyGoal dailyGoal) {
+        this.dailyGoal = dailyGoal;
+    }
+
+    public void touchLastAccess() {
+        this.lastAccess = Instant.now();
+    }
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();

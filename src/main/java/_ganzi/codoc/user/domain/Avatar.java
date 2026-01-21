@@ -17,6 +17,15 @@ import lombok.NoArgsConstructor;
 @Entity
 public class Avatar extends BaseTimeEntity {
 
+    private Avatar(String name, String imageUrl) {
+        this.name = name;
+        this.imageUrl = imageUrl;
+    }
+
+    public static Avatar createNewAvatar(String name, String imageUrl) {
+        return new Avatar(name, imageUrl);
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;

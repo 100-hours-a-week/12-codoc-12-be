@@ -1,39 +1,41 @@
 package _ganzi.codoc.user.domain;
 
 import jakarta.persistence.*;
+import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
-
-@Entity
-@Table(name = "users")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "user")
+@Entity
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 15)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "avatar_id", nullable = false)
+    private Avatar avatar;
+
+    @Column(name = "league_id", nullable = false)
+    private Integer leagueId;
+
+    @Column(name = "nickname", nullable = false, length = 15)
     private String nickname;
 
-    @Column(name = "league_id")
-    private Long leagueId;
-
-    @Column(name = "avatar_id")
-    private Long avatarId;
-
-    @Column(name = "init_level", length = 20)
-    private String initLevel;
-
-    @Column(name = "daily_goal", length = 20)
-    private String dailyGoal;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "init_level", length = 50)
+    private InitLevel initLevel;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "daily_goal", length = 50)
+    private DailyGoal dailyGoal;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 50)
     private UserStatus status;
 
     @Column(name = "last_access", nullable = false)

@@ -84,6 +84,10 @@ public class User {
         this.avatar = avatar;
     }
 
+    public void removeAvatar() {
+        this.avatar = null;
+    }
+
     public void updateDailyGoal(DailyGoal dailyGoal) {
         this.dailyGoal = dailyGoal;
     }

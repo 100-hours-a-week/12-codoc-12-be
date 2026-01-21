@@ -29,16 +29,32 @@ class UserTest {
     }
 
     @Test
-    void 유저_상태에_따라_활성화_결과가_다르다() {
+    void 온보딩_완료_시_상태와_초기수준과_일일목표가_설정된다() {
+        // given
+        User user = newOnboardingUser("dino");
+        User user2 = newOnboardingUser("ian");
+
+        // when
+        user2.completeOnboarding(InitLevel.SPECIALIST, DailyGoal.FIVE);
+
+        // then
+        assertThat(user.getDailyGoal()).isNull();
+        assertThat(user.getInitLevel()).isNull();
+        assertThat(user2.getInitLevel()).isEqualTo(InitLevel.SPECIALIST);
+        assertThat(user2.getDailyGoal()).isEqualTo(DailyGoal.FIVE);
+    }
+
+    @Test
+    void 온보딩_완료는_온보딩_상태의_유저에게_만_적용된다() {
         // given
         User user = newOnboardingUser("dino");
         User user2 = newActiveUser("ian");
         User user3 = newDormantUser("codoc");
 
         // when
-        user.activate();
-        user2.activate();
-        user3.activate();
+        user.completeOnboarding(InitLevel.NEWBIE, DailyGoal.THREE);
+        user2.completeOnboarding(InitLevel.NEWBIE, DailyGoal.THREE);
+        user3.completeOnboarding(InitLevel.NEWBIE, DailyGoal.THREE);
 
         // then
         assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
@@ -47,7 +63,7 @@ class UserTest {
     }
 
     @Test
-    void 유저_상태에_따라_휴면_처리_결과가_다르다() {
+    void 휴먼_처리는_활성_상태_유저에게_만_적용된다() {
         // given
         User user = newOnboardingUser("dino");
         User user2 = newActiveUser("ian");
@@ -90,8 +106,6 @@ class UserTest {
         // when
         user.touchLastAccess();
         Instant lastAccess = user.getLastAccess();
-
-        // when
         user.touchLastAccess();
 
         // then
@@ -125,28 +139,9 @@ class UserTest {
     }
 
     @Test
-    void 초기_레벨을_설정하면_레벨이_저장된다() {
-        // given
-        User user = newActiveUser("dino");
-        assert (user.getInitLevel() == null);
-
-        // when
-        user.initializeInitLevel(InitLevel.NEWBIE);
-
-        // then
-        assert (user.getInitLevel() == InitLevel.NEWBIE);
-    }
-
-    @Test
     void 일일_목표를_변경하면_목표가_갱신된다() {
         // given
         User user = newActiveUser("dino");
-
-        // when
-        user.updateDailyGoal(DailyGoal.THREE);
-
-        // then
-        assertThat(user.getDailyGoal()).isEqualTo(DailyGoal.THREE);
 
         // when
         user.updateDailyGoal(DailyGoal.ONE);
@@ -161,7 +156,7 @@ class UserTest {
 
     private User newActiveUser(String nickname) {
         User user = newOnboardingUser(nickname);
-        user.activate();
+        user.completeOnboarding(InitLevel.NEWBIE, DailyGoal.THREE);
         return user;
     }
 

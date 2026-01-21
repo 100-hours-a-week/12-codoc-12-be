@@ -56,8 +56,10 @@ public class User {
         return new User(nickname, UserStatus.ONBOARDING);
     }
 
-    public void activate() {
-        if (status == UserStatus.ONBOARDING) {
+    public void completeOnboarding(InitLevel initLevel, DailyGoal dailyGoal) {
+        if (this.status == UserStatus.ONBOARDING) {
+            this.initLevel = initLevel;
+            this.dailyGoal = dailyGoal;
             this.status = UserStatus.ACTIVE;
         }
     }
@@ -80,12 +82,6 @@ public class User {
 
     public void updateAvatar(Avatar avatar) {
         this.avatar = avatar;
-    }
-
-    public void initializeInitLevel(InitLevel initLevel) {
-        if (this.initLevel == null) {
-            this.initLevel = initLevel;
-        }
     }
 
     public void updateDailyGoal(DailyGoal dailyGoal) {

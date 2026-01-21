@@ -2,7 +2,7 @@ name: backend-cd
 
 on:
   push:
-    branches: [chore/#27-ci-cd]
+    branches: [main]
   workflow_dispatch: {}
 
 permissions:
@@ -62,7 +62,7 @@ jobs:
           curl -X POST -H "Content-Type: application/json" \
           -d '{
             "embeds": [{
-              "title": "BE 배포 알림",
+              "title": "[CD] BE 배포 알림",
               "description": "**상태**: '"$STATUS"'\n**브랜치**: ${{ github.ref_name }}\n**담당자**: ${{ github.actor }}",
               "color": '"$COLOR"',
               "fields": [{

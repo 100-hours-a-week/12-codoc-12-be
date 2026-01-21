@@ -3,9 +3,9 @@ name: backend-ci
 on:
   workflow_call: {}
   pull_request:
-    branches: [chore/#27-ci-cd-test, chore/#27-ci-cd]
+    branches: [develop]
   push:
-    branches: [chore/#27-ci-cd]
+    branches: [develop]
   workflow_dispatch: {}
 
 permissions:
@@ -51,7 +51,7 @@ jobs:
 
       # 아티팩트 업로드 (main만)
       - name: Upload Artifact (JAR)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/chore/#27-ci-cd'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: backend-jar-${{ github.sha }}
@@ -69,7 +69,7 @@ jobs:
           curl -X POST -H "Content-Type: application/json" \
           -d '{
             "embeds": [{
-              "title": "BE 배포 알림",
+              "title": "[CD] BE 통합 알림",
               "description": "**상태**: '"$STATUS"'\n**브랜치**: ${{ github.ref_name }}\n**담당자**: ${{ github.actor }}",
               "color": '"$COLOR"',
               "fields": [{

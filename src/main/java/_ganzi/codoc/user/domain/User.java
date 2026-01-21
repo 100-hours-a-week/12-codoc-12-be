@@ -17,23 +17,23 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 15)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "avatar_id", nullable = false)
+    private Avatar avatar;
+
+    @Column(name = "nickname", nullable = false, length = 15)
     private String nickname;
 
-    @Column(name = "league_id")
-    private Long leagueId;
-
-    @Column(name = "avatar_id")
-    private Long avatarId;
-
-    @Column(name = "init_level", length = 20)
-    private String initLevel;
-
-    @Column(name = "daily_goal", length = 20)
-    private String dailyGoal;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "init_level", length = 50)
+    private InitLevel initLevel;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "daily_goal", length = 50)
+    private DailyGoal dailyGoal;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 50)
     private UserStatus status;
 
     @Column(name = "last_access", nullable = false)
@@ -51,24 +51,6 @@ public class User {
     private User(String nickname, UserStatus status) {
         this.nickname = nickname;
         this.status = status;
-    }
-
-    public static User createOnboardingUser(String nickname) {
-        return new User(nickname, UserStatus.ONBOARDING);
-    }
-
-    public void activate() {
-        this.status = UserStatus.ACTIVE;
-    }
-
-    public void reviveFromDormant() {
-        if (this.status == UserStatus.DORMANT) {
-            this.status = UserStatus.ACTIVE;
-        }
-    }
-
-    public void touchLastAccess() {
-        this.lastAccess = Instant.now();
     }
 
     @PrePersist

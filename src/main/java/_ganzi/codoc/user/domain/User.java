@@ -20,9 +20,6 @@ public class User {
     @JoinColumn(name = "avatar_id", nullable = false)
     private Avatar avatar;
 
-    @Column(name = "league_id", nullable = false)
-    private Integer leagueId;
-
     @Column(name = "nickname", nullable = false, length = 15)
     private String nickname;
 

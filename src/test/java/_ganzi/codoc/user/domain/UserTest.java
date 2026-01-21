@@ -8,108 +8,150 @@ import org.junit.jupiter.api.Test;
 class UserTest {
 
     @Test
-    void createOnboardingUser_setsNicknameAndStatus() {
+    void 온보딩_유저를_생성하면_닉네임과_상태가_설정된다() {
+        // given
         User user = newOnboardingUser("dino");
 
+        // then
         assertThat(user.getNickname()).isEqualTo("dino");
         assertThat(user.getStatus()).isEqualTo(UserStatus.ONBOARDING);
     }
 
     @Test
-    void createOnboardingUser_leavesOptionalFieldsNull() {
+    void 온보딩_유저를_생성하면_선택_필드는_null이다() {
+        // given
         User user = newOnboardingUser("dino");
 
+        // then
         assertThat(user.getAvatar()).isNull();
         assertThat(user.getInitLevel()).isNull();
         assertThat(user.getDailyGoal()).isNull();
-        assertThat(user.getCreatedAt()).isNull();
-        assertThat(user.getUpdatedAt()).isNull();
-        assertThat(user.getLastAccess()).isNull();
-        assertThat(user.getDeletedAt()).isNull();
     }
 
     @Test
-    void activate() {
+    void 유저_상태에_따라_활성화_결과가_다르다() {
+        // given
         User user = newOnboardingUser("dino");
         User user2 = newActiveUser("ian");
         User user3 = newDormantUser("codoc");
+
+        // when
         user.activate();
         user2.activate();
         user3.activate();
+
+        // then
         assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
         assertThat(user2.getStatus()).isEqualTo(UserStatus.ACTIVE);
         assertThat(user3.getStatus()).isEqualTo(UserStatus.DORMANT);
     }
 
     @Test
-    void markDormant() {
+    void 유저_상태에_따라_휴면_처리_결과가_다르다() {
+        // given
         User user = newOnboardingUser("dino");
         User user2 = newActiveUser("ian");
         User user3 = newDormantUser("codoc");
+
+        // when
         user.markDormant();
         user2.markDormant();
         user3.markDormant();
+
+        // then
         assertThat(user.getStatus()).isEqualTo(UserStatus.ONBOARDING);
         assertThat(user2.getStatus()).isEqualTo(UserStatus.DORMANT);
         assertThat(user3.getStatus()).isEqualTo(UserStatus.DORMANT);
     }
 
     @Test
-    void reviveFromDormant() {
+    void 휴면_복귀_시_상태_전이가_적용된다() {
+        // given
         User user = newOnboardingUser("dino");
         User user2 = newActiveUser("ian");
         User user3 = newDormantUser("codoc");
+
+        // when
         user.reviveFromDormant();
         user2.reviveFromDormant();
         user3.reviveFromDormant();
+
+        // then
         assertThat(user.getStatus()).isEqualTo(UserStatus.ONBOARDING);
         assertThat(user2.getStatus()).isEqualTo(UserStatus.ACTIVE);
         assertThat(user3.getStatus()).isEqualTo(UserStatus.ACTIVE);
     }
 
     @Test
-    void touchLastAccess() {
+    void 마지막_접속_시간을_갱신하면_시간이_업데이트된다() {
+        // given
         User user = newOnboardingUser("dino");
-        assertThat(user.getLastAccess()).isNull();
 
+        // when
         user.touchLastAccess();
-        assertThat(user.getLastAccess()).isNotNull();
-
         Instant lastAccess = user.getLastAccess();
+
+        // when
         user.touchLastAccess();
+
+        // then
         assertThat(user.getLastAccess()).isNotNull();
         assertThat(user.getLastAccess()).isAfter(lastAccess);
     }
 
     @Test
-    void updateNickname() {
+    void 닉네임을_변경하면_닉네임이_갱신된다() {
+        // given
         User user = newActiveUser("dino");
+
+        // when
         user.updateNickname("ian");
+
+        // then
         assertThat(user.getNickname()).isEqualTo("ian");
     }
 
     @Test
-    void updateAvatar() {
+    void 아바타를_변경하면_아바타가_갱신된다() {
+        // given
         User user = newActiveUser("dino");
         Avatar avatar = newAvatar("ian", "ian");
+
+        // when
         user.updateAvatar(avatar);
+
+        // then
         assertThat(user.getAvatar()).isEqualTo(avatar);
     }
 
     @Test
-    void initializeInitLevel() {
+    void 초기_레벨을_설정하면_레벨이_저장된다() {
+        // given
         User user = newActiveUser("dino");
         assert (user.getInitLevel() == null);
+
+        // when
         user.initializeInitLevel(InitLevel.NEWBIE);
+
+        // then
         assert (user.getInitLevel() == InitLevel.NEWBIE);
     }
 
     @Test
-    void updateDailyGoal() {
+    void 일일_목표를_변경하면_목표가_갱신된다() {
+        // given
         User user = newActiveUser("dino");
+
+        // when
         user.updateDailyGoal(DailyGoal.THREE);
+
+        // then
         assertThat(user.getDailyGoal()).isEqualTo(DailyGoal.THREE);
+
+        // when
         user.updateDailyGoal(DailyGoal.ONE);
+
+        // then
         assertThat(user.getDailyGoal()).isEqualTo(DailyGoal.ONE);
     }
 

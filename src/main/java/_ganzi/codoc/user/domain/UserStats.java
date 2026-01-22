@@ -32,4 +32,28 @@ public class UserStats extends BaseTimeEntity {
 
     @Column(name = "deleted_at", nullable = false)
     private Instant deletedAt;
+
+    public void addXp(int amount) {
+        this.xp += amount;
+    }
+
+    public void increaseSolvingCount() {
+        this.solvingCount++;
+    }
+
+    public void decreaseSolvingCount() {
+        this.solvingCount--;
+    }
+
+    public void increaseSolvedCount() {
+        this.solvedCount++;
+    }
+
+    public void increaseStreak() {
+        this.streak++;
+    }
+
+    public void resetStreak() {
+        this.streak = 0;
+    }
 }

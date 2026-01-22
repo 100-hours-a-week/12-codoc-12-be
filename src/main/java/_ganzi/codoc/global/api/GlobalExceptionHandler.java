@@ -71,12 +71,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception exception) {
-        log.error("서버 에러 발생", exception);
-        return ResponseEntity.status(GlobalErrorCode.INTERNAL_SERVER_ERROR.status())
-                .body(
-                        ApiResponse.error(
-                                GlobalErrorCode.INTERNAL_SERVER_ERROR.code(),
-                                GlobalErrorCode.INTERNAL_SERVER_ERROR.message()));
+        GlobalErrorCode errorCode = GlobalErrorCode.INTERNAL_SERVER_ERROR;
+        log.error("[{}] {}", errorCode.code(), errorCode.message(), exception);
+        return ResponseEntity.status(errorCode.status())
+                .body(ApiResponse.error(errorCode.code(), errorCode.message()));
     }
 
     private Map<String, String> toFieldErrors(Iterable<FieldError> fieldErrors) {

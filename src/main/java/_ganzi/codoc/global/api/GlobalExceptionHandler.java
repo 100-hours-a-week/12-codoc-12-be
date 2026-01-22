@@ -3,11 +3,13 @@ package _ganzi.codoc.global.api;
 import _ganzi.codoc.global.dto.ApiResponse;
 import _ganzi.codoc.global.exception.BaseException;
 import _ganzi.codoc.global.exception.GlobalErrorCode;
+import jakarta.validation.ConstraintViolationException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -28,17 +30,26 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleMethodArgumentNotValidException(
             MethodArgumentNotValidException exception) {
-        Map<String, String> errors = new LinkedHashMap<>();
-        for (FieldError error : exception.getBindingResult().getFieldErrors()) {
-            errors.put(error.getField(), error.getDefaultMessage());
-        }
+        return invalidInputResponse(toFieldErrors(exception.getBindingResult().getFieldErrors()));
+    }
 
-        return ResponseEntity.status(GlobalErrorCode.INVALID_INPUT.status())
-                .body(
-                        ApiResponse.error(
-                                GlobalErrorCode.INVALID_INPUT.code(),
-                                GlobalErrorCode.INVALID_INPUT.message(),
-                                errors));
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleBindException(
+            BindException exception) {
+        return invalidInputResponse(toFieldErrors(exception.getBindingResult().getFieldErrors()));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleConstraintViolationException(
+            ConstraintViolationException exception) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        exception
+                .getConstraintViolations()
+                .forEach(
+                        violation ->
+                                errors.put(violation.getPropertyPath().toString(), violation.getMessage()));
+
+        return invalidInputResponse(errors);
     }
 
     @ExceptionHandler({
@@ -46,10 +57,7 @@ public class GlobalExceptionHandler {
         HttpMessageNotReadableException.class
     })
     public ResponseEntity<ApiResponse<Void>> handleBadRequestException(Exception exception) {
-        return ResponseEntity.status(GlobalErrorCode.INVALID_INPUT.status())
-                .body(
-                        ApiResponse.error(
-                                GlobalErrorCode.INVALID_INPUT.code(), GlobalErrorCode.INVALID_INPUT.message()));
+        return invalidInputResponse();
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
@@ -69,5 +77,30 @@ public class GlobalExceptionHandler {
                         ApiResponse.error(
                                 GlobalErrorCode.INTERNAL_SERVER_ERROR.code(),
                                 GlobalErrorCode.INTERNAL_SERVER_ERROR.message()));
+    }
+
+    private Map<String, String> toFieldErrors(Iterable<FieldError> fieldErrors) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        for (FieldError error : fieldErrors) {
+            errors.put(error.getField(), error.getDefaultMessage());
+        }
+        return errors;
+    }
+
+    private ResponseEntity<ApiResponse<Map<String, String>>> invalidInputResponse(
+            Map<String, String> errors) {
+        return ResponseEntity.status(GlobalErrorCode.INVALID_INPUT.status())
+                .body(
+                        ApiResponse.error(
+                                GlobalErrorCode.INVALID_INPUT.code(),
+                                GlobalErrorCode.INVALID_INPUT.message(),
+                                errors));
+    }
+
+    private ResponseEntity<ApiResponse<Void>> invalidInputResponse() {
+        return ResponseEntity.status(GlobalErrorCode.INVALID_INPUT.status())
+                .body(
+                        ApiResponse.error(
+                                GlobalErrorCode.INVALID_INPUT.code(), GlobalErrorCode.INVALID_INPUT.message()));
     }
 }

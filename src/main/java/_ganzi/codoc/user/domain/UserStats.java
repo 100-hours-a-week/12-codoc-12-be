@@ -56,4 +56,10 @@ public class UserStats extends BaseTimeEntity {
     public void resetStreak() {
         this.streak = 0;
     }
+
+    public void applyProblemSolved(int xpAmount) {
+        addXp(xpAmount);
+        increaseSolvedCount();
+        decreaseSolvingCount();
+    }
 }

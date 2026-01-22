@@ -1,10 +1,10 @@
 package _ganzi.codoc.problem.service;
 
-import _ganzi.codoc.problem.domain.ProblemLevel;
-import _ganzi.codoc.problem.domain.ProblemSolvingStatus;
 import _ganzi.codoc.problem.dto.ProblemListCondition;
 import _ganzi.codoc.problem.dto.ProblemListItem;
 import _ganzi.codoc.problem.dto.ProblemListResponse;
+import _ganzi.codoc.problem.enums.ProblemLevel;
+import _ganzi.codoc.problem.enums.ProblemSolvingStatus;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;

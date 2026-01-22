@@ -1,4 +1,4 @@
-package _ganzi.codoc.problem.domain;
+package _ganzi.codoc.problem.enums;
 
 public enum ProblemLevel {
     ONE,

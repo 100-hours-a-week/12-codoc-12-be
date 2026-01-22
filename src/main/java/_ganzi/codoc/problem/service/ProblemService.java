@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ProblemService {
 
+    private static final int CURSOR_PAGE_INDEX = 0;
+
     private final ProblemRepository problemRepository;
 
     public ProblemListResponse getProblemList(Long userId, ProblemListCondition condition) {
@@ -26,7 +28,7 @@ public class ProblemService {
         List<ProblemLevel> levels = normalizeLevels(condition.levels());
         List<ProblemSolvingStatus> statuses = normalizeStatuses(condition.statuses());
 
-        Pageable pageable = PageRequest.of(0, limit + 1);
+        Pageable pageable = PageRequest.of(CURSOR_PAGE_INDEX, limit + 1);
         List<ProblemListItem> items =
                 problemRepository.findProblemList(
                         userId,

@@ -1,7 +1,7 @@
 package _ganzi.codoc.problem.dto;
 
-import _ganzi.codoc.problem.domain.ProblemLevel;
-import _ganzi.codoc.problem.domain.ProblemSolvingStatus;
+import _ganzi.codoc.problem.enums.ProblemLevel;
+import _ganzi.codoc.problem.enums.ProblemSolvingStatus;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;

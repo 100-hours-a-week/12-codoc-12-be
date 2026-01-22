@@ -4,6 +4,7 @@ import _ganzi.codoc.global.dto.CursorPagingResponse;
 import _ganzi.codoc.global.util.CursorPagingUtils;
 import _ganzi.codoc.problem.dto.ProblemListCondition;
 import _ganzi.codoc.problem.dto.ProblemListItem;
+import _ganzi.codoc.problem.dto.ProblemSearchParam;
 import _ganzi.codoc.problem.enums.ProblemLevel;
 import _ganzi.codoc.problem.enums.ProblemSolvingStatus;
 import _ganzi.codoc.problem.repository.ProblemRepository;
@@ -23,22 +24,34 @@ public class ProblemService {
     public CursorPagingResponse<ProblemListItem, Long> getProblemList(
             Long userId, ProblemListCondition condition) {
 
-        int limit = condition.limit();
-        List<ProblemLevel> levels = normalizeLevels(condition.levels());
-        List<ProblemSolvingStatus> statuses = normalizeStatuses(condition.statuses());
+        ProblemSearchParam param = createProblemSearchParam(userId, condition);
 
-        Pageable pageable = CursorPagingUtils.createPageable(limit);
-        List<ProblemListItem> items =
-                problemRepository.findProblemList(
-                        userId,
-                        condition.cursor(),
-                        levels,
-                        statuses,
-                        ProblemSolvingStatus.NOT_ATTEMPTED,
-                        condition.bookmarked(),
-                        pageable);
+        List<ProblemListItem> items = problemRepository.findProblemList(param);
 
-        return CursorPagingUtils.apply(items, limit, ProblemListItem::problemId);
+        return CursorPagingUtils.apply(items, condition.limit(), ProblemListItem::problemId);
+    }
+
+    public CursorPagingResponse<ProblemListItem, Long> searchProblems(
+            Long userId, ProblemListCondition condition) {
+        ProblemSearchParam param = createProblemSearchParam(userId, condition);
+
+        List<ProblemListItem> items = problemRepository.searchProblemList(param);
+
+        return CursorPagingUtils.apply(items, condition.limit(), ProblemListItem::problemId);
+    }
+
+    private ProblemSearchParam createProblemSearchParam(Long userId, ProblemListCondition condition) {
+        Pageable pageable = CursorPagingUtils.createPageable(condition.limit());
+
+        return new ProblemSearchParam(
+                userId,
+                condition.cursor(),
+                condition.query(),
+                normalizeLevels(condition.levels()),
+                normalizeStatuses(condition.statuses()),
+                ProblemSolvingStatus.NOT_ATTEMPTED,
+                condition.bookmarked(),
+                pageable);
     }
 
     private List<ProblemSolvingStatus> normalizeStatuses(List<ProblemSolvingStatus> statuses) {
@@ -52,7 +65,6 @@ public class ProblemService {
         if (levels == null || levels.isEmpty()) {
             return List.of(ProblemLevel.values());
         }
-
         return levels;
     }
 }

@@ -12,6 +12,7 @@ import lombok.Builder;
 public record ProblemListCondition(
         @Positive Long cursor,
         @Min(1) @Max(50) int limit,
+        String query,
         List<ProblemLevel> levels,
         List<ProblemSolvingStatus> statuses,
         boolean bookmarked) {}

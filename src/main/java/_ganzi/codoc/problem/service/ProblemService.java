@@ -66,9 +66,10 @@ public class ProblemService {
 
         boolean bookmarked = bookmarkRepository.existsByUserIdAndProblemId(userId, problemId);
 
-        List<SummaryCard> summaryCards = summaryCardRepository.findByProblemId(problemId);
+        List<SummaryCard> summaryCards =
+                summaryCardRepository.findByProblemIdOrderBySummaryCardTagSequenceAsc(problemId);
 
-        List<Quiz> quizzes = quizRepository.findByProblemId(problemId);
+        List<Quiz> quizzes = quizRepository.findByProblemIdOrderBySequenceAsc(problemId);
 
         return ProblemResponse.of(problem, status, bookmarked, summaryCards, quizzes);
     }

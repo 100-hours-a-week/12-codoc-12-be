@@ -29,4 +29,14 @@ public class ProblemController {
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<CursorPagingResponse<ProblemListItem, Long>>> searchProblems(
+            @CurrentUserId Long userId, @Valid ProblemListCondition condition) {
+
+        CursorPagingResponse<ProblemListItem, Long> response =
+                problemService.searchProblems(userId, condition);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }

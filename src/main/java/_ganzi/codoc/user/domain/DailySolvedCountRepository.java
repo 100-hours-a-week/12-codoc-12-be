@@ -7,8 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DailySolvedCountRepository extends JpaRepository<DailySolvedCount, Long> {
 
-    Optional<DailySolvedCount> findByUserIdAndDate(User user, LocalDate date);
+    Optional<DailySolvedCount> findByUserAndDate(User user, LocalDate date);
 
-    List<DailySolvedCount> findAllByUserIdAndDateBetweenOrderByDateAsc(
-            User user, LocalDate fromDate, LocalDate toDate);
+    List<DailySolvedCount> findAllByUserAndDateBetweenAndSolvedCountGreaterThanOrderByDateAsc(
+            User user, LocalDate fromDate, LocalDate toDate, int minCount);
 }

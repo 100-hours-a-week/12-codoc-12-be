@@ -21,7 +21,7 @@ public class DailySolvedCount extends BaseTimeEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
-    private User userId;
+    private User user;
 
     @Column(name = "solved_count", nullable = false)
     private int solvedCount;

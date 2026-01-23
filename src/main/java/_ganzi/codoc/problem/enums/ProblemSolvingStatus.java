@@ -1,8 +1,18 @@
 package _ganzi.codoc.problem.enums;
 
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
 public enum ProblemSolvingStatus {
-    NOT_ATTEMPTED,
-    IN_PROGRESS,
-    SUMMARY_PASSED,
-    SOLVED
+    NOT_ATTEMPTED(""),
+    IN_PROGRESS("시도 중"),
+    SUMMARY_PASSED("문제 요약 카드 완료"),
+    SOLVED("해결"),
+    ;
+
+    private final String description;
+
+    public String toDescription() {
+        return description;
+    }
 }

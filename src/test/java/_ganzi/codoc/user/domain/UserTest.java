@@ -7,6 +7,9 @@ import org.junit.jupiter.api.Test;
 
 class UserTest {
 
+    private static final String DEFAULT_AVATAR_NAME = "default";
+    private static final String DEFAULT_AVATAR_URL = "default-url";
+
     @Test
     void 온보딩_유저를_생성하면_닉네임과_상태가_설정된다() {
         // given
@@ -18,12 +21,14 @@ class UserTest {
     }
 
     @Test
-    void 온보딩_유저를_생성하면_선택_필드는_null이다() {
+    void 온보딩_유저를_생성하면_기본_아바타가_설정된다() {
         // given
         User user = newOnboardingUser("dino");
 
         // then
-        assertThat(user.getAvatar()).isNull();
+        assertThat(user.getAvatar()).isNotNull();
+        assertThat(user.getAvatar().getName()).isEqualTo(DEFAULT_AVATAR_NAME);
+        assertThat(user.getAvatar().getImageUrl()).isEqualTo(DEFAULT_AVATAR_URL);
         assertThat(user.getInitLevel()).isNull();
         assertThat(user.getDailyGoal()).isNull();
     }
@@ -63,7 +68,7 @@ class UserTest {
     }
 
     @Test
-    void 휴먼_처리는_활성_상태_유저에게_만_적용된다() {
+    void 휴면_처리는_활성_상태_유저에게_만_적용된다() {
         // given
         User user = newOnboardingUser("dino");
         User user2 = newActiveUser("ian");
@@ -139,20 +144,6 @@ class UserTest {
     }
 
     @Test
-    void 아바타를_제거하면_아바타가_NULL이_된다() {
-        // given
-        User user = newActiveUser("dino");
-        Avatar avatar = newAvatar("ian", "ian");
-        user.updateAvatar(avatar);
-
-        // when
-        user.removeAvatar();
-
-        // then
-        assertThat(user.getAvatar()).isNull();
-    }
-
-    @Test
     void 일일_목표를_변경하면_목표가_갱신된다() {
         // given
         User user = newActiveUser("dino");
@@ -165,7 +156,8 @@ class UserTest {
     }
 
     private User newOnboardingUser(String nickname) {
-        return User.createOnboardingUser(nickname);
+        Avatar defaultAvatar = newAvatar(DEFAULT_AVATAR_NAME, DEFAULT_AVATAR_URL);
+        return User.createOnboardingUser(nickname, defaultAvatar);
     }
 
     private User newActiveUser(String nickname) {

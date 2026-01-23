@@ -2,6 +2,9 @@ package _ganzi.codoc.user.service;
 
 import _ganzi.codoc.user.domain.*;
 import _ganzi.codoc.user.exception.UserNotFoundException;
+import _ganzi.codoc.user.repository.DailySolvedCountRepository;
+import _ganzi.codoc.user.repository.UserRepository;
+import _ganzi.codoc.user.repository.UserStatsRepository;
 import _ganzi.codoc.user.service.dto.UserContributionResponse;
 import _ganzi.codoc.user.service.dto.UserStatsResponse;
 import _ganzi.codoc.user.service.dto.UserStreakResponse;

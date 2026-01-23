@@ -2,6 +2,9 @@ package _ganzi.codoc.user.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import _ganzi.codoc.user.enums.DailyGoal;
+import _ganzi.codoc.user.enums.InitLevel;
+import _ganzi.codoc.user.enums.UserStatus;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 

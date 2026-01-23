@@ -1,6 +1,7 @@
 package _ganzi.codoc.user.domain;
 
 import _ganzi.codoc.global.domain.BaseTimeEntity;
+import _ganzi.codoc.user.enums.QuestStatus;
 import jakarta.persistence.*;
 import java.time.Instant;
 import lombok.AccessLevel;

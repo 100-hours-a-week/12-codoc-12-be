@@ -1,6 +1,7 @@
 package _ganzi.codoc.user.domain;
 
 import _ganzi.codoc.global.domain.BaseTimeEntity;
+import _ganzi.codoc.user.enums.QuestType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;

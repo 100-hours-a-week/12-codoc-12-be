@@ -1,5 +1,8 @@
 package _ganzi.codoc.user.domain;
 
+import _ganzi.codoc.user.enums.DailyGoal;
+import _ganzi.codoc.user.enums.InitLevel;
+import _ganzi.codoc.user.enums.UserStatus;
 import jakarta.persistence.*;
 import java.time.Instant;
 import lombok.AccessLevel;

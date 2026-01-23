@@ -38,7 +38,7 @@ public class Quiz extends BaseTimeEntity {
     @Column(name = "choice", nullable = false, columnDefinition = "json")
     private String choice;
 
-    @Column(name = "answer", columnDefinition = "json")
+    @Column(name = "answer", nullable = false, columnDefinition = "json")
     private String answer;
 
     @Column(name = "sequence", nullable = false)

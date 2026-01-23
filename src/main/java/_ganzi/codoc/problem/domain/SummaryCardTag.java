@@ -18,4 +18,7 @@ public class SummaryCardTag extends BaseTimeEntity {
 
     @Column(name = "name", length = 50)
     private String name;
+
+    @Column(name = "sequence", nullable = false)
+    private int sequence;
 }

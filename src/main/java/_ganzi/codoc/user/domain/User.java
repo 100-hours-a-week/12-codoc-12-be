@@ -47,13 +47,14 @@ public class User {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
-    private User(String nickname, UserStatus status) {
+    private User(String nickname, UserStatus status, Avatar avatar) {
         this.nickname = nickname;
         this.status = status;
+        this.avatar = avatar;
     }
 
-    public static User createOnboardingUser(String nickname) {
-        return new User(nickname, UserStatus.ONBOARDING);
+    public static User createOnboardingUser(String nickname, Avatar avatar) {
+        return new User(nickname, UserStatus.ONBOARDING, avatar);
     }
 
     public void completeOnboarding(InitLevel initLevel, DailyGoal dailyGoal) {
@@ -82,10 +83,6 @@ public class User {
 
     public void updateAvatar(Avatar avatar) {
         this.avatar = avatar;
-    }
-
-    public void removeAvatar() {
-        this.avatar = null;
     }
 
     public void updateDailyGoal(DailyGoal dailyGoal) {

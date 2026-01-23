@@ -1,7 +1,7 @@
 package _ganzi.codoc.user.api.dto;
 
-import _ganzi.codoc.user.domain.DailyGoal;
-import _ganzi.codoc.user.domain.InitLevel;
+import _ganzi.codoc.user.enums.DailyGoal;
+import _ganzi.codoc.user.enums.InitLevel;
 import jakarta.validation.constraints.NotNull;
 
 public record UserInitSurveyRequest(

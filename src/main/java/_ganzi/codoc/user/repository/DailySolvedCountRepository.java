@@ -1,5 +1,7 @@
-package _ganzi.codoc.user.domain;
+package _ganzi.codoc.user.repository;
 
+import _ganzi.codoc.user.domain.DailySolvedCount;
+import _ganzi.codoc.user.domain.User;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;

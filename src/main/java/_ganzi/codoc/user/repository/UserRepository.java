@@ -1,5 +1,7 @@
-package _ganzi.codoc.user.domain;
+package _ganzi.codoc.user.repository;
 
+import _ganzi.codoc.user.domain.User;
+import _ganzi.codoc.user.enums.UserStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;

@@ -28,6 +28,10 @@ public class SummaryCard extends BaseTimeEntity {
     @JoinColumn(name = "problem_id", nullable = false)
     private Problem problem;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "summary_card_tag_id", nullable = false)
+    private SummaryCardTag summaryCardTag;
+
     @Column(name = "choice", nullable = false, columnDefinition = "json")
     private String choice;
 

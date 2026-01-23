@@ -1,7 +1,9 @@
 package _ganzi.codoc.problem.domain;
 
+import _ganzi.codoc.global.converter.StringListConverter;
 import _ganzi.codoc.global.domain.BaseTimeEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -33,6 +35,7 @@ public class SummaryCard extends BaseTimeEntity {
     @JoinColumn(name = "summary_card_tag_id", nullable = false)
     private SummaryCardTag summaryCardTag;
 
+    @Convert(converter = StringListConverter.class)
     @Column(name = "choices", nullable = false, columnDefinition = "json")
     private List<String> choices;
 

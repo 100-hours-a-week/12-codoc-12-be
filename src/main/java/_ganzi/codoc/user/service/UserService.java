@@ -45,18 +45,6 @@ public class UserService {
     }
 
     @Transactional
-    public void changeNickname(Long id, String nickname) {
-        User user = getUser(id);
-        if (nickname.equals(user.getNickname())) {
-            return;
-        }
-        if (userRepository.existsByNicknameAndIdNot(nickname, id)) {
-            throw new DuplicateNicknameException();
-        }
-        user.updateNickname(nickname);
-    }
-
-    @Transactional
     public void updateProfile(Long id, String nickname, Integer avatarId) {
         User user = getUser(id);
         if (nickname != null && !nickname.equals(user.getNickname())) {

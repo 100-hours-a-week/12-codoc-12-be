@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,11 +36,11 @@ public class Quiz extends BaseTimeEntity {
     @Column(name = "question", nullable = false, length = 255)
     private String question;
 
-    @Column(name = "choice", nullable = false, columnDefinition = "json")
-    private String choice;
+    @Column(name = "choices", nullable = false, columnDefinition = "json")
+    private List<String> choices;
 
-    @Column(name = "answer", nullable = false, columnDefinition = "json")
-    private String answer;
+    @Column(name = "answer_index", nullable = false)
+    private int answerIndex;
 
     @Column(name = "sequence", nullable = false)
     private int sequence;

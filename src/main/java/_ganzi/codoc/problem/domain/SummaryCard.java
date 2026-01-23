@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -32,9 +33,9 @@ public class SummaryCard extends BaseTimeEntity {
     @JoinColumn(name = "summary_card_tag_id", nullable = false)
     private SummaryCardTag summaryCardTag;
 
-    @Column(name = "choice", nullable = false, columnDefinition = "json")
-    private String choice;
+    @Column(name = "choices", nullable = false, columnDefinition = "json")
+    private List<String> choices;
 
-    @Column(name = "answer", nullable = false, columnDefinition = "json")
-    private String answer;
+    @Column(name = "answer_index", nullable = false)
+    private int answerIndex;
 }

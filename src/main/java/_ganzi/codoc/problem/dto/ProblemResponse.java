@@ -3,7 +3,7 @@ package _ganzi.codoc.problem.dto;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.domain.Quiz;
 import _ganzi.codoc.problem.domain.SummaryCard;
-import _ganzi.codoc.problem.enums.ProblemSolvingStatus;
+import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
 import java.util.List;
 import lombok.Builder;
 

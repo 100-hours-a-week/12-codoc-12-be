@@ -1,4 +1,4 @@
-package _ganzi.codoc.problem.enums;
+package _ganzi.codoc.submission.enums;
 
 import lombok.RequiredArgsConstructor;
 

@@ -1,7 +1,7 @@
 package _ganzi.codoc.problem.dto;
 
 import _ganzi.codoc.problem.enums.ProblemLevel;
-import _ganzi.codoc.problem.enums.ProblemSolvingStatus;
+import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 

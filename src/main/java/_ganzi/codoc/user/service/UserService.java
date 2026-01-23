@@ -19,7 +19,6 @@ public class UserService {
     private final UserRepository userRepository;
     private final AvatarRepository avatarRepository;
 
-    private static final int DEFAULT_AVATAR_ID = 1;
     private static final int RANDOM_NICKNAME_LENGTH = 15;
 
     public User getUser(Long id) {
@@ -38,7 +37,7 @@ public class UserService {
     @Transactional
     public User createOnboardingUser() {
         Avatar defaultAvatar =
-                avatarRepository.findById(DEFAULT_AVATAR_ID).orElseThrow(AvatarNotFoundException::new);
+                avatarRepository.findByIsDefaultTrue().orElseThrow(AvatarNotFoundException::new);
         String nickname = generateUniqueNickname();
         User user = User.createOnboardingUser(nickname, defaultAvatar);
         return userRepository.save(user);

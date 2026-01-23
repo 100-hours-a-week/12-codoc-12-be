@@ -27,12 +27,16 @@ public class Avatar extends BaseTimeEntity {
     @Column(name = "image_url", nullable = false, length = 500)
     private String imageUrl;
 
-    private Avatar(String name, String imageUrl) {
+    @Column(name = "is_default", nullable = false)
+    private boolean isDefault;
+
+    private Avatar(String name, String imageUrl, boolean isDefault) {
         this.name = name;
         this.imageUrl = imageUrl;
+        this.isDefault = isDefault;
     }
 
     public static Avatar createNewAvatar(String name, String imageUrl) {
-        return new Avatar(name, imageUrl);
+        return new Avatar(name, imageUrl, false);
     }
 }

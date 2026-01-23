@@ -6,6 +6,7 @@ import _ganzi.codoc.user.domain.AvatarRepository;
 import _ganzi.codoc.user.domain.DailyGoal;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.domain.UserRepository;
+import _ganzi.codoc.user.exception.AvatarNotFoundException;
 import _ganzi.codoc.user.exception.DuplicateNicknameException;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.service.dto.UserProfileResponse;
@@ -39,7 +40,7 @@ public class UserService {
     @Transactional
     public User createOnboardingUser(String nickname) {
         Avatar defaultAvatar =
-                avatarRepository.findById(DEFAULT_AVATAR_ID).orElseThrow(UserNotFoundException::new);
+                avatarRepository.findById(DEFAULT_AVATAR_ID).orElseThrow(AvatarNotFoundException::new);
         User user = User.createOnboardingUser(nickname, defaultAvatar);
         return userRepository.save(user);
     }
@@ -54,7 +55,7 @@ public class UserService {
             user.updateNickname(nickname);
         }
         if (avatarId != null) {
-            Avatar avatar = avatarRepository.findById(avatarId).orElseThrow(UserNotFoundException::new);
+            Avatar avatar = avatarRepository.findById(avatarId).orElseThrow(AvatarNotFoundException::new);
             user.updateAvatar(avatar);
         }
     }

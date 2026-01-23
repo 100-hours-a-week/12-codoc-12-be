@@ -1,7 +1,9 @@
 package _ganzi.codoc.problem.domain;
 
+import _ganzi.codoc.global.converter.StringListConverter;
 import _ganzi.codoc.global.domain.BaseTimeEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -36,6 +38,7 @@ public class Quiz extends BaseTimeEntity {
     @Column(name = "question", nullable = false, length = 255)
     private String question;
 
+    @Convert(converter = StringListConverter.class)
     @Column(name = "choices", nullable = false, columnDefinition = "json")
     private List<String> choices;
 

@@ -15,4 +15,12 @@ public enum ProblemSolvingStatus {
     public String toDescription() {
         return description;
     }
+
+    public ProblemSolvingStatus nextStatusForSummaryCard(boolean allCorrect) {
+        if (this == SUMMARY_PASSED || this == SOLVED) {
+            return this;
+        }
+
+        return allCorrect ? SUMMARY_PASSED : IN_PROGRESS;
+    }
 }

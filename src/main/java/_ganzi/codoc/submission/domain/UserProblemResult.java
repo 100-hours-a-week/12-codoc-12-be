@@ -32,4 +32,21 @@ public class UserProblemResult extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 50)
     private ProblemSolvingStatus status;
+
+    private UserProblemResult(User user, Problem problem, ProblemSolvingStatus status) {
+        this.user = user;
+        this.problem = problem;
+        this.status = status;
+    }
+
+    public static UserProblemResult createForSummaryCard(
+            User user, Problem problem, boolean allCorrect) {
+        ProblemSolvingStatus status =
+                ProblemSolvingStatus.NOT_ATTEMPTED.nextStatusForSummaryCard(allCorrect);
+        return new UserProblemResult(user, problem, status);
+    }
+
+    public void applyNextStatusForSummaryCard(boolean allCorrect) {
+        this.status = this.status.nextStatusForSummaryCard(allCorrect);
+    }
 }

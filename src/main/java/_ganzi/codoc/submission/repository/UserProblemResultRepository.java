@@ -1,6 +1,6 @@
-package _ganzi.codoc.problem.repository;
+package _ganzi.codoc.submission.repository;
 
-import _ganzi.codoc.problem.domain.UserProblemResult;
+import _ganzi.codoc.submission.domain.UserProblemResult;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 

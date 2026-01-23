@@ -1,6 +1,8 @@
 spring:
   application:
     name: codoc
+  jackson:
+    time-zone: Asia/Seoul
 
   datasource:
     url: ${DB_URL}

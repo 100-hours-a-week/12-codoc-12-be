@@ -1,15 +1,12 @@
 package _ganzi.codoc.user.service;
 
 import _ganzi.codoc.user.api.dto.UserInitSurveyRequest;
-import _ganzi.codoc.user.domain.Avatar;
-import _ganzi.codoc.user.domain.AvatarRepository;
-import _ganzi.codoc.user.domain.DailyGoal;
-import _ganzi.codoc.user.domain.User;
-import _ganzi.codoc.user.domain.UserRepository;
+import _ganzi.codoc.user.domain.*;
 import _ganzi.codoc.user.exception.AvatarNotFoundException;
 import _ganzi.codoc.user.exception.DuplicateNicknameException;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.service.dto.UserProfileResponse;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +20,7 @@ public class UserService {
     private final AvatarRepository avatarRepository;
 
     private static final int DEFAULT_AVATAR_ID = 1;
+    private static final int RANDOM_NICKNAME_LENGTH = 15;
 
     public User getUser(Long id) {
         return userRepository.findById(id).orElseThrow(UserNotFoundException::new);
@@ -38,9 +36,10 @@ public class UserService {
     }
 
     @Transactional
-    public User createOnboardingUser(String nickname) {
+    public User createOnboardingUser() {
         Avatar defaultAvatar =
                 avatarRepository.findById(DEFAULT_AVATAR_ID).orElseThrow(AvatarNotFoundException::new);
+        String nickname = generateUniqueNickname();
         User user = User.createOnboardingUser(nickname, defaultAvatar);
         return userRepository.save(user);
     }
@@ -82,5 +81,14 @@ public class UserService {
     public void completeOnboarding(Long id, UserInitSurveyRequest request) {
         User user = getUser(id);
         user.completeOnboarding(request.initLevel(), request.dailyGoal());
+    }
+
+    private String generateUniqueNickname() {
+        String nickname;
+        do {
+            nickname = UUID.randomUUID().toString().replace("-", "");
+            nickname = nickname.substring(0, RANDOM_NICKNAME_LENGTH);
+        } while (userRepository.existsByNickname(nickname));
+        return nickname;
     }
 }

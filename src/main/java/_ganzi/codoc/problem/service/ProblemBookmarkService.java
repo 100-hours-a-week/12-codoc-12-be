@@ -23,7 +23,6 @@ public class ProblemBookmarkService {
 
     @Transactional
     public void registerBookmark(Long userId, Long problemId) {
-
         if (bookmarkRepository.existsByUserIdAndProblemId(userId, problemId)) {
             return;
         }
@@ -33,5 +32,12 @@ public class ProblemBookmarkService {
                 problemRepository.findById(problemId).orElseThrow(ProblemNotFoundException::new);
 
         bookmarkRepository.save(Bookmark.create(user, problem));
+    }
+
+    @Transactional
+    public void removeBookmark(Long userId, Long problemId) {
+        userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        problemRepository.findById(problemId).orElseThrow(ProblemNotFoundException::new);
+        bookmarkRepository.deleteByUserIdAndProblemId(userId, problemId);
     }
 }

@@ -8,7 +8,8 @@ import org.springframework.http.HttpStatus;
 public enum QuestErrorCode implements ErrorCode {
     QUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "QUEST_NOT_FOUND", "퀘스트가 존재하지 않습니다."),
     QUEST_IN_PROGRESS(HttpStatus.CONFLICT, "QUEST_IN_PROGRESS", "퀘스트가 아직 진행 중입니다."),
-    QUEST_ALREADY_CLAIMED(HttpStatus.CONFLICT, "QUEST_ALREADY_CLAIMED", "이미 보상을 받은 퀘스트입니다.");
+    QUEST_ALREADY_CLAIMED(HttpStatus.CONFLICT, "QUEST_ALREADY_CLAIMED", "이미 보상을 받은 퀘스트입니다."),
+    QUEST_EXPIRED(HttpStatus.CONFLICT, "QUEST_EXPIRED", "만료된 퀘스트입니다.");
 
     private final HttpStatus status;
     private final String code;

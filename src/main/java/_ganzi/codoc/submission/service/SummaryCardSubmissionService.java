@@ -11,6 +11,7 @@ import _ganzi.codoc.submission.dto.SummaryCardGradingResponse;
 import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
 import _ganzi.codoc.submission.exception.InvalidAnswerFormatException;
 import _ganzi.codoc.submission.repository.UserProblemResultRepository;
+import _ganzi.codoc.submission.util.AnswerChecker;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
@@ -50,7 +51,7 @@ public class SummaryCardSubmissionService {
         boolean allCorrect = true;
 
         for (int i = 0; i < summaryCards.size(); i++) {
-            boolean result = checkAnswer(summaryCards.get(i), choiceIds.get(i));
+            boolean result = AnswerChecker.check(summaryCards.get(i).getAnswerIndex(), choiceIds.get(i));
             results.add(result);
             allCorrect &= result;
         }
@@ -58,10 +59,6 @@ public class SummaryCardSubmissionService {
         ProblemSolvingStatus updatedStatus = updateProblemSolvingStatus(userId, problem, allCorrect);
 
         return SummaryCardGradingResponse.of(results, updatedStatus);
-    }
-
-    private static boolean checkAnswer(SummaryCard summaryCard, Integer choiceId) {
-        return choiceId == summaryCard.getAnswerIndex();
     }
 
     private ProblemSolvingStatus updateProblemSolvingStatus(

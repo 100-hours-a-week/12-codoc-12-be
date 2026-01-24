@@ -16,6 +16,7 @@ import _ganzi.codoc.submission.exception.QuizGradingNotAllowedException;
 import _ganzi.codoc.submission.repository.UserProblemResultRepository;
 import _ganzi.codoc.submission.repository.UserQuizAttemptRepository;
 import _ganzi.codoc.submission.repository.UserQuizResultRepository;
+import _ganzi.codoc.submission.util.AnswerChecker;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
@@ -70,14 +71,10 @@ public class QuizSubmissionService {
             return QuizGradingResponse.of(existingResult.isCorrect(), attempt.getId());
         }
 
-        boolean result = checkAnswer(quiz, request.choiceId());
+        boolean result = AnswerChecker.check(quiz.getAnswerIndex(), request.choiceId());
         saveQuizResult(attempt, quiz, idempotencyKey, result);
 
         return QuizGradingResponse.of(result, attempt.getId());
-    }
-
-    private boolean checkAnswer(Quiz quiz, Integer choiceId) {
-        return choiceId == quiz.getAnswerIndex();
     }
 
     private void validateQuizGradingAvailable(Long userId, Quiz quiz) {

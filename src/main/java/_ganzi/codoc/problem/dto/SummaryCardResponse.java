@@ -9,7 +9,7 @@ public record SummaryCardResponse(String paragraphType, List<String> choices) {
 
     public static SummaryCardResponse from(SummaryCard summaryCard) {
         return SummaryCardResponse.builder()
-                .paragraphType(summaryCard.getSummaryCardTag().getName())
+                .paragraphType(summaryCard.getParagraphType().name())
                 .choices(summaryCard.getChoices())
                 .build();
     }

@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 public enum ProblemErrorCode implements ErrorCode {
     PROBLEM_NOT_FOUND(HttpStatus.NOT_FOUND, "PROBLEM_NOT_FOUND", "문제를 찾을 수 없습니다."),
     SUMMARY_CARD_NOT_FOUND(HttpStatus.NOT_FOUND, "SUMMARY_CARD_NOT_FOUND", "문제 요약 카드를 찾을 수 없습니다."),
+    QUIZ_NOT_FOUND(HttpStatus.NOT_FOUND, "QUIZ_NOT_FOUND", "퀴즈를 찾을 수 없습니다."),
     ;
 
     private final HttpStatus status;

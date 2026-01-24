@@ -40,4 +40,13 @@ public class Bookmark {
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    private Bookmark(User user, Problem problem) {
+        this.user = user;
+        this.problem = problem;
+    }
+
+    public static Bookmark create(User user, Problem problem) {
+        return new Bookmark(user, problem);
+    }
 }

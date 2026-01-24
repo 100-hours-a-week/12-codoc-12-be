@@ -33,7 +33,8 @@ public class UserController {
 
     @PatchMapping("/profile")
     public ResponseEntity<ApiResponse<UserProfileUpdateResponse>> updateProfile(
-            @RequestHeader("X-USER-ID") Long userId, @RequestBody UserProfileUpdateRequest request) {
+            @RequestHeader("X-USER-ID") Long userId,
+            @Valid @RequestBody UserProfileUpdateRequest request) {
         userService.updateProfile(userId, request.nickname(), request.avatarId());
         UserProfileResponse profile = userService.getUserProfile(userId);
         return ResponseEntity.ok(

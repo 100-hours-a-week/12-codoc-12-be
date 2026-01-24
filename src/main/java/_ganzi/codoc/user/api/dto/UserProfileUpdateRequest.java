@@ -1,3 +1,5 @@
 package _ganzi.codoc.user.api.dto;
 
-public record UserProfileUpdateRequest(String nickname, Integer avatarId) {}
+import _ganzi.codoc.user.api.validation.Nickname;
+
+public record UserProfileUpdateRequest(@Nickname String nickname, Integer avatarId) {}

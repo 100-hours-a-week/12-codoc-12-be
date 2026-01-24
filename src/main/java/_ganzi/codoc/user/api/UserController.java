@@ -1,10 +1,12 @@
 package _ganzi.codoc.user.api;
 
 import _ganzi.codoc.global.dto.ApiResponse;
+import _ganzi.codoc.user.api.dto.UserInitSurveyRequest;
 import _ganzi.codoc.user.api.dto.UserProfileUpdateRequest;
 import _ganzi.codoc.user.service.UserService;
 import _ganzi.codoc.user.service.dto.UserProfileResponse;
 import _ganzi.codoc.user.service.dto.UserProfileUpdateResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,5 +37,12 @@ public class UserController {
         return ResponseEntity.ok(
                 ApiResponse.success(
                         new UserProfileUpdateResponse(profile.nickname(), profile.avatarImageUrl())));
+    }
+
+    @PatchMapping("/init-survey")
+    public ResponseEntity<Void> saveInitSurvey(
+            @RequestHeader("X-USER-ID") Long userId, @Valid @RequestBody UserInitSurveyRequest request) {
+        userService.completeOnboarding(userId, request);
+        return ResponseEntity.noContent().build();
     }
 }

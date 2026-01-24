@@ -7,6 +7,7 @@ import _ganzi.codoc.user.service.dto.UserStatsResponse;
 import _ganzi.codoc.user.service.dto.UserStreakResponse;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,8 +33,8 @@ public class UserStatsController {
     @GetMapping("/contribution")
     public ResponseEntity<ApiResponse<UserContributionResponse>> getUserContribution(
             @RequestHeader("X-USER-ID") Long userId,
-            @RequestParam("from_date") LocalDate fromDate,
-            @RequestParam("to_date") LocalDate toDate) {
+            @RequestParam("from_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam("to_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
         return ResponseEntity.ok(
                 ApiResponse.success(userStatsService.getUserContribution(userId, fromDate, toDate)));
     }

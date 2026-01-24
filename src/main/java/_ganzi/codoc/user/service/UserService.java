@@ -9,7 +9,9 @@ import _ganzi.codoc.user.exception.DuplicateNicknameException;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.AvatarRepository;
 import _ganzi.codoc.user.repository.UserRepository;
+import _ganzi.codoc.user.service.dto.UserAvatarListResponse;
 import _ganzi.codoc.user.service.dto.UserProfileResponse;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,16 @@ public class UserService {
         String avatarName = avatar.getName();
         String avatarImageUrl = avatar.getImageUrl();
         return new UserProfileResponse(user.getNickname(), avatarId, avatarName, avatarImageUrl);
+    }
+
+    public UserAvatarListResponse getAvatarList() {
+        List<UserAvatarListResponse.AvatarItem> avatars =
+                avatarRepository.findAll().stream()
+                        .map(
+                                avatar ->
+                                        new UserAvatarListResponse.AvatarItem(avatar.getId(), avatar.getImageUrl()))
+                        .toList();
+        return new UserAvatarListResponse(avatars);
     }
 
     @Transactional

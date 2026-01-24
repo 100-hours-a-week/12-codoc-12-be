@@ -7,6 +7,10 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum SubmissionErrorCode implements ErrorCode {
     INVALID_ANSWER_FORMAT(HttpStatus.BAD_REQUEST, "INVALID_ANSWER_FORMAT", "답변 형식이 올바르지 않습니다."),
+    QUIZ_GRADING_NOT_ALLOWED(
+            HttpStatus.BAD_REQUEST, "QUIZ_GRADING_NOT_ALLOWED", "문제 요약 카드 풀이가 완료되지 않았습니다."),
+    INVALID_QUIZ_ATTEMPT(HttpStatus.BAD_REQUEST, "INVALID_QUIZ_ATTEMPT", "유효하지 않은 퀴즈 시도입니다."),
+    QUIZ_ALREADY_SUBMITTED(HttpStatus.BAD_REQUEST, "QUIZ_ALREADY_SUBMITTED", "이미 제출된 퀴즈입니다."),
     ;
 
     private final HttpStatus status;

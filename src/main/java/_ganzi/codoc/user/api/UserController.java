@@ -1,9 +1,11 @@
 package _ganzi.codoc.user.api;
 
 import _ganzi.codoc.global.dto.ApiResponse;
+import _ganzi.codoc.user.api.dto.UserDailyGoalRequest;
 import _ganzi.codoc.user.api.dto.UserInitSurveyRequest;
 import _ganzi.codoc.user.api.dto.UserProfileUpdateRequest;
 import _ganzi.codoc.user.service.UserService;
+import _ganzi.codoc.user.service.dto.UserDailyGoalResponse;
 import _ganzi.codoc.user.service.dto.UserProfileResponse;
 import _ganzi.codoc.user.service.dto.UserProfileUpdateResponse;
 import jakarta.validation.Valid;
@@ -44,5 +46,12 @@ public class UserController {
             @RequestHeader("X-USER-ID") Long userId, @Valid @RequestBody UserInitSurveyRequest request) {
         userService.completeOnboarding(userId, request);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/daily-goal")
+    public ResponseEntity<ApiResponse<UserDailyGoalResponse>> updateDailyGoal(
+            @RequestHeader("X-USER-ID") Long userId, @Valid @RequestBody UserDailyGoalRequest request) {
+        userService.updateDailyGoal(userId, request.dailyGoal());
+        return ResponseEntity.ok(ApiResponse.success(new UserDailyGoalResponse(request.dailyGoal())));
     }
 }

@@ -67,7 +67,7 @@ public class ProblemService {
         boolean bookmarked = bookmarkRepository.existsByUserIdAndProblemId(userId, problemId);
 
         List<SummaryCard> summaryCards =
-                summaryCardRepository.findByProblemIdOrderBySummaryCardTagSequenceAsc(problemId);
+                summaryCardRepository.findByProblemIdOrderByParagraphOrderAsc(problemId);
 
         List<Quiz> quizzes = quizRepository.findByProblemIdOrderBySequenceAsc(problemId);
 

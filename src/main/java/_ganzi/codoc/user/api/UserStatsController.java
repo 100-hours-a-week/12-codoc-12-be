@@ -3,6 +3,7 @@ package _ganzi.codoc.user.api;
 import _ganzi.codoc.global.dto.ApiResponse;
 import _ganzi.codoc.user.service.UserStatsService;
 import _ganzi.codoc.user.service.dto.UserStatsResponse;
+import _ganzi.codoc.user.service.dto.UserStreakResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,5 +22,11 @@ public class UserStatsController {
     public ResponseEntity<ApiResponse<UserStatsResponse>> getUserStats(
             @RequestHeader("X-USER-ID") Long userId) {
         return ResponseEntity.ok(ApiResponse.success(userStatsService.getUserStats(userId)));
+    }
+
+    @GetMapping("/streak")
+    public ResponseEntity<ApiResponse<UserStreakResponse>> getUserStreak(
+            @RequestHeader("X-USER-ID") Long userId) {
+        return ResponseEntity.ok(ApiResponse.success(userStatsService.getUserStreak(userId)));
     }
 }

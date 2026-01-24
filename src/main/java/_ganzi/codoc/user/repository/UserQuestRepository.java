@@ -17,4 +17,6 @@ public interface UserQuestRepository extends JpaRepository<UserQuest, Long> {
     List<UserQuest> findAllByUserAndExpiresAtBefore(User user, Instant now);
 
     List<UserQuest> findAllByUserAndStatus(User user, QuestStatus status);
+
+    List<UserQuest> findAllByUserAndStatusNot(User user, QuestStatus status);
 }

@@ -32,4 +32,33 @@ public class UserQuest extends BaseTimeEntity {
 
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
+
+    private UserQuest(User user, Quest quest, QuestStatus status, Instant expiresAt) {
+        this.user = user;
+        this.quest = quest;
+        this.status = status;
+        this.expiresAt = expiresAt;
+    }
+
+    public static UserQuest create(User user, Quest quest, Instant expiresAt) {
+        return new UserQuest(user, quest, QuestStatus.IN_PROGRESS, expiresAt);
+    }
+
+    public void markCompleted() {
+        if (this.status == QuestStatus.IN_PROGRESS) {
+            this.status = QuestStatus.COMPLETED;
+        }
+    }
+
+    public void markClaimed() {
+        if (this.status == QuestStatus.COMPLETED) {
+            this.status = QuestStatus.CLAIMED;
+        }
+    }
+
+    public void markExpired() {
+        if (this.status != QuestStatus.CLAIMED) {
+            this.status = QuestStatus.EXPIRED;
+        }
+    }
 }

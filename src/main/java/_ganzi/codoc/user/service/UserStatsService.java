@@ -1,6 +1,8 @@
 package _ganzi.codoc.user.service;
 
-import _ganzi.codoc.user.domain.*;
+import _ganzi.codoc.user.domain.DailySolvedCount;
+import _ganzi.codoc.user.domain.User;
+import _ganzi.codoc.user.domain.UserStats;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.DailySolvedCountRepository;
 import _ganzi.codoc.user.repository.UserRepository;
@@ -19,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class UserStatsService {
 
-    private static final int MIN_SOLVE_COUNT = 0;
+    private static final int MIN_SOLVE_COUNT = 1;
 
     private final UserRepository userRepository;
     private final UserStatsRepository userStatsRepository;

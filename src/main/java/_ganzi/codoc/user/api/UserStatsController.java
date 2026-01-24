@@ -2,14 +2,13 @@ package _ganzi.codoc.user.api;
 
 import _ganzi.codoc.global.dto.ApiResponse;
 import _ganzi.codoc.user.service.UserStatsService;
+import _ganzi.codoc.user.service.dto.UserContributionResponse;
 import _ganzi.codoc.user.service.dto.UserStatsResponse;
 import _ganzi.codoc.user.service.dto.UserStreakResponse;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -28,5 +27,14 @@ public class UserStatsController {
     public ResponseEntity<ApiResponse<UserStreakResponse>> getUserStreak(
             @RequestHeader("X-USER-ID") Long userId) {
         return ResponseEntity.ok(ApiResponse.success(userStatsService.getUserStreak(userId)));
+    }
+
+    @GetMapping("/contribution")
+    public ResponseEntity<ApiResponse<UserContributionResponse>> getUserContribution(
+            @RequestHeader("X-USER-ID") Long userId,
+            @RequestParam("from_date") LocalDate fromDate,
+            @RequestParam("to_date") LocalDate toDate) {
+        return ResponseEntity.ok(
+                ApiResponse.success(userStatsService.getUserContribution(userId, fromDate, toDate)));
     }
 }

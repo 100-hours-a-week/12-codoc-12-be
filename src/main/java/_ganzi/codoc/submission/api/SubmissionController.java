@@ -2,8 +2,11 @@ package _ganzi.codoc.submission.api;
 
 import _ganzi.codoc.global.annotation.CurrentUserId;
 import _ganzi.codoc.global.dto.ApiResponse;
+import _ganzi.codoc.submission.dto.QuizGradingRequest;
+import _ganzi.codoc.submission.dto.QuizGradingResponse;
 import _ganzi.codoc.submission.dto.SummaryCardGradingRequest;
 import _ganzi.codoc.submission.dto.SummaryCardGradingResponse;
+import _ganzi.codoc.submission.service.QuizSubmissionService;
 import _ganzi.codoc.submission.service.SummaryCardSubmissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SubmissionController {
 
     private final SummaryCardSubmissionService summaryCardSubmissionService;
+    private final QuizSubmissionService quizSubmissionService;
 
     @PostMapping("/problems/{problemId}/summary-cards")
     public ResponseEntity<ApiResponse<SummaryCardGradingResponse>> gradeSummaryCards(
@@ -29,6 +33,17 @@ public class SubmissionController {
 
         SummaryCardGradingResponse response =
                 summaryCardSubmissionService.gradeSummaryCards(userId, problemId, request);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/quizzes/{quizId}")
+    public ResponseEntity<ApiResponse<QuizGradingResponse>> gradeQuiz(
+            @CurrentUserId Long userId,
+            @PathVariable Long quizId,
+            @Valid @RequestBody QuizGradingRequest request) {
+
+        QuizGradingResponse response = quizSubmissionService.gradeQuiz(userId, quizId, request);
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }

@@ -1,7 +1,8 @@
 package _ganzi.codoc.user.service;
 
 import _ganzi.codoc.user.api.dto.UserInitSurveyRequest;
-import _ganzi.codoc.user.domain.*;
+import _ganzi.codoc.user.domain.Avatar;
+import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.enums.DailyGoal;
 import _ganzi.codoc.user.exception.AvatarNotFoundException;
 import _ganzi.codoc.user.exception.DuplicateNicknameException;

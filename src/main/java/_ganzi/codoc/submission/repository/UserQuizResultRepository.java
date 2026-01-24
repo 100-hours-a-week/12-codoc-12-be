@@ -10,4 +10,8 @@ public interface UserQuizResultRepository extends JpaRepository<UserQuizResult, 
 
     Optional<UserQuizResult> findByAttemptUserIdAndQuizIdAndIdempotencyKey(
             Long userId, Long quizId, String idempotencyKey);
+
+    int countByAttemptId(Long attemptId);
+
+    int countByAttemptIdAndCorrectTrue(Long attemptId);
 }

@@ -12,4 +12,7 @@ public interface UserQuizAttemptRepository extends JpaRepository<UserQuizAttempt
 
     List<UserQuizAttempt> findAllByUserIdAndProblemIdAndStatus(
             Long userId, Long problemId, QuizAttemptStatus status);
+
+    Optional<UserQuizAttempt> findFirstByUserIdAndProblemIdAndStatusOrderByIdDesc(
+            Long userId, Long problemId, QuizAttemptStatus status);
 }

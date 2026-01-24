@@ -2,16 +2,8 @@ package _ganzi.codoc.problem.domain;
 
 import _ganzi.codoc.global.converter.StringListConverter;
 import _ganzi.codoc.global.domain.BaseTimeEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import _ganzi.codoc.problem.enums.ParagraphType;
+import jakarta.persistence.*;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -31,9 +23,12 @@ public class SummaryCard extends BaseTimeEntity {
     @JoinColumn(name = "problem_id", nullable = false)
     private Problem problem;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "summary_card_tag_id", nullable = false)
-    private SummaryCardTag summaryCardTag;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "paragraph_type", nullable = false)
+    private ParagraphType paragraphType;
+
+    @Column(name = "paragraph_order", nullable = false)
+    private int paragraphOrder;
 
     @Convert(converter = StringListConverter.class)
     @Column(name = "choices", nullable = false, columnDefinition = "json")

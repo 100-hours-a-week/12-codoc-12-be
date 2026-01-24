@@ -39,7 +39,7 @@ public class SummaryCardSubmissionService {
                 problemRepository.findById(problemId).orElseThrow(ProblemNotFoundException::new);
 
         List<SummaryCard> summaryCards =
-                summaryCardRepository.findByProblemIdOrderBySummaryCardTagSequenceAsc(problemId);
+                summaryCardRepository.findByProblemIdOrderByParagraphOrderAsc(problemId);
 
         List<Integer> choiceIds = request.choiceIds();
 

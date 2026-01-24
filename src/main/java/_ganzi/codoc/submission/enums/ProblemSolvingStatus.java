@@ -23,4 +23,8 @@ public enum ProblemSolvingStatus {
 
         return allCorrect ? SUMMARY_PASSED : IN_PROGRESS;
     }
+
+    public boolean summaryCardPassed() {
+        return this == SUMMARY_PASSED || this == SOLVED;
+    }
 }

@@ -1,5 +1,6 @@
 package _ganzi.codoc.user.api;
 
+import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.global.dto.ApiResponse;
 import _ganzi.codoc.user.service.UserStatsService;
 import _ganzi.codoc.user.service.dto.UserContributionResponse;
@@ -9,6 +10,7 @@ import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,22 +22,24 @@ public class UserStatsController {
 
     @GetMapping("/stats")
     public ResponseEntity<ApiResponse<UserStatsResponse>> getUserStats(
-            @RequestHeader("X-USER-ID") Long userId) {
-        return ResponseEntity.ok(ApiResponse.success(userStatsService.getUserStats(userId)));
+            @AuthenticationPrincipal AuthUser authUser) {
+        return ResponseEntity.ok(ApiResponse.success(userStatsService.getUserStats(authUser.userId())));
     }
 
     @GetMapping("/streak")
     public ResponseEntity<ApiResponse<UserStreakResponse>> getUserStreak(
-            @RequestHeader("X-USER-ID") Long userId) {
-        return ResponseEntity.ok(ApiResponse.success(userStatsService.getUserStreak(userId)));
+            @AuthenticationPrincipal AuthUser authUser) {
+        return ResponseEntity.ok(
+                ApiResponse.success(userStatsService.getUserStreak(authUser.userId())));
     }
 
     @GetMapping("/contribution")
     public ResponseEntity<ApiResponse<UserContributionResponse>> getUserContribution(
-            @RequestHeader("X-USER-ID") Long userId,
+            @AuthenticationPrincipal AuthUser authUser,
             @RequestParam("from_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam("to_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
         return ResponseEntity.ok(
-                ApiResponse.success(userStatsService.getUserContribution(userId, fromDate, toDate)));
+                ApiResponse.success(
+                        userStatsService.getUserContribution(authUser.userId(), fromDate, toDate)));
     }
 }

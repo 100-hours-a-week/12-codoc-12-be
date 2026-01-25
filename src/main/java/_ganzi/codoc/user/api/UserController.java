@@ -1,5 +1,6 @@
 package _ganzi.codoc.user.api;
 
+import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.global.dto.ApiResponse;
 import _ganzi.codoc.user.api.dto.UserDailyGoalRequest;
 import _ganzi.codoc.user.api.dto.UserInitSurveyRequest;
@@ -11,10 +12,10 @@ import _ganzi.codoc.user.service.dto.UserProfileUpdateResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,16 +28,16 @@ public class UserController {
 
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getProfile(
-            @RequestHeader("X-USER-ID") Long userId) {
-        return ResponseEntity.ok(ApiResponse.success(userService.getUserProfile(userId)));
+            @AuthenticationPrincipal AuthUser authUser) {
+        return ResponseEntity.ok(ApiResponse.success(userService.getUserProfile(authUser.userId())));
     }
 
     @PatchMapping("/profile")
     public ResponseEntity<ApiResponse<UserProfileUpdateResponse>> updateProfile(
-            @RequestHeader("X-USER-ID") Long userId,
+            @AuthenticationPrincipal AuthUser authUser,
             @Valid @RequestBody UserProfileUpdateRequest request) {
-        userService.updateProfile(userId, request.nickname(), request.avatarId());
-        UserProfileResponse profile = userService.getUserProfile(userId);
+        userService.updateProfile(authUser.userId(), request.nickname(), request.avatarId());
+        UserProfileResponse profile = userService.getUserProfile(authUser.userId());
         return ResponseEntity.ok(
                 ApiResponse.success(
                         new UserProfileUpdateResponse(profile.nickname(), profile.avatarImageUrl())));
@@ -44,15 +45,17 @@ public class UserController {
 
     @PatchMapping("/init-survey")
     public ResponseEntity<Void> saveInitSurvey(
-            @RequestHeader("X-USER-ID") Long userId, @Valid @RequestBody UserInitSurveyRequest request) {
-        userService.completeOnboarding(userId, request);
+            @AuthenticationPrincipal AuthUser authUser,
+            @Valid @RequestBody UserInitSurveyRequest request) {
+        userService.completeOnboarding(authUser.userId(), request);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/daily-goal")
     public ResponseEntity<ApiResponse<UserDailyGoalResponse>> updateDailyGoal(
-            @RequestHeader("X-USER-ID") Long userId, @Valid @RequestBody UserDailyGoalRequest request) {
-        userService.updateDailyGoal(userId, request.dailyGoal());
+            @AuthenticationPrincipal AuthUser authUser,
+            @Valid @RequestBody UserDailyGoalRequest request) {
+        userService.updateDailyGoal(authUser.userId(), request.dailyGoal());
         return ResponseEntity.ok(ApiResponse.success(new UserDailyGoalResponse(request.dailyGoal())));
     }
 }

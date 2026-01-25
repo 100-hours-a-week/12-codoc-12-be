@@ -1,9 +1,13 @@
 package _ganzi.codoc.user.service;
 
+import _ganzi.codoc.auth.domain.SocialLogin;
+import _ganzi.codoc.auth.repository.RefreshTokenRepository;
+import _ganzi.codoc.auth.repository.SocialLoginRepository;
 import _ganzi.codoc.user.api.dto.UserInitSurveyRequest;
 import _ganzi.codoc.user.domain.Avatar;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.enums.DailyGoal;
+import _ganzi.codoc.user.enums.UserStatus;
 import _ganzi.codoc.user.exception.AvatarNotFoundException;
 import _ganzi.codoc.user.exception.DuplicateNicknameException;
 import _ganzi.codoc.user.exception.UserNotFoundException;
@@ -24,6 +28,8 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final AvatarRepository avatarRepository;
+    private final SocialLoginRepository socialLoginRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     private static final int RANDOM_NICKNAME_LENGTH = 15;
 
@@ -96,6 +102,25 @@ public class UserService {
     public void completeOnboarding(Long id, UserInitSurveyRequest request) {
         User user = getUser(id);
         user.completeOnboarding(request.initLevel(), request.dailyGoal());
+    }
+
+    @Transactional
+    public void deleteUser(Long id) {
+        User user = getUser(id);
+        if (user.getStatus() == UserStatus.ONBOARDING) {
+            refreshTokenRepository.deleteByUser(user);
+            socialLoginRepository.deleteByUser(user);
+            userRepository.delete(user);
+            return;
+        }
+        if (user.getStatus() == UserStatus.DELETED) {
+            return;
+        }
+        user.markDeleted();
+        refreshTokenRepository.deleteByUser(user);
+        for (SocialLogin socialLogin : socialLoginRepository.findAllByUser(user)) {
+            socialLogin.markDeleted();
+        }
     }
 
     private String generateUniqueNickname() {

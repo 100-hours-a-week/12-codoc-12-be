@@ -70,8 +70,13 @@ public class KakaoAuthService {
                         .orElseGet(() -> createSocialLogin(userResponse));
 
         User user = socialLogin.getUser();
-        if (user.getStatus() == UserStatus.DORMANT) {
+        if (user.getStatus() == UserStatus.DELETED) {
+            user.restoreActiveFromDeleted();
+        } else if (user.getStatus() == UserStatus.DORMANT) {
             user.reviveFromDormant();
+        }
+        if (socialLogin.isDeleted()) {
+            socialLogin.restore();
         }
 
         return authTokenService.issueTokenPairInternal(user);

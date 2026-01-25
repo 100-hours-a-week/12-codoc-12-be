@@ -80,6 +80,20 @@ public class User {
         }
     }
 
+    public void restoreActiveFromDeleted() {
+        if (this.status == UserStatus.DELETED) {
+            this.status = UserStatus.ACTIVE;
+            this.deletedAt = null;
+        }
+    }
+
+    public void markDeleted() {
+        if (this.status != UserStatus.DELETED) {
+            this.status = UserStatus.DELETED;
+            this.deletedAt = Instant.now();
+        }
+    }
+
     public void updateNickname(String nickname) {
         this.nickname = nickname;
     }

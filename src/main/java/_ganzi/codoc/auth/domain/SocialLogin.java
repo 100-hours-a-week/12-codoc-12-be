@@ -63,4 +63,9 @@ public class SocialLogin extends BaseTimeEntity {
         this.isDeleted = true;
         this.deletedAt = Instant.now();
     }
+
+    public void restore() {
+        this.isDeleted = false;
+        this.deletedAt = null;
+    }
 }

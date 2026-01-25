@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 @Service
-public class HealthCheckService {
+public class AiServerHealthCheckService {
 
     private final HealthCheckClient healthCheckClient;
 

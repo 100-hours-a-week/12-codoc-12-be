@@ -18,6 +18,7 @@ jwt:
   secret: ${JWT_SECRET}
   access-token-ttl-minutes: 15
   refresh-token-ttl-days: 7
+  cookie-secure: ${JWT_COOKIE_SECURE:true}
 
 app:
   ai-server:

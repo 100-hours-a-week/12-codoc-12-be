@@ -1,15 +1,8 @@
-package _ganzi.codoc.user.domain;
+package _ganzi.codoc.auth.domain;
 
 import _ganzi.codoc.global.domain.BaseTimeEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import _ganzi.codoc.user.domain.User;
+import jakarta.persistence.*;
 import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -34,4 +27,19 @@ public class RefreshToken extends BaseTimeEntity {
 
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
+
+    private RefreshToken(User user, String tokenValue, Instant expiresAt) {
+        this.user = user;
+        this.tokenValue = tokenValue;
+        this.expiresAt = expiresAt;
+    }
+
+    public static RefreshToken create(User user, String tokenValue, Instant expiresAt) {
+        return new RefreshToken(user, tokenValue, expiresAt);
+    }
+
+    public void rotate(String tokenValue, Instant expiresAt) {
+        this.tokenValue = tokenValue;
+        this.expiresAt = expiresAt;
+    }
 }

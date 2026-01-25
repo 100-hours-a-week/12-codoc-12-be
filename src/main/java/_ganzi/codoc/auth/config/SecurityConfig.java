@@ -34,11 +34,11 @@ public class SecurityConfig {
                                         .requestMatchers("/api/auth/**")
                                         .permitAll()
                                         .requestMatchers("/api/user/init-survey")
-                                        .hasRole(UserStatus.ONBOARDING.toString())
+                                        .hasAuthority(UserStatus.ONBOARDING.asAuthority())
                                         .requestMatchers("/api/health")
                                         .permitAll()
                                         .anyRequest()
-                                        .hasRole(UserStatus.ACTIVE.toString()))
+                                        .hasAuthority(UserStatus.ACTIVE.asAuthority()))
                 .build();
     }
 }

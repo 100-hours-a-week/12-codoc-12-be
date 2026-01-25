@@ -50,9 +50,9 @@ public class JwtTokenProvider {
 
     public AuthUser parseUser(String token) {
         var claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
-        Long userId = claims.get("userId", Long.class);
+        Number userId = claims.get("userId", Number.class);
         String status = claims.get("status", String.class);
-        return new AuthUser(userId, UserStatus.valueOf(status));
+        return new AuthUser(userId.longValue(), UserStatus.valueOf(status));
     }
 
     private String buildToken(Long userId, UserStatus status, Duration ttl) {

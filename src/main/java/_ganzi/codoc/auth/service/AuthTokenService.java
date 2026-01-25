@@ -23,6 +23,13 @@ public class AuthTokenService {
 
     @Transactional
     public TokenPairResponse issueTokenPair(User user) {
+        TokenPair tokenPair = issueTokenPairInternal(user);
+        return new TokenPairResponse(
+                tokenPair.accessToken(), tokenPair.tokenType(), tokenPair.expiresIn());
+    }
+
+    @Transactional
+    public TokenPair issueTokenPairInternal(User user) {
         UserStatus status = user.getStatus();
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), status);
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId(), status);
@@ -34,8 +41,8 @@ public class AuthTokenService {
                         token -> token.rotate(refreshToken, expiresAt),
                         () -> refreshTokenRepository.save(RefreshToken.create(user, refreshToken, expiresAt)));
 
-        return new TokenPairResponse(
-                accessToken, TOKEN_TYPE_BEARER, jwtTokenProvider.getAccessTokenTtlSeconds());
+        return new TokenPair(
+                accessToken, refreshToken, TOKEN_TYPE_BEARER, jwtTokenProvider.getAccessTokenTtlSeconds());
     }
 
     public long getRefreshTokenTtlSeconds() {

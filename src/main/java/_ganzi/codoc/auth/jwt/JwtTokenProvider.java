@@ -36,6 +36,14 @@ public class JwtTokenProvider {
         return buildToken(userId, status, refreshTokenTtl);
     }
 
+    public long getAccessTokenTtlSeconds() {
+        return accessTokenTtl.toSeconds();
+    }
+
+    public Instant getRefreshTokenExpiry() {
+        return Instant.now().plus(refreshTokenTtl);
+    }
+
     public AuthUser parseUser(String token) {
         var claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
         Long userId = claims.get("userId", Long.class);

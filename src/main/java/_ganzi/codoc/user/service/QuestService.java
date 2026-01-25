@@ -9,8 +9,6 @@ import _ganzi.codoc.user.repository.UserRepository;
 import _ganzi.codoc.user.repository.UserStatsRepository;
 import _ganzi.codoc.user.service.dto.QuestRewardResponse;
 import _ganzi.codoc.user.service.dto.UserQuestListResponse;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -18,6 +16,8 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 @Service
 @RequiredArgsConstructor
@@ -30,7 +30,7 @@ public class QuestService {
     private final UserQuestRepository userQuestRepository;
     private final UserStatsRepository userStatsRepository;
     private final DailySolvedCountRepository dailySolvedCountRepository;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
 
     public UserQuestListResponse getUserQuests(Long userId) {
         User user = getUser(userId);
@@ -120,7 +120,7 @@ public class QuestService {
 
     private JsonNode parseRequirements(String requirementsJson) {
         try {
-            return objectMapper.readTree(requirementsJson);
+            return jsonMapper.readTree(requirementsJson);
         } catch (Exception exception) {
             return null;
         }

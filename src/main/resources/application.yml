@@ -13,3 +13,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: ${DDL_AUTO:validate}
+
+app:
+  ai-server:
+    base-url: ${APP_AI_SERVER_BASE_URL:http://localhost:8000}
+    base-timeout: 3000s

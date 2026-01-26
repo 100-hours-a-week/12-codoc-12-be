@@ -9,7 +9,6 @@ import _ganzi.codoc.problem.dto.ProblemListCondition;
 import _ganzi.codoc.problem.dto.ProblemListItem;
 import _ganzi.codoc.problem.dto.ProblemResponse;
 import _ganzi.codoc.problem.dto.ProblemSearchParam;
-import _ganzi.codoc.problem.enums.ProblemLevel;
 import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.repository.BookmarkRepository;
 import _ganzi.codoc.problem.repository.ProblemRepository;
@@ -81,24 +80,10 @@ public class ProblemService {
                 userId,
                 condition.cursor(),
                 condition.query(),
-                normalizeLevels(condition.levels()),
-                normalizeStatuses(condition.statuses()),
+                condition.levels(),
+                condition.statuses(),
                 ProblemSolvingStatus.NOT_ATTEMPTED,
                 condition.bookmarked(),
                 pageable);
-    }
-
-    private List<ProblemSolvingStatus> normalizeStatuses(List<ProblemSolvingStatus> statuses) {
-        if (statuses == null || statuses.isEmpty()) {
-            return List.of(ProblemSolvingStatus.values());
-        }
-        return statuses;
-    }
-
-    private List<ProblemLevel> normalizeLevels(List<ProblemLevel> levels) {
-        if (levels == null || levels.isEmpty()) {
-            return List.of(ProblemLevel.values());
-        }
-        return levels;
     }
 }

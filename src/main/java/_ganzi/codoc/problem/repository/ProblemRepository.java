@@ -22,7 +22,7 @@ public interface ProblemRepository extends JpaRepository<Problem, Long> {
             from Problem p
             left join UserProblemResult upr on upr.problem = p and upr.user.id = :#{#params.userId}
             left join Bookmark b on b.problem = p and b.user.id = :#{#params.userId}
-            where (:#{#params.cursor} is null or p.id > :#{#params.cursor})
+            where (p.id > :#{#params.cursor})
               and p.level in :#{#params.levels}
               and (
                     upr.status in :#{#params.statuses}
@@ -45,7 +45,7 @@ public interface ProblemRepository extends JpaRepository<Problem, Long> {
             from Problem p
             left join UserProblemResult upr on upr.problem = p and upr.user.id = :#{#params.userId}
             left join Bookmark b on b.problem = p and b.user.id = :#{#params.userId}
-            where (:#{#params.cursor} is null or p.id > :#{#params.cursor})
+            where (p.id > :#{#params.cursor})
               and p.level in :#{#params.levels}
               and (
                     upr.status in :#{#params.statuses}

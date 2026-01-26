@@ -46,7 +46,9 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "${{ secrets.ENV }}" > /home/ubuntu/be/.env
+            cat << 'EOF' > /home/ubuntu/be/.env
+            ${{ secrets.ENV }}
+            EOF
             chmod +x /home/ubuntu/be/deploy.sh   # 실행 권한 부여
             bash /home/ubuntu/be/deploy.sh   
 

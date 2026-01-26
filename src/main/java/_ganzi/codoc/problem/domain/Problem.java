@@ -2,9 +2,7 @@ package _ganzi.codoc.problem.domain;
 
 import _ganzi.codoc.global.domain.BaseTimeEntity;
 import _ganzi.codoc.problem.enums.ProblemLevel;
-import _ganzi.codoc.problem.infra.AnswerGuideConverter;
 import jakarta.persistence.*;
-import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,8 +26,4 @@ public class Problem extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "level", nullable = false, length = 20)
     private ProblemLevel level;
-
-    @Convert(converter = AnswerGuideConverter.class)
-    @Column(name = "answer_guide", nullable = false, columnDefinition = "json")
-    private List<AnswerGuideItem> answerGuide;
 }

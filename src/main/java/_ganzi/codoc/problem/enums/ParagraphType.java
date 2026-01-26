@@ -5,14 +5,13 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public enum ParagraphType {
-    BACKGROUND(1, "배경"),
-    GOAL(2, "목표"),
-    RULE(3, "규칙"),
-    CONSTRAINT(4, "제약 사항"),
+    BACKGROUND(1),
+    GOAL(2),
+    RULE(3),
+    CONSTRAINT(4),
     ;
 
     private final int order;
-    private final String description;
 
     public static ParagraphType getInitialType() {
         return BACKGROUND;

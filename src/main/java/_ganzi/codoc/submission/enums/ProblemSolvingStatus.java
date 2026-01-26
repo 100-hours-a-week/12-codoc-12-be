@@ -4,17 +4,11 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public enum ProblemSolvingStatus {
-    NOT_ATTEMPTED(""),
-    IN_PROGRESS("시도 중"),
-    SUMMARY_PASSED("문제 요약 카드 완료"),
-    SOLVED("해결"),
+    NOT_ATTEMPTED,
+    IN_PROGRESS,
+    SUMMARY_PASSED,
+    SOLVED,
     ;
-
-    private final String description;
-
-    public String toDescription() {
-        return description;
-    }
 
     public ProblemSolvingStatus nextStatusForSummaryCard(boolean allCorrect) {
         if (this == SUMMARY_PASSED || this == SOLVED) {

@@ -27,18 +27,21 @@ public class AuthController {
     private final boolean cookieSecure;
     private final String kakaoClientId;
     private final String kakaoRedirectUri;
+    private final String frontendBaseUrl;
 
     public AuthController(
             AuthTokenService authTokenService,
             KakaoAuthService kakaoAuthService,
             @Value("${jwt.cookie-secure:true}") boolean cookieSecure,
             @Value("${kakao.client-id}") String kakaoClientId,
-            @Value("${kakao.redirect-uri}") String kakaoRedirectUri) {
+            @Value("${kakao.redirect-uri}") String kakaoRedirectUri,
+            @Value("${app.frontend.base-url}") String frontendBaseUrl) {
         this.authTokenService = authTokenService;
         this.kakaoAuthService = kakaoAuthService;
         this.cookieSecure = cookieSecure;
         this.kakaoClientId = kakaoClientId;
         this.kakaoRedirectUri = kakaoRedirectUri;
+        this.frontendBaseUrl = frontendBaseUrl;
     }
 
     @PostMapping("/refresh")
@@ -99,7 +102,7 @@ public class AuthController {
                     ResponseCookie.from("kakao_oauth_state", "").path("/api/auth/kakao").maxAge(0).build();
             response.addHeader("Set-Cookie", stateCleanup.toString());
             return ResponseEntity.status(HttpStatus.FOUND)
-                    .header(HttpHeaders.LOCATION, "/login?error=KAKAO_CANCEL")
+                    .header(HttpHeaders.LOCATION, buildFrontendRedirect("/login?error=KAKAO_CANCEL"))
                     .build();
         }
         if (code == null || state == null) {
@@ -121,6 +124,20 @@ public class AuthController {
                         .build();
         response.addHeader("Set-Cookie", refreshCookie.toString());
 
-        return ResponseEntity.status(HttpStatus.FOUND).header(HttpHeaders.LOCATION, "/").build();
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, buildFrontendRedirect("/"))
+                .build();
+    }
+
+    private String buildFrontendRedirect(String path) {
+        String base = frontendBaseUrl == null ? "" : frontendBaseUrl.trim();
+        if (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        if (path == null || path.isBlank()) {
+            return base.isEmpty() ? "/" : base;
+        }
+        String normalizedPath = path.startsWith("/") ? path : "/" + path;
+        return base.isEmpty() ? normalizedPath : base + normalizedPath;
     }
 }

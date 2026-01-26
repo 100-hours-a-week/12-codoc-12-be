@@ -60,22 +60,25 @@ jobs:
           retention-days: 14
 
       # 디스코드 알림
+
       - name: Notify Discord
-        if: always()                             # 항상 알림
+        if: always()
         run: |
+          # push 이벤트 컨텍스트에 맞게 변수 수정
           STATUS="${{ job.status == 'success' && '성공' || '실패' }}"
           COLOR="${{ job.status == 'success' && '65280' || '16711680' }}"
-
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
           curl -X POST -H "Content-Type: application/json" \
           -d '{
             "embeds": [{
-              "title": "[CD] BE 통합 알림",
-              "description": "**상태**: '"$STATUS"'\n**브랜치**: ${{ github.ref_name }}\n**담당자**: ${{ github.actor }}",
-              "color": '"$COLOR"',
-              "fields": [{
-                "name": "로그 확인",
-                "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-              }]
+              "title": "BE CI 결과 (Backend)",
+              "description": "상태: '"${STATUS}"'\n브랜치: ${{ github.ref_name }}\n담당자: ${{ github.actor }}",
+              "color": '"${COLOR}"',
+              "fields": [
+                {"name": "커밋 메시지", "value": "${{ github.event.head_commit.message || 'Manual Trigger' }}"},
+                {"name": "로그 확인", "value": "[Github Actions Log]('"${RUN_URL}"')"}
+              ]
             }]
           }' \
-          ${{ secrets.DISCORD_WEBHOOK }}          # 디스코드 알림 전송
+          ${{ secrets.DISCORD_WEBHOOK }}

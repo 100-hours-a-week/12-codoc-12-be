@@ -43,9 +43,7 @@ public class SummaryCardSubmissionService {
 
         List<Integer> choiceIds = request.choiceIds();
 
-        if (choiceIds == null || choiceIds.size() != summaryCards.size()) {
-            throw new InvalidAnswerFormatException();
-        }
+        validateChoice(choiceIds, summaryCards);
 
         List<Boolean> results = new ArrayList<>(summaryCards.size());
         boolean allCorrect = true;
@@ -82,5 +80,20 @@ public class SummaryCardSubmissionService {
                 UserProblemResult.createForSummaryCard(user, problem, allCorrect);
 
         return userProblemResultRepository.save(userProblemResult);
+    }
+
+    private static void validateChoice(List<Integer> choiceIds, List<SummaryCard> summaryCards) {
+        if (choiceIds.size() != summaryCards.size()) {
+            throw new InvalidAnswerFormatException();
+        }
+
+        for (int i = 0; i < summaryCards.size(); i++) {
+            int choiceIndex = choiceIds.get(i);
+            int choiceSize = summaryCards.get(i).getChoices().size();
+
+            if (choiceIndex < 0 || choiceIndex >= choiceSize) {
+                throw new InvalidAnswerFormatException();
+            }
+        }
     }
 }

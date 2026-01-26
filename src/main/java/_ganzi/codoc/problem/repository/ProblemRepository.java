@@ -52,7 +52,7 @@ public interface ProblemRepository extends JpaRepository<Problem, Long> {
                     or (upr is null and :#{#params.defaultStatus} in :#{#params.statuses})
                   )
               and (:#{#params.bookmarked} = false or b.id is not null)
-              and lower(p.title) like lower(concat('%', :query, '%'))
+              and lower(p.title) like lower(concat('%', :#{#params.query}, '%'))
             order by p.id asc
             """)
     List<ProblemListItem> searchProblemList(@Param("params") ProblemSearchParam params);

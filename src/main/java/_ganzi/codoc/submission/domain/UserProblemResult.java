@@ -60,7 +60,7 @@ public class UserProblemResult extends BaseTimeEntity {
     }
 
     public void validateCanEvaluateProblemResult() {
-        if (this.status != ProblemSolvingStatus.SUMMARY_PASSED
+        if (this.status != ProblemSolvingStatus.SUMMARY_CARD_PASSED
                 && this.status != ProblemSolvingStatus.SOLVED) {
             throw new InvalidProblemResultEvaluationException();
         }

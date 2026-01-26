@@ -11,6 +11,7 @@ import _ganzi.codoc.submission.dto.QuizGradingResponse;
 import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
 import _ganzi.codoc.submission.enums.QuizAttemptStatus;
 import _ganzi.codoc.submission.exception.InvalidQuizAttemptException;
+import _ganzi.codoc.submission.exception.PrevQuizNotSubmittedException;
 import _ganzi.codoc.submission.exception.QuizAlreadySubmittedException;
 import _ganzi.codoc.submission.exception.QuizGradingNotAllowedException;
 import _ganzi.codoc.submission.repository.UserProblemResultRepository;
@@ -20,6 +21,9 @@ import _ganzi.codoc.submission.util.AnswerChecker;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,6 +74,8 @@ public class QuizSubmissionService {
 
             return QuizGradingResponse.of(existingResult.isCorrect(), attempt.getId());
         }
+
+        validateQuizSequenceOrder(attempt, quiz);
 
         boolean result = AnswerChecker.check(quiz.getAnswerIndex(), request.choiceId());
         saveQuizResult(attempt, quiz, idempotencyKey, result);
@@ -123,5 +129,27 @@ public class QuizSubmissionService {
             UserQuizAttempt attempt, Quiz quiz, String idempotencyKey, boolean result) {
         UserQuizResult userQuizResult = UserQuizResult.create(attempt, quiz, idempotencyKey, result);
         userQuizResultRepository.save(userQuizResult);
+    }
+
+    private void validateQuizSequenceOrder(UserQuizAttempt attempt, Quiz quiz) {
+        List<Quiz> quizzes =
+                quizRepository.findByProblemIdOrderBySequenceAsc(quiz.getProblem().getId());
+
+        List<UserQuizResult> results = userQuizResultRepository.findAllByAttemptId(attempt.getId());
+
+        Set<Long> solvedQuizIds = new HashSet<>();
+
+        for (UserQuizResult result : results) {
+            solvedQuizIds.add(result.getQuiz().getId());
+        }
+
+        for (Quiz candidate : quizzes) {
+            if (!solvedQuizIds.contains(candidate.getId())) {
+                if (!candidate.getId().equals(quiz.getId())) {
+                    throw new PrevQuizNotSubmittedException();
+                }
+                return;
+            }
+        }
     }
 }

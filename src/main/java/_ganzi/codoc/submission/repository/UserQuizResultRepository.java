@@ -1,6 +1,7 @@
 package _ganzi.codoc.submission.repository;
 
 import _ganzi.codoc.submission.domain.UserQuizResult;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -10,6 +11,8 @@ public interface UserQuizResultRepository extends JpaRepository<UserQuizResult, 
 
     Optional<UserQuizResult> findByAttemptUserIdAndQuizIdAndIdempotencyKey(
             Long userId, Long quizId, String idempotencyKey);
+
+    List<UserQuizResult> findAllByAttemptId(Long attemptId);
 
     int countByAttemptId(Long attemptId);
 

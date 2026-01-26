@@ -87,7 +87,7 @@ public class AuthController {
     }
 
     @GetMapping("/kakao/callback")
-    public ResponseEntity<ApiResponse<TokenPairResponse>> kakaoCallback(
+    public ResponseEntity<Void> kakaoCallback(
             @RequestParam(value = "code", required = false) String code,
             @RequestParam(value = "state", required = false) String state,
             @RequestParam(value = "error", required = false) String error,
@@ -121,9 +121,6 @@ public class AuthController {
                         .build();
         response.addHeader("Set-Cookie", refreshCookie.toString());
 
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        new TokenPairResponse(
-                                tokenPair.accessToken(), tokenPair.tokenType(), tokenPair.expiresIn())));
+        return ResponseEntity.status(HttpStatus.FOUND).header(HttpHeaders.LOCATION, "/").build();
     }
 }

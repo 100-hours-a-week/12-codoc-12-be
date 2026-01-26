@@ -13,6 +13,7 @@ public enum SubmissionErrorCode implements ErrorCode {
     QUIZ_ALREADY_SUBMITTED(HttpStatus.BAD_REQUEST, "QUIZ_ALREADY_SUBMITTED", "이미 제출된 퀴즈입니다."),
     INVALID_PROBLEM_RESULT_EVALUATION(
             HttpStatus.BAD_REQUEST, "INVALID_PROBLEM_RESULT_EVALUATION", "문제 풀이 결과를 평가할 수 없는 상태입니다."),
+    PREV_QUIZ_NOT_SUBMITTED(HttpStatus.BAD_REQUEST, "PREV_QUIZ_NOT_SUBMITTED", "이전 퀴즈를 먼저 풀어야 합니다."),
     ;
 
     private final HttpStatus status;

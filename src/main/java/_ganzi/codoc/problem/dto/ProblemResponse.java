@@ -14,7 +14,7 @@ public record ProblemResponse(
         String title,
         ProblemLevel level,
         String content,
-        String status,
+        ProblemSolvingStatus status,
         boolean bookmarked,
         List<SummaryCardResponse> summaryCards,
         List<QuizResponse> quizzes) {
@@ -31,7 +31,7 @@ public record ProblemResponse(
                 .title(problem.getTitle())
                 .level(problem.getLevel())
                 .content(problem.getContent())
-                .status(status.toDescription())
+                .status(status)
                 .bookmarked(bookmarked)
                 .summaryCards(summaryCards.stream().map(SummaryCardResponse::from).toList())
                 .quizzes(quizzes.stream().map(QuizResponse::from).toList())

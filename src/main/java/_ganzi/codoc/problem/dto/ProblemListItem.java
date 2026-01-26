@@ -6,15 +6,8 @@ import lombok.Builder;
 
 @Builder
 public record ProblemListItem(
-        Long problemId, String title, ProblemLevel level, String status, boolean bookmarked) {
-
-    public ProblemListItem(
-            Long problemId,
-            String title,
-            ProblemLevel level,
-            ProblemSolvingStatus status,
-            boolean bookmarked) {
-
-        this(problemId, title, level, status.toDescription(), bookmarked);
-    }
-}
+        Long problemId,
+        String title,
+        ProblemLevel level,
+        ProblemSolvingStatus status,
+        boolean bookmarked) {}

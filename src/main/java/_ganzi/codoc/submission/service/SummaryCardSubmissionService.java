@@ -16,8 +16,10 @@ import _ganzi.codoc.submission.util.AnswerChecker;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
+import _ganzi.codoc.user.service.UserStatsService;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ public class SummaryCardSubmissionService {
     private final SummaryCardRepository summaryCardRepository;
     private final UserProblemResultRepository userProblemResultRepository;
     private final UserRepository userRepository;
+    private final UserStatsService userStatsService;
 
     @Transactional
     public SummaryCardGradingResponse gradeSummaryCards(
@@ -69,12 +72,19 @@ public class SummaryCardSubmissionService {
     private ProblemSolvingStatus updateProblemSolvingStatus(
             Long userId, Problem problem, boolean allCorrect) {
 
+        Optional<UserProblemResult> existingResult =
+                userProblemResultRepository.findByUserIdAndProblemId(userId, problem.getId());
+
+        boolean isFirstAttempt = existingResult.isEmpty();
+
         UserProblemResult userProblemResult =
-                userProblemResultRepository
-                        .findByUserIdAndProblemId(userId, problem.getId())
-                        .orElseGet(() -> createUserProblemResult(userId, problem, allCorrect));
+                existingResult.orElseGet(() -> createUserProblemResult(userId, problem, allCorrect));
 
         userProblemResult.applyNextStatusForSummaryCard(allCorrect);
+
+        if (isFirstAttempt) {
+            userStatsService.incrementSolvingCount(userId);
+        }
 
         return userProblemResult.getStatus();
     }

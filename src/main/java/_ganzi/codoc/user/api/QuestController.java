@@ -17,16 +17,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/user/quests")
-public class QuestController {
+public class QuestController implements QuestApi {
 
     private final QuestService questService;
 
+    @Override
     @GetMapping
     public ResponseEntity<ApiResponse<UserQuestListResponse>> getUserQuests(
             @AuthenticationPrincipal AuthUser authUser) {
         return ResponseEntity.ok(ApiResponse.success(questService.getUserQuests(authUser.userId())));
     }
 
+    @Override
     @PostMapping("/{userQuestId}")
     public ResponseEntity<ApiResponse<QuestRewardResponse>> claimQuestReward(
             @AuthenticationPrincipal AuthUser authUser, @PathVariable Long userQuestId) {

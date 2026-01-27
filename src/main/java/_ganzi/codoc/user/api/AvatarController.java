@@ -12,10 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/avatars")
-public class AvatarController {
+public class AvatarController implements AvatarApi {
 
     private final AvatarService avatarService;
 
+    @Override
     @GetMapping
     public ResponseEntity<ApiResponse<UserAvatarListResponse>> getAvatars() {
         return ResponseEntity.ok(ApiResponse.success(avatarService.getAvatarList()));

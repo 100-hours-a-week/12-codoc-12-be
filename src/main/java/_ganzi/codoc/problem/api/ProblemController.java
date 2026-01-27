@@ -22,11 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/api/problems")
 @RestController
-public class ProblemController {
+public class ProblemController implements ProblemApi {
 
     private final ProblemBookmarkService problemBookmarkService;
     private final ProblemService problemService;
 
+    @Override
     @GetMapping
     public ResponseEntity<ApiResponse<CursorPagingResponse<ProblemListItem, Long>>> getProblemList(
             @AuthenticationPrincipal AuthUser authUser, @Valid ProblemListCondition condition) {
@@ -37,6 +38,7 @@ public class ProblemController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @Override
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<CursorPagingResponse<ProblemListItem, Long>>> searchProblems(
             @AuthenticationPrincipal AuthUser authUser, @Valid ProblemListCondition condition) {
@@ -47,6 +49,7 @@ public class ProblemController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @Override
     @GetMapping("/{problemId}")
     public ResponseEntity<ApiResponse<ProblemResponse>> getProblemDetail(
             @AuthenticationPrincipal AuthUser authUser, @PathVariable Long problemId) {
@@ -56,6 +59,7 @@ public class ProblemController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @Override
     @PutMapping("/{problemId}/bookmark")
     public ResponseEntity<Void> registerBookmark(
             @AuthenticationPrincipal AuthUser authUser, @PathVariable Long problemId) {
@@ -65,6 +69,7 @@ public class ProblemController {
         return ResponseEntity.noContent().build();
     }
 
+    @Override
     @DeleteMapping("/{problemId}/bookmark")
     public ResponseEntity<Void> removeBookmark(
             @AuthenticationPrincipal AuthUser authUser, @PathVariable Long problemId) {

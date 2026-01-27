@@ -19,12 +19,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/api")
 @RestController
-public class SubmissionController {
+public class SubmissionController implements SubmissionApi {
 
     private final SummaryCardSubmissionService summaryCardSubmissionService;
     private final QuizSubmissionService quizSubmissionService;
     private final ProblemSubmissionService problemSubmissionService;
 
+    @Override
     @PostMapping("/summary-cards/submissions")
     public ResponseEntity<ApiResponse<SummaryCardGradingResponse>> gradeSummaryCards(
             @AuthenticationPrincipal AuthUser authUser,
@@ -36,6 +37,7 @@ public class SubmissionController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @Override
     @PostMapping("/quizzes/{quizId}/submissions")
     public ResponseEntity<ApiResponse<QuizGradingResponse>> gradeQuiz(
             @AuthenticationPrincipal AuthUser authUser,
@@ -48,6 +50,7 @@ public class SubmissionController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @Override
     @PostMapping("/problems/{problemId}/submissions")
     public ResponseEntity<ApiResponse<ProblemSubmissionResponse>> submissionProblem(
             @AuthenticationPrincipal AuthUser authUser, @PathVariable Long problemId) {

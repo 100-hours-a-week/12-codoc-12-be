@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
-public class AuthController {
+public class AuthController implements AuthApi {
 
     private final AuthTokenService authTokenService;
     private final KakaoAuthService kakaoAuthService;
@@ -44,6 +44,7 @@ public class AuthController {
         this.frontendBaseUrl = frontendBaseUrl;
     }
 
+    @Override
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<TokenPairResponse>> refresh(
             @CookieValue(value = "refresh_token", required = false) String refreshToken,
@@ -69,6 +70,7 @@ public class AuthController {
                                 tokenPair.accessToken(), tokenPair.tokenType(), tokenPair.expiresIn())));
     }
 
+    @Override
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @CookieValue(value = "refresh_token", required = false) String refreshToken,
@@ -91,6 +93,7 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
+    @Override
     @GetMapping("/kakao/authorize")
     public ResponseEntity<Void> kakaoAuthorize(HttpServletResponse response) {
         String state = kakaoAuthService.generateState();
@@ -111,6 +114,7 @@ public class AuthController {
                 .build();
     }
 
+    @Override
     @GetMapping("/kakao/callback")
     public ResponseEntity<Void> kakaoCallback(
             @RequestParam(value = "code", required = false) String code,

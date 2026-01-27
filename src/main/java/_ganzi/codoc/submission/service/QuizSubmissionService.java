@@ -10,6 +10,7 @@ import _ganzi.codoc.submission.dto.QuizGradingRequest;
 import _ganzi.codoc.submission.dto.QuizGradingResponse;
 import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
 import _ganzi.codoc.submission.enums.QuizAttemptStatus;
+import _ganzi.codoc.submission.exception.InvalidAnswerFormatException;
 import _ganzi.codoc.submission.exception.InvalidQuizAttemptException;
 import _ganzi.codoc.submission.exception.PrevQuizNotSubmittedException;
 import _ganzi.codoc.submission.exception.QuizAlreadySubmittedException;
@@ -76,6 +77,7 @@ public class QuizSubmissionService {
         }
 
         validateQuizSequenceOrder(attempt, quiz);
+        validateChoice(quiz, request.choiceId());
 
         boolean result = AnswerChecker.check(quiz.getAnswerIndex(), request.choiceId());
         saveQuizResult(attempt, quiz, idempotencyKey, result);
@@ -150,6 +152,14 @@ public class QuizSubmissionService {
                 }
                 return;
             }
+        }
+    }
+
+    private static void validateChoice(Quiz quiz, int choiceId) {
+        int choiceSize = quiz.getChoices().size();
+
+        if (choiceId < 0 || choiceId >= choiceSize) {
+            throw new InvalidAnswerFormatException();
         }
     }
 }

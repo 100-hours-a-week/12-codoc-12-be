@@ -33,7 +33,9 @@ public class SummaryCardSubmissionService {
 
     @Transactional
     public SummaryCardGradingResponse gradeSummaryCards(
-            Long userId, Long problemId, SummaryCardGradingRequest request) {
+            Long userId, SummaryCardGradingRequest request) {
+
+        Long problemId = request.problemId();
 
         Problem problem =
                 problemRepository.findById(problemId).orElseThrow(ProblemNotFoundException::new);

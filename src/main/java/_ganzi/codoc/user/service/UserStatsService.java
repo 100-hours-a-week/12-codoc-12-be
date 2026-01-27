@@ -11,7 +11,9 @@ import _ganzi.codoc.user.service.dto.UserContributionResponse;
 import _ganzi.codoc.user.service.dto.UserStatsResponse;
 import _ganzi.codoc.user.service.dto.UserStreakResponse;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,8 +68,38 @@ public class UserStatsService {
 
     @Transactional
     public void applyProblemSolved(Long userId, int xpAmount) {
+        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
         UserStats userStats =
                 userStatsRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+
         userStats.applyProblemSolved(xpAmount);
+
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+
+        Optional<DailySolvedCount> existingDailySolvedCount =
+                dailySolvedCountRepository.findByUserAndDate(user, today);
+
+        if (existingDailySolvedCount.isEmpty()) {
+            Optional<DailySolvedCount> latestSolvedCount =
+                    dailySolvedCountRepository.findFirstByUserOrderByDateDesc(user);
+
+            boolean isConsecutive =
+                    latestSolvedCount
+                            .map(dailySolvedCount -> dailySolvedCount.getDate().plusDays(1))
+                            .map(today::equals)
+                            .orElse(false);
+
+            if (!isConsecutive) {
+                userStats.resetStreak();
+            }
+
+            userStats.increaseStreak();
+        }
+
+        DailySolvedCount dailySolvedCount =
+                existingDailySolvedCount.orElseGet(
+                        () -> dailySolvedCountRepository.save(DailySolvedCount.create(user, today)));
+
+        dailySolvedCount.increaseSolvedCount();
     }
 }

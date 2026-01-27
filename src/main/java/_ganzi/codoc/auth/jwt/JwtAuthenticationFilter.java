@@ -48,4 +48,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         return bearer.substring(BEARER_PREFIX.length());
     }
+
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
 }

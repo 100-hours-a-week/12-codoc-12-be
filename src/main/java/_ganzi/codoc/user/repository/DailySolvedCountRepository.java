@@ -11,6 +11,8 @@ public interface DailySolvedCountRepository extends JpaRepository<DailySolvedCou
 
     Optional<DailySolvedCount> findByUserAndDate(User user, LocalDate date);
 
+    Optional<DailySolvedCount> findFirstByUserOrderByDateDesc(User user);
+
     List<DailySolvedCount> findAllByUserAndDateBetweenAndSolvedCountGreaterThanOrderByDateAsc(
             User user, LocalDate fromDate, LocalDate toDate, int minCount);
 }

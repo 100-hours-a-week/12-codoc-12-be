@@ -10,7 +10,10 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "refresh_token")
+@Table(
+        name = "refresh_token",
+        uniqueConstraints =
+                @UniqueConstraint(name = "uk_refresh_token_value", columnNames = "token_value"))
 @Entity
 public class RefreshToken extends BaseTimeEntity {
 

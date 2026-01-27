@@ -69,6 +69,28 @@ public class AuthController {
                                 tokenPair.accessToken(), tokenPair.tokenType(), tokenPair.expiresIn())));
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @CookieValue(value = "refresh_token", required = false) String refreshToken,
+            HttpServletResponse response) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new AuthRequiredException();
+        }
+        authTokenService.logout(refreshToken);
+
+        ResponseCookie cookie =
+                ResponseCookie.from("refresh_token", "")
+                        .httpOnly(true)
+                        .secure(cookieSecure)
+                        .sameSite("Lax")
+                        .path("/api/auth")
+                        .maxAge(0)
+                        .build();
+        response.addHeader("Set-Cookie", cookie.toString());
+
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/kakao/authorize")
     public ResponseEntity<Void> kakaoAuthorize(HttpServletResponse response) {
         String state = kakaoAuthService.generateState();

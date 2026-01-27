@@ -6,6 +6,7 @@ import _ganzi.codoc.auth.repository.SocialLoginRepository;
 import _ganzi.codoc.user.api.dto.UserInitSurveyRequest;
 import _ganzi.codoc.user.domain.Avatar;
 import _ganzi.codoc.user.domain.User;
+import _ganzi.codoc.user.domain.UserStats;
 import _ganzi.codoc.user.enums.DailyGoal;
 import _ganzi.codoc.user.enums.UserStatus;
 import _ganzi.codoc.user.exception.AvatarNotFoundException;
@@ -13,6 +14,7 @@ import _ganzi.codoc.user.exception.DuplicateNicknameException;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.AvatarRepository;
 import _ganzi.codoc.user.repository.UserRepository;
+import _ganzi.codoc.user.repository.UserStatsRepository;
 import _ganzi.codoc.user.service.dto.UserAvatarListResponse;
 import _ganzi.codoc.user.service.dto.UserProfileResponse;
 import java.util.List;
@@ -27,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserStatsRepository userStatsRepository;
     private final AvatarRepository avatarRepository;
     private final SocialLoginRepository socialLoginRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -62,6 +65,8 @@ public class UserService {
                 avatarRepository.findByIsDefaultTrue().orElseThrow(AvatarNotFoundException::new);
         String nickname = generateUniqueNickname();
         User user = User.createOnboardingUser(nickname, defaultAvatar);
+        UserStats userStats = UserStats.create(user);
+        userStatsRepository.save(userStats);
         return userRepository.save(user);
     }
 

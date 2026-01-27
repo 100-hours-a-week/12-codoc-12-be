@@ -50,6 +50,11 @@ public class AuthTokenService {
     }
 
     @Transactional
+    public void logout(String refreshTokenValue) {
+        refreshTokenRepository.deleteByTokenValue(refreshTokenValue);
+    }
+
+    @Transactional
     public TokenPair refreshTokenPair(String refreshTokenValue) {
         RefreshToken refreshToken =
                 refreshTokenRepository

@@ -3,7 +3,7 @@ package _ganzi.codoc.submission.domain;
 import _ganzi.codoc.global.domain.BaseTimeEntity;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
-import _ganzi.codoc.submission.exception.InvalidProblemResultEvaluationException;
+import _ganzi.codoc.submission.exception.InvalidProblemSubmissionException;
 import _ganzi.codoc.user.domain.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -62,7 +62,7 @@ public class UserProblemResult extends BaseTimeEntity {
     public void validateCanEvaluateProblemResult() {
         if (this.status != ProblemSolvingStatus.SUMMARY_CARD_PASSED
                 && this.status != ProblemSolvingStatus.SOLVED) {
-            throw new InvalidProblemResultEvaluationException();
+            throw new InvalidProblemSubmissionException();
         }
     }
 }

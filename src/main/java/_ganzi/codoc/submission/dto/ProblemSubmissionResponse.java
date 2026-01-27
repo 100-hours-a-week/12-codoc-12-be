@@ -4,12 +4,12 @@ import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
 import lombok.Builder;
 
 @Builder
-public record ProblemResultEvaluationResponse(
+public record ProblemSubmissionResponse(
         int correctCount, ProblemSolvingStatus nextStatus, boolean xpGranted) {
 
-    public static ProblemResultEvaluationResponse of(
+    public static ProblemSubmissionResponse of(
             int correctCount, ProblemSolvingStatus nextStatus, boolean xpGranted) {
-        return ProblemResultEvaluationResponse.builder()
+        return ProblemSubmissionResponse.builder()
                 .correctCount(correctCount)
                 .nextStatus(nextStatus)
                 .xpGranted(xpGranted)

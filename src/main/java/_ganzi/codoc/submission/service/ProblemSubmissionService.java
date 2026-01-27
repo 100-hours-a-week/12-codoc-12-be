@@ -13,6 +13,7 @@ import _ganzi.codoc.submission.exception.InvalidProblemSubmissionException;
 import _ganzi.codoc.submission.repository.UserProblemResultRepository;
 import _ganzi.codoc.submission.repository.UserQuizAttemptRepository;
 import _ganzi.codoc.submission.repository.UserQuizResultRepository;
+import _ganzi.codoc.user.service.QuestService;
 import _ganzi.codoc.user.service.UserStatsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ public class ProblemSubmissionService {
     private final UserQuizAttemptRepository userQuizAttemptRepository;
     private final UserQuizResultRepository userQuizResultRepository;
     private final UserStatsService userStatsService;
+    private final QuestService questService;
 
     @Transactional
     public ProblemSubmissionResponse submissionProblem(Long userId, Long problemId) {
@@ -63,6 +65,7 @@ public class ProblemSubmissionService {
         if (correctCount == totalQuizCount && !userProblemResult.isSolved()) {
             userProblemResult.markSolved();
             userStatsService.applyProblemSolved(userId, PROBLEM_SOLVED_XP);
+            questService.updateQuestStatusOnSolve(userId);
             xpGranted = true;
             nextStatus = ProblemSolvingStatus.SOLVED;
         }

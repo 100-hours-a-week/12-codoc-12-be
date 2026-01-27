@@ -9,10 +9,11 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @RequestMapping("/api/ai-health")
 @RestController
-public class AiServerHealthCheckController {
+public class AiServerHealthCheckController implements AiServerHealthCheckApi {
 
     private final AiServerHealthCheckService healthCheckService;
 
+    @Override
     @GetMapping
     public ResponseEntity<ApiResponse<String>> healthCheck() {
 

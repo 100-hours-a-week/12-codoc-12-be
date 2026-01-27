@@ -37,9 +37,11 @@ public class UserStatsService {
     }
 
     public UserStreakResponse getUserStreak(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
         UserStats userStats =
                 userStatsRepository.findById(userId).orElseThrow(UserNotFoundException::new);
-        return new UserStreakResponse(userStats.getStreak());
+        int streak = resolveStreakForDisplay(user, userStats.getStreak());
+        return new UserStreakResponse(streak);
     }
 
     public UserContributionResponse getUserContribution(
@@ -101,5 +103,20 @@ public class UserStatsService {
                         () -> dailySolvedCountRepository.save(DailySolvedCount.create(user, today)));
 
         dailySolvedCount.increaseSolvedCount();
+    }
+
+    private int resolveStreakForDisplay(User user, int currentStreak) {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+
+        Optional<DailySolvedCount> latestSolvedCount =
+                dailySolvedCountRepository.findFirstByUserOrderByDateDesc(user);
+
+        boolean isActive =
+                latestSolvedCount
+                        .map(DailySolvedCount::getDate)
+                        .map(lastSolvedDate -> !lastSolvedDate.isBefore(today.minusDays(1)))
+                        .orElse(false);
+
+        return isActive ? currentStreak : 0;
     }
 }

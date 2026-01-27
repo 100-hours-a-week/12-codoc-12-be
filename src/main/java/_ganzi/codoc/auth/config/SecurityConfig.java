@@ -32,6 +32,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(
                         authorize ->
                                 authorize
+                                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**")
+                                        .permitAll()
                                         .requestMatchers("/api/auth/**")
                                         .permitAll()
                                         .requestMatchers(HttpMethod.DELETE, "/api/user")

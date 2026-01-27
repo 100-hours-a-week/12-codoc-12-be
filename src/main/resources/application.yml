@@ -35,3 +35,8 @@ app:
 
   chatbot:
     session-ttl: 30m
+
+springdoc:
+  swagger-ui:
+    try-it-out-enabled: false
+    supported-submit-methods: []

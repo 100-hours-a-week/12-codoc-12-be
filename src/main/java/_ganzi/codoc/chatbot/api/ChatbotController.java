@@ -17,10 +17,11 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 @RequestMapping("/api/chatbot")
 @RestController
-public class ChatbotController {
+public class ChatbotController implements ChatbotApi {
 
     private final ChatbotService chatbotService;
 
+    @Override
     @PostMapping("/messages")
     public ResponseEntity<ApiResponse<ChatbotMessageSendResponse>> sendMessage(
             @AuthenticationPrincipal AuthUser authUser,
@@ -31,6 +32,7 @@ public class ChatbotController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @Override
     @GetMapping(
             value = "/messages/{conversationId}/stream",
             produces = MediaType.TEXT_EVENT_STREAM_VALUE)

@@ -16,16 +16,18 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/user")
-public class UserStatsController {
+public class UserStatsController implements UserStatsApi {
 
     private final UserStatsService userStatsService;
 
+    @Override
     @GetMapping("/stats")
     public ResponseEntity<ApiResponse<UserStatsResponse>> getUserStats(
             @AuthenticationPrincipal AuthUser authUser) {
         return ResponseEntity.ok(ApiResponse.success(userStatsService.getUserStats(authUser.userId())));
     }
 
+    @Override
     @GetMapping("/streak")
     public ResponseEntity<ApiResponse<UserStreakResponse>> getUserStreak(
             @AuthenticationPrincipal AuthUser authUser) {
@@ -33,6 +35,7 @@ public class UserStatsController {
                 ApiResponse.success(userStatsService.getUserStreak(authUser.userId())));
     }
 
+    @Override
     @GetMapping("/contribution")
     public ResponseEntity<ApiResponse<UserContributionResponse>> getUserContribution(
             @AuthenticationPrincipal AuthUser authUser,

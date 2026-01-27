@@ -23,16 +23,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/user")
-public class UserController {
+public class UserController implements UserApi {
 
     private final UserService userService;
 
+    @Override
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getProfile(
             @AuthenticationPrincipal AuthUser authUser) {
         return ResponseEntity.ok(ApiResponse.success(userService.getUserProfile(authUser.userId())));
     }
 
+    @Override
     @PatchMapping("/profile")
     public ResponseEntity<ApiResponse<UserProfileUpdateResponse>> updateProfile(
             @AuthenticationPrincipal AuthUser authUser,
@@ -44,6 +46,7 @@ public class UserController {
                         new UserProfileUpdateResponse(profile.nickname(), profile.avatarImageUrl())));
     }
 
+    @Override
     @PatchMapping("/init-survey")
     public ResponseEntity<Void> saveInitSurvey(
             @AuthenticationPrincipal AuthUser authUser,
@@ -52,6 +55,7 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    @Override
     @PatchMapping("/daily-goal")
     public ResponseEntity<ApiResponse<UserDailyGoalResponse>> updateDailyGoal(
             @AuthenticationPrincipal AuthUser authUser,
@@ -60,6 +64,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(new UserDailyGoalResponse(request.dailyGoal())));
     }
 
+    @Override
     @DeleteMapping
     public ResponseEntity<Void> deleteUser(@AuthenticationPrincipal AuthUser authUser) {
         userService.deleteUser(authUser.userId());

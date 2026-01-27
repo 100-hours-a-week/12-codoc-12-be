@@ -1,10 +1,7 @@
 package _ganzi.codoc.user.domain;
 
 import _ganzi.codoc.global.domain.BaseTimeEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -16,7 +13,14 @@ import lombok.NoArgsConstructor;
 @Entity
 public class UserStats extends BaseTimeEntity {
 
-    @Id private Long id;
+    @Id
+    @Column(name = "user_id")
+    private Long userId;
+
+    @MapsId
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @Column(name = "xp", nullable = false)
     private int xp;
@@ -30,8 +34,16 @@ public class UserStats extends BaseTimeEntity {
     @Column(name = "streak", nullable = false)
     private int streak;
 
-    @Column(name = "deleted_at", nullable = false)
+    @Column(name = "deleted_at")
     private Instant deletedAt;
+
+    private UserStats(User user) {
+        this.user = user;
+    }
+
+    public static UserStats create(User user) {
+        return new UserStats(user);
+    }
 
     public void addXp(int amount) {
         this.xp += amount;

@@ -3,6 +3,7 @@ package _ganzi.codoc.submission.service;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.domain.SummaryCard;
 import _ganzi.codoc.problem.exception.ProblemNotFoundException;
+import _ganzi.codoc.problem.exception.SummaryCardNotFoundException;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.problem.repository.SummaryCardRepository;
 import _ganzi.codoc.submission.domain.UserProblemResult;
@@ -42,6 +43,10 @@ public class SummaryCardSubmissionService {
 
         List<SummaryCard> summaryCards =
                 summaryCardRepository.findByProblemIdOrderByParagraphOrderAsc(problemId);
+
+        if (summaryCards.isEmpty()) {
+            throw new SummaryCardNotFoundException();
+        }
 
         List<Integer> choiceIds = request.choiceIds();
 

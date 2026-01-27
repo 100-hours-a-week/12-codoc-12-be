@@ -1,6 +1,6 @@
 package _ganzi.codoc.problem.api;
 
-import _ganzi.codoc.global.annotation.CurrentUserId;
+import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.global.dto.ApiResponse;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
 import _ganzi.codoc.problem.dto.ProblemListCondition;
@@ -11,6 +11,7 @@ import _ganzi.codoc.problem.service.ProblemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,47 +29,47 @@ public class ProblemController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<CursorPagingResponse<ProblemListItem, Long>>> getProblemList(
-            @CurrentUserId Long userId, @Valid ProblemListCondition condition) {
+            @AuthenticationPrincipal AuthUser authUser, @Valid ProblemListCondition condition) {
 
         CursorPagingResponse<ProblemListItem, Long> response =
-                problemService.getProblemList(userId, condition);
+                problemService.getProblemList(authUser.userId(), condition);
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<CursorPagingResponse<ProblemListItem, Long>>> searchProblems(
-            @CurrentUserId Long userId, @Valid ProblemListCondition condition) {
+            @AuthenticationPrincipal AuthUser authUser, @Valid ProblemListCondition condition) {
 
         CursorPagingResponse<ProblemListItem, Long> response =
-                problemService.searchProblems(userId, condition);
+                problemService.searchProblems(authUser.userId(), condition);
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/{problemId}")
     public ResponseEntity<ApiResponse<ProblemResponse>> getProblemDetail(
-            @CurrentUserId Long userId, @PathVariable Long problemId) {
+            @AuthenticationPrincipal AuthUser authUser, @PathVariable Long problemId) {
 
-        ProblemResponse response = problemService.getProblemDetail(userId, problemId);
+        ProblemResponse response = problemService.getProblemDetail(authUser.userId(), problemId);
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PutMapping("/{problemId}/bookmark")
     public ResponseEntity<Void> registerBookmark(
-            @CurrentUserId Long userId, @PathVariable Long problemId) {
+            @AuthenticationPrincipal AuthUser authUser, @PathVariable Long problemId) {
 
-        problemBookmarkService.registerBookmark(userId, problemId);
+        problemBookmarkService.registerBookmark(authUser.userId(), problemId);
 
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{problemId}/bookmark")
     public ResponseEntity<Void> removeBookmark(
-            @CurrentUserId Long userId, @PathVariable Long problemId) {
+            @AuthenticationPrincipal AuthUser authUser, @PathVariable Long problemId) {
 
-        problemBookmarkService.removeBookmark(userId, problemId);
+        problemBookmarkService.removeBookmark(authUser.userId(), problemId);
 
         return ResponseEntity.noContent().build();
     }

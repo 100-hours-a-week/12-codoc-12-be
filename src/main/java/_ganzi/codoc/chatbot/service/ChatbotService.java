@@ -1,6 +1,8 @@
 package _ganzi.codoc.chatbot.service;
 
 import _ganzi.codoc.ai.dto.AiServerApiResponse;
+import _ganzi.codoc.ai.dto.AiServerChatbotFinalEvent;
+import _ganzi.codoc.ai.dto.AiServerChatbotFinalResult;
 import _ganzi.codoc.ai.dto.AiServerChatbotSendRequest;
 import _ganzi.codoc.ai.dto.AiServerChatbotSendResponse;
 import _ganzi.codoc.ai.infra.ChatbotClient;
@@ -12,7 +14,9 @@ import _ganzi.codoc.chatbot.dto.ChatbotMessageSendResponse;
 import _ganzi.codoc.chatbot.enums.ChatbotAttemptStatus;
 import _ganzi.codoc.chatbot.repository.ChatbotAttemptRepository;
 import _ganzi.codoc.chatbot.repository.ChatbotConversationRepository;
+import _ganzi.codoc.global.util.JsonUtils;
 import _ganzi.codoc.problem.domain.Problem;
+import _ganzi.codoc.problem.enums.ParagraphType;
 import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.user.domain.User;
@@ -20,13 +24,19 @@ import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import reactor.core.publisher.Flux;
+import tools.jackson.databind.json.JsonMapper;
 
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 @Service
 public class ChatbotService {
+
+    private static final String EVENT_FINAL = "final";
 
     private final ChatbotClient chatbotClient;
     private final UserRepository userRepository;
@@ -34,6 +44,7 @@ public class ChatbotService {
     private final ChatbotConversationRepository chatbotConversationRepository;
     private final ChatbotAttemptRepository chatbotAttemptRepository;
     private final ChatbotProperties chatbotProperties;
+    private final JsonMapper jsonMapper;
 
     @Transactional
     public ChatbotMessageSendResponse sendMessage(Long userId, ChatbotMessageSendRequest request) {
@@ -95,5 +106,67 @@ public class ChatbotService {
         }
 
         return aiServerResponse.data();
+    }
+
+    public Flux<ServerSentEvent<String>> streamMessage(Long conversationId) {
+        return chatbotClient
+                .streamMessage(conversationId)
+                .doOnNext(event -> handleFinalEvent(conversationId, event))
+                .doOnError(error -> deleteConversationSilently(conversationId));
+    }
+
+    private void handleFinalEvent(Long conversationId, ServerSentEvent<String> event) {
+        String eventName = event.event();
+
+        if (!EVENT_FINAL.equals(eventName)) {
+            return;
+        }
+
+        String data = event.data();
+
+        if (data == null || data.isBlank()) {
+            return;
+        }
+
+        persistFinalEvent(conversationId, data);
+    }
+
+    private void persistFinalEvent(Long conversationId, String data) {
+        AiServerChatbotFinalEvent finalEvent =
+                JsonUtils.parseJson(jsonMapper, data, AiServerChatbotFinalEvent.class);
+
+        if (finalEvent == null || finalEvent.result() == null) {
+            return;
+        }
+
+        AiServerChatbotFinalResult result = finalEvent.result();
+        String aiMessage = result.aiMessage();
+        Boolean isCorrect = result.isCorrect();
+        ParagraphType currentNode =
+                StringUtils.hasText(result.currentNode())
+                        ? ParagraphType.valueOf(result.currentNode())
+                        : null;
+
+        ChatbotConversation conversation =
+                chatbotConversationRepository.findByIdWithAttempt(conversationId).orElse(null);
+        if (conversation == null) {
+            return;
+        }
+
+        if (aiMessage != null) {
+            conversation.recordAiResponse(aiMessage, isCorrect);
+        }
+
+        if (currentNode != null) {
+            ChatbotAttempt attempt = conversation.getAttempt();
+            attempt.advanceToNextParagraph();
+            chatbotAttemptRepository.save(attempt);
+        }
+
+        chatbotConversationRepository.save(conversation);
+    }
+
+    private void deleteConversationSilently(Long conversationId) {
+        chatbotConversationRepository.deleteById(conversationId);
     }
 }

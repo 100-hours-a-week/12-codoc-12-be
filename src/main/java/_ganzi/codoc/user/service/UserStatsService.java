@@ -28,15 +28,19 @@ public class UserStatsService {
     private final DailySolvedCountRepository dailySolvedCountRepository;
 
     public UserStatsResponse getUserStats(Long userId) {
-        UserStats userStats =
-                userStatsRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        UserStats userStats = userStatsRepository.findById(userId).orElse(null);
+        if (userStats == null) {
+            return new UserStatsResponse(0, 0, 0);
+        }
         return new UserStatsResponse(
                 userStats.getXp(), userStats.getSolvedCount(), userStats.getSolvingCount());
     }
 
     public UserStreakResponse getUserStreak(Long userId) {
-        UserStats userStats =
-                userStatsRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        UserStats userStats = userStatsRepository.findById(userId).orElse(null);
+        if (userStats == null) {
+            return new UserStreakResponse(0);
+        }
         return new UserStreakResponse(userStats.getStreak());
     }
 

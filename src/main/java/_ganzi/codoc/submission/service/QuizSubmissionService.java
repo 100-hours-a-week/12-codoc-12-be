@@ -61,23 +61,29 @@ public class QuizSubmissionService {
             }
         }
 
-        UserQuizAttempt attempt = resolveAttempt(userId, quiz, request.attemptId());
+        UserQuizAttempt attempt = resolveAttemptIfProvided(userId, quiz, request.attemptId());
 
-        UserQuizResult existingResult =
-                userQuizResultRepository
-                        .findByAttemptIdAndQuizId(attempt.getId(), quiz.getId())
-                        .orElse(null);
+        if (attempt != null) {
+            UserQuizResult existingResult =
+                    userQuizResultRepository
+                            .findByAttemptIdAndQuizId(attempt.getId(), quiz.getId())
+                            .orElse(null);
 
-        if (existingResult != null) {
-            if (!existingResult.isIdempotencyKeySame(idempotencyKey)) {
-                throw new QuizAlreadySubmittedException();
+            if (existingResult != null) {
+                if (!existingResult.isIdempotencyKeySame(idempotencyKey)) {
+                    throw new QuizAlreadySubmittedException();
+                }
+
+                return QuizGradingResponse.of(existingResult.isCorrect(), attempt.getId());
             }
-
-            return QuizGradingResponse.of(existingResult.isCorrect(), attempt.getId());
         }
 
-        validateQuizSequenceOrder(attempt, quiz);
+        validateQuizSequenceOrder(attempt == null ? null : attempt.getId(), quiz);
         validateChoice(quiz, request.choiceId());
+
+        if (attempt == null) {
+            attempt = createNewAttempt(userId, quiz);
+        }
 
         boolean result = AnswerChecker.check(quiz.getAnswerIndex(), request.choiceId());
         saveQuizResult(attempt, quiz, idempotencyKey, result);
@@ -97,9 +103,9 @@ public class QuizSubmissionService {
         }
     }
 
-    private UserQuizAttempt resolveAttempt(Long userId, Quiz quiz, Long attemptId) {
+    private UserQuizAttempt resolveAttemptIfProvided(Long userId, Quiz quiz, Long attemptId) {
         if (attemptId == null) {
-            return createNewAttempt(userId, quiz);
+            return null;
         }
 
         UserQuizAttempt attempt =
@@ -133,11 +139,12 @@ public class QuizSubmissionService {
         userQuizResultRepository.save(userQuizResult);
     }
 
-    private void validateQuizSequenceOrder(UserQuizAttempt attempt, Quiz quiz) {
+    private void validateQuizSequenceOrder(Long attemptId, Quiz quiz) {
         List<Quiz> quizzes =
                 quizRepository.findByProblemIdOrderBySequenceAsc(quiz.getProblem().getId());
 
-        List<UserQuizResult> results = userQuizResultRepository.findAllByAttemptId(attempt.getId());
+        List<UserQuizResult> results =
+                attemptId == null ? List.of() : userQuizResultRepository.findAllByAttemptId(attemptId);
 
         Set<Long> solvedQuizIds = new HashSet<>();
 

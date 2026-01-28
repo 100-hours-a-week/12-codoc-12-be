@@ -29,7 +29,7 @@ public class QuestBatchService {
                 FROM `user` u
                 CROSS JOIN quest q
                 WHERE u.status = :activeStatus
-                ON DUPLICATE KEY UPDATE updated_at = updated_at
+                ON DUPLICATE KEY UPDATE user_quest.updated_at = NOW(6)
                 """;
         entityManager
                 .createNativeQuery(sql)
@@ -48,7 +48,7 @@ public class QuestBatchService {
                     (user_id, quest_id, status, expires_at, issued_date, created_at, updated_at)
                 SELECT :userId, q.id, 'IN_PROGRESS', :expiresAt, :issuedDate, NOW(6), NOW(6)
                 FROM quest q
-                ON DUPLICATE KEY UPDATE updated_at = updated_at
+                ON DUPLICATE KEY UPDATE user_quest.updated_at = NOW(6)
                 """;
         entityManager
                 .createNativeQuery(sql)

@@ -69,9 +69,10 @@ public class UserService {
                 avatarRepository.findByIsDefaultTrue().orElseThrow(AvatarNotFoundException::new);
         String nickname = generateUniqueNickname();
         User user = User.createOnboardingUser(nickname, defaultAvatar);
-        UserStats userStats = UserStats.create(user);
+        User savedUser = userRepository.save(user);
+        UserStats userStats = UserStats.create(savedUser);
         userStatsRepository.save(userStats);
-        return userRepository.save(user);
+        return savedUser;
     }
 
     @Transactional

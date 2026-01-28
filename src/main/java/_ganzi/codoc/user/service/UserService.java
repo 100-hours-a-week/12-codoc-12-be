@@ -17,6 +17,8 @@ import _ganzi.codoc.user.repository.UserRepository;
 import _ganzi.codoc.user.repository.UserStatsRepository;
 import _ganzi.codoc.user.service.dto.UserAvatarListResponse;
 import _ganzi.codoc.user.service.dto.UserProfileResponse;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -33,8 +35,10 @@ public class UserService {
     private final AvatarRepository avatarRepository;
     private final SocialLoginRepository socialLoginRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final QuestBatchService questBatchService;
 
     private static final int RANDOM_NICKNAME_LENGTH = 15;
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
     public User getUser(Long id) {
         return userRepository.findById(id).orElseThrow(UserNotFoundException::new);
@@ -101,12 +105,18 @@ public class UserService {
     public void reviveDormantUser(Long id) {
         User user = getUser(id);
         user.reviveFromDormant();
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            questBatchService.issueDailyQuestsForUser(user.getId(), LocalDate.now(SEOUL));
+        }
     }
 
     @Transactional
     public void completeOnboarding(Long id, UserInitSurveyRequest request) {
         User user = getUser(id);
         user.completeOnboarding(request.initLevel(), request.dailyGoal());
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            questBatchService.issueDailyQuestsForUser(user.getId(), LocalDate.now(SEOUL));
+        }
     }
 
     @Transactional

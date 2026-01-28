@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class UserStatsService {
 
-    private static final int MIN_SOLVE_COUNT = 1;
+    private static final int MIN_SOLVE_COUNT = 0;
 
     private final UserRepository userRepository;
     private final UserStatsRepository userStatsRepository;

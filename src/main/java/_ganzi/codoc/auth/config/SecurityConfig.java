@@ -34,7 +34,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         String[] swaggerMatchers =
-                new String[] {swaggerUiPath, swaggerUiPath + "/**", "/swagger-ui/**"};
+                new String[] {swaggerUiPath, swaggerUiPath + "/**", "/api/swagger-ui/**"};
         String[] apiDocsMatchers = new String[] {apiDocsPath, apiDocsPath + "/**"};
 
         return http.csrf(csrf -> csrf.disable())

@@ -24,7 +24,8 @@ public class ChatbotConversation extends BaseTimeEntity {
     @Column(name = "user_message", nullable = false, length = 500)
     private String userMessage;
 
-    @Column(name = "ai_message", length = 500)
+    @Lob
+    @Column(name = "ai_message", columnDefinition = "TEXT")
     private String aiMessage;
 
     @Enumerated(EnumType.STRING)

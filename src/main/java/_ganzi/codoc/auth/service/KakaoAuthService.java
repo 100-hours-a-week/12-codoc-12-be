@@ -50,6 +50,7 @@ public class KakaoAuthService {
                         .append(redirectUri)
                         .append("&state=")
                         .append(state);
+        url.append("&prompt=select_account");
         if (!scope.isBlank()) {
             url.append("&scope=").append(URLEncoder.encode(scope, StandardCharsets.UTF_8));
         }

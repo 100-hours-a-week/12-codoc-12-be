@@ -65,7 +65,7 @@ public class ProblemSubmissionService {
         if (correctCount == totalQuizCount && !userProblemResult.isSolved()) {
             userProblemResult.markSolved();
             userStatsService.applyProblemSolved(userId, PROBLEM_SOLVED_XP);
-            questService.updateQuestStatusOnSolve(userId);
+            questService.refreshUserQuestStatuses(userId);
             xpGranted = true;
             nextStatus = ProblemSolvingStatus.SOLVED;
         }

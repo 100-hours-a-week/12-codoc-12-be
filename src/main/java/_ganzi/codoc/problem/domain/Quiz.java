@@ -38,6 +38,9 @@ public class Quiz extends BaseTimeEntity {
     @Column(name = "question", nullable = false, length = 255)
     private String question;
 
+    @Column(name = "explanation", nullable = false, length = 500)
+    private String explanation;
+
     @Convert(converter = StringListConverter.class)
     @Column(name = "choices", nullable = false, columnDefinition = "json")
     private List<String> choices;

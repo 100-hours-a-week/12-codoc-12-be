@@ -1,6 +1,6 @@
 package _ganzi.codoc.problem.enums;
 
-public enum ProblemLevel {
+public enum ProblemDifficulty {
     ONE,
     TWO,
     THREE,

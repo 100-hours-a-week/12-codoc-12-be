@@ -15,7 +15,7 @@ public interface ProblemRepository extends JpaRepository<Problem, Long> {
             select new _ganzi.codoc.problem.dto.ProblemListItem(
                 p.id,
                 p.title,
-                p.level,
+                p.difficulty,
                 coalesce(upr.status, :#{#params.defaultStatus}),
                 (b.id is not null)
             )
@@ -23,7 +23,7 @@ public interface ProblemRepository extends JpaRepository<Problem, Long> {
             left join UserProblemResult upr on upr.problem = p and upr.user.id = :#{#params.userId}
             left join Bookmark b on b.problem = p and b.user.id = :#{#params.userId}
             where (p.id > :#{#params.cursor})
-              and p.level in :#{#params.levels}
+              and p.difficulty in :#{#params.difficulties}
               and (
                     upr.status in :#{#params.statuses}
                     or (upr is null and :#{#params.defaultStatus} in :#{#params.statuses})
@@ -38,7 +38,7 @@ public interface ProblemRepository extends JpaRepository<Problem, Long> {
             select new _ganzi.codoc.problem.dto.ProblemListItem(
                 p.id,
                 p.title,
-                p.level,
+                p.difficulty,
                 coalesce(upr.status, :#{#params.defaultStatus}),
                 (b.id is not null)
             )
@@ -46,7 +46,7 @@ public interface ProblemRepository extends JpaRepository<Problem, Long> {
             left join UserProblemResult upr on upr.problem = p and upr.user.id = :#{#params.userId}
             left join Bookmark b on b.problem = p and b.user.id = :#{#params.userId}
             where (p.id > :#{#params.cursor})
-              and p.level in :#{#params.levels}
+              and p.difficulty in :#{#params.difficulties}
               and (
                     upr.status in :#{#params.statuses}
                     or (upr is null and :#{#params.defaultStatus} in :#{#params.statuses})

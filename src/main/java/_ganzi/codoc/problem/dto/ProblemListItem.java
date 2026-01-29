@@ -1,6 +1,6 @@
 package _ganzi.codoc.problem.dto;
 
-import _ganzi.codoc.problem.enums.ProblemLevel;
+import _ganzi.codoc.problem.enums.ProblemDifficulty;
 import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
 import lombok.Builder;
 
@@ -8,6 +8,6 @@ import lombok.Builder;
 public record ProblemListItem(
         Long problemId,
         String title,
-        ProblemLevel level,
+        ProblemDifficulty difficulty,
         ProblemSolvingStatus status,
         boolean bookmarked) {}

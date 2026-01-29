@@ -3,7 +3,7 @@ package _ganzi.codoc.problem.dto;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.domain.Quiz;
 import _ganzi.codoc.problem.domain.SummaryCard;
-import _ganzi.codoc.problem.enums.ProblemLevel;
+import _ganzi.codoc.problem.enums.ProblemDifficulty;
 import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
 import java.util.List;
 import lombok.Builder;
@@ -12,7 +12,7 @@ import lombok.Builder;
 public record ProblemResponse(
         Long problemId,
         String title,
-        ProblemLevel level,
+        ProblemDifficulty difficulty,
         String content,
         ProblemSolvingStatus status,
         boolean bookmarked,
@@ -29,7 +29,7 @@ public record ProblemResponse(
         return ProblemResponse.builder()
                 .problemId(problem.getId())
                 .title(problem.getTitle())
-                .level(problem.getLevel())
+                .difficulty(problem.getDifficulty())
                 .content(problem.getContent())
                 .status(status)
                 .bookmarked(bookmarked)

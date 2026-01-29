@@ -80,7 +80,7 @@ public class ProblemService {
                 userId,
                 condition.cursor(),
                 condition.query(),
-                condition.levels(),
+                condition.difficulties(),
                 condition.statuses(),
                 ProblemSolvingStatus.NOT_ATTEMPTED,
                 condition.bookmarked(),

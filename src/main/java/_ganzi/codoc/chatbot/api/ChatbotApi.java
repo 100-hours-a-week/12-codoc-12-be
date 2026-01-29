@@ -3,6 +3,7 @@ package _ganzi.codoc.chatbot.api;
 import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendRequest;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendResponse;
+import _ganzi.codoc.chatbot.exception.ChatbotErrorCode;
 import _ganzi.codoc.global.api.docs.ErrorCodes;
 import _ganzi.codoc.global.dto.ApiResponse;
 import _ganzi.codoc.global.exception.GlobalErrorCode;
@@ -56,7 +57,10 @@ public interface ChatbotApi {
                 description = "AUTH_REQUIRED, UNAUTHORIZED"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "403",
-                description = "FORBIDDEN"),
+                description = "FORBIDDEN, CHATBOT_CONVERSATION_NO_PERMISSION"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "404",
+                description = "CHATBOT_CONVERSATION_NOT_FOUND"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "500",
                 description = "INTERNAL_SERVER_ERROR")
@@ -67,6 +71,10 @@ public interface ChatbotApi {
                 GlobalErrorCode.UNAUTHORIZED,
                 GlobalErrorCode.FORBIDDEN,
                 GlobalErrorCode.INTERNAL_SERVER_ERROR
+            },
+            chatbot = {
+                ChatbotErrorCode.CHATBOT_CONVERSATION_NOT_FOUND,
+                ChatbotErrorCode.CHATBOT_CONVERSATION_NO_PERMISSION
             })
-    Flux<ServerSentEvent<String>> streamMessage(Long conversationId);
+    Flux<ServerSentEvent<String>> streamMessage(AuthUser authUser, Long conversationId);
 }

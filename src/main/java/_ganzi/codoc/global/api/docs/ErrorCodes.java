@@ -1,5 +1,6 @@
 package _ganzi.codoc.global.api.docs;
 
+import _ganzi.codoc.chatbot.exception.ChatbotErrorCode;
 import _ganzi.codoc.global.exception.GlobalErrorCode;
 import _ganzi.codoc.problem.exception.ProblemErrorCode;
 import _ganzi.codoc.submission.exception.SubmissionErrorCode;
@@ -23,4 +24,6 @@ public @interface ErrorCodes {
     UserErrorCode[] user() default {};
 
     QuestErrorCode[] quest() default {};
+
+    ChatbotErrorCode[] chatbot() default {};
 }

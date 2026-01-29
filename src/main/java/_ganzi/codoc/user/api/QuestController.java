@@ -35,4 +35,10 @@ public class QuestController implements QuestApi {
         return ResponseEntity.ok(
                 ApiResponse.success(questService.claimReward(authUser.userId(), userQuestId)));
     }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<Void> refreshQuestStatuses(@AuthenticationPrincipal AuthUser authUser) {
+        questService.refreshUserQuestStatuses(authUser.userId());
+        return ResponseEntity.noContent().build();
+    }
 }

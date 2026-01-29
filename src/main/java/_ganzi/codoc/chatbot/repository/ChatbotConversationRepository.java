@@ -14,4 +14,13 @@ public interface ChatbotConversationRepository extends JpaRepository<ChatbotConv
              where conversation.id = :conversationId
             """)
     Optional<ChatbotConversation> findByIdWithAttempt(@Param("conversationId") Long conversationId);
+
+    @Query(
+            """
+            SELECT c FROM ChatbotConversation c
+            JOIN FETCH c.attempt a
+            JOIN FETCH a.user
+            WHERE c.id = :id
+            """)
+    Optional<ChatbotConversation> findWithAttemptAndUserById(@Param("id") Long id);
 }

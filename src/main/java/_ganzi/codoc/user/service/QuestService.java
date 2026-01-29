@@ -69,7 +69,7 @@ public class QuestService {
     }
 
     @Transactional
-    public void updateQuestStatusOnSolve(Long userId) {
+    public void refreshUserQuestStatuses(Long userId) {
         User user = getUser(userId);
         List<UserQuest> userQuests =
                 userQuestRepository.findAllByUserAndStatus(user, QuestStatus.IN_PROGRESS);

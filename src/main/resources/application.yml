@@ -43,3 +43,4 @@ springdoc:
     path: ${SWAGGER_UI_PATH:/swagger-ui.html}
   api-docs:
     path: ${SWAGGER_API_DOCS_PATH:/v3/api-docs}
+    enabled: false

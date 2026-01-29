@@ -57,7 +57,7 @@ public class QuizSubmissionService {
 
             if (existingResult != null) {
                 return QuizGradingResponse.of(
-                        existingResult.isCorrect(), existingResult.getAttempt().getId());
+                        existingResult.isCorrect(), existingResult.getAttempt().getId(), quiz.getExplanation());
             }
         }
 
@@ -74,7 +74,8 @@ public class QuizSubmissionService {
                     throw new QuizAlreadySubmittedException();
                 }
 
-                return QuizGradingResponse.of(existingResult.isCorrect(), attempt.getId());
+                return QuizGradingResponse.of(
+                        existingResult.isCorrect(), attempt.getId(), quiz.getExplanation());
             }
         }
 
@@ -88,7 +89,7 @@ public class QuizSubmissionService {
         boolean result = AnswerChecker.check(quiz.getAnswerIndex(), request.choiceId());
         saveQuizResult(attempt, quiz, idempotencyKey, result);
 
-        return QuizGradingResponse.of(result, attempt.getId());
+        return QuizGradingResponse.of(result, attempt.getId(), quiz.getExplanation());
     }
 
     private void validateQuizGradingAvailable(Long userId, Quiz quiz) {

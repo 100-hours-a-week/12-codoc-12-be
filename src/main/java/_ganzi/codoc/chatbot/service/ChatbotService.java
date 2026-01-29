@@ -31,6 +31,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import tools.jackson.databind.json.JsonMapper;
 
 @RequiredArgsConstructor
@@ -111,20 +113,23 @@ public class ChatbotService {
     }
 
     public Flux<ServerSentEvent<String>> streamMessage(Long userId, Long conversationId) {
+        return Mono.fromCallable(
+                        () ->
+                                chatbotConversationRepository
+                                        .findWithAttemptAndUserById(conversationId)
+                                        .orElseThrow(ChatbotConversationNotFoundException::new))
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMapMany(
+                        conversation -> {
+                            if (!userId.equals(conversation.getAttempt().getUser().getId())) {
+                                return Flux.error(new ChatbotConversationNoPermissionException());
+                            }
 
-        ChatbotConversation conversation =
-                chatbotConversationRepository
-                        .findById(conversationId)
-                        .orElseThrow(ChatbotConversationNotFoundException::new);
-
-        if (!userId.equals(conversation.getAttempt().getUser().getId())) {
-            throw new ChatbotConversationNoPermissionException();
-        }
-
-        return chatbotClient
-                .streamMessage(conversationId)
-                .doOnNext(event -> handleFinalEvent(conversationId, event))
-                .doOnError(error -> deleteConversationSilently(conversationId));
+                            return chatbotClient
+                                    .streamMessage(conversationId)
+                                    .doOnNext(event -> handleFinalEvent(conversationId, event))
+                                    .doOnError(error -> deleteConversationSilently(conversationId));
+                        });
     }
 
     private void handleFinalEvent(Long conversationId, ServerSentEvent<String> event) {

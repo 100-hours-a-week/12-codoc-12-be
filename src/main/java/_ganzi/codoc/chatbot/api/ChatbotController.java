@@ -36,7 +36,8 @@ public class ChatbotController implements ChatbotApi {
     @GetMapping(
             value = "/messages/{conversationId}/stream",
             produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> streamMessage(@PathVariable Long conversationId) {
-        return chatbotService.streamMessage(conversationId);
+    public Flux<ServerSentEvent<String>> streamMessage(
+            @AuthenticationPrincipal AuthUser authUser, @PathVariable Long conversationId) {
+        return chatbotService.streamMessage(authUser.userId(), conversationId);
     }
 }

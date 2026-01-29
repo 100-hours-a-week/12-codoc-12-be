@@ -12,6 +12,8 @@ import _ganzi.codoc.chatbot.domain.ChatbotConversation;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendRequest;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendResponse;
 import _ganzi.codoc.chatbot.enums.ChatbotAttemptStatus;
+import _ganzi.codoc.chatbot.exception.ChatbotConversationNoPermissionException;
+import _ganzi.codoc.chatbot.exception.ChatbotConversationNotFoundException;
 import _ganzi.codoc.chatbot.repository.ChatbotAttemptRepository;
 import _ganzi.codoc.chatbot.repository.ChatbotConversationRepository;
 import _ganzi.codoc.global.util.JsonUtils;
@@ -108,7 +110,17 @@ public class ChatbotService {
         return aiServerResponse.data();
     }
 
-    public Flux<ServerSentEvent<String>> streamMessage(Long conversationId) {
+    public Flux<ServerSentEvent<String>> streamMessage(Long userId, Long conversationId) {
+
+        ChatbotConversation conversation =
+                chatbotConversationRepository
+                        .findById(conversationId)
+                        .orElseThrow(ChatbotConversationNotFoundException::new);
+
+        if (!userId.equals(conversation.getAttempt().getUser().getId())) {
+            throw new ChatbotConversationNoPermissionException();
+        }
+
         return chatbotClient
                 .streamMessage(conversationId)
                 .doOnNext(event -> handleFinalEvent(conversationId, event))

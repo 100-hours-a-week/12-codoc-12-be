@@ -1,7 +1,7 @@
 package _ganzi.codoc.problem.domain;
 
 import _ganzi.codoc.global.domain.BaseTimeEntity;
-import _ganzi.codoc.problem.enums.ProblemLevel;
+import _ganzi.codoc.problem.enums.ProblemDifficulty;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -24,6 +24,6 @@ public class Problem extends BaseTimeEntity {
     private String content;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "level", nullable = false, length = 20)
-    private ProblemLevel level;
+    @Column(name = "difficulty", nullable = false, length = 20)
+    private ProblemDifficulty difficulty;
 }

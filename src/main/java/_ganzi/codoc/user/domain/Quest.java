@@ -23,6 +23,9 @@ public class Quest extends BaseTimeEntity {
     @Column(name = "requirements", nullable = false, columnDefinition = "json")
     private String requirements;
 
+    @Column(name = "issue_conditions", columnDefinition = "json")
+    private String issueConditions;
+
     @Column(name = "reward", nullable = false)
     private int reward;
 

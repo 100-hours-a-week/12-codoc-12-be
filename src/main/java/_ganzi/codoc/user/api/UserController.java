@@ -64,6 +64,12 @@ public class UserController implements UserApi {
         return ResponseEntity.ok(ApiResponse.success(new UserDailyGoalResponse(request.dailyGoal())));
     }
 
+    @GetMapping("/daily-goal")
+    public ResponseEntity<ApiResponse<UserDailyGoalResponse>> getDailyGoal(
+            @AuthenticationPrincipal AuthUser authUser) {
+        return ResponseEntity.ok(ApiResponse.success(userService.getDailyGoal(authUser.userId())));
+    }
+
     @Override
     @DeleteMapping
     public ResponseEntity<Void> deleteUser(@AuthenticationPrincipal AuthUser authUser) {

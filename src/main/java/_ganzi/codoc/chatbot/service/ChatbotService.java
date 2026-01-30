@@ -159,9 +159,9 @@ public class ChatbotService {
         AiServerChatbotFinalResult result = finalEvent.result();
         String aiMessage = result.aiMessage();
         Boolean isCorrect = result.isCorrect();
-        ChatbotParagraphType currentNode =
-                StringUtils.hasText(result.currentNode())
-                        ? ChatbotParagraphType.valueOf(result.currentNode())
+        ChatbotParagraphType paragraphType =
+                StringUtils.hasText(result.paragraphType())
+                        ? ChatbotParagraphType.valueOf(result.paragraphType())
                         : null;
 
         ChatbotConversation conversation =
@@ -174,7 +174,7 @@ public class ChatbotService {
             conversation.recordAiResponse(aiMessage, isCorrect);
         }
 
-        if (currentNode != null) {
+        if (paragraphType != null) {
             ChatbotAttempt attempt = conversation.getAttempt();
             attempt.advanceToNextParagraph();
             chatbotAttemptRepository.save(attempt);

@@ -12,13 +12,13 @@ import _ganzi.codoc.chatbot.domain.ChatbotConversation;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendRequest;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendResponse;
 import _ganzi.codoc.chatbot.enums.ChatbotAttemptStatus;
+import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNoPermissionException;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNotFoundException;
 import _ganzi.codoc.chatbot.repository.ChatbotAttemptRepository;
 import _ganzi.codoc.chatbot.repository.ChatbotConversationRepository;
 import _ganzi.codoc.global.util.JsonUtils;
 import _ganzi.codoc.problem.domain.Problem;
-import _ganzi.codoc.problem.enums.ParagraphType;
 import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.user.domain.User;
@@ -63,7 +63,7 @@ public class ChatbotService {
 
         ChatbotConversation chatbotConversation =
                 chatbotConversationRepository.save(
-                        ChatbotConversation.create(attempt, userMessage, attempt.getCurrentNode()));
+                        ChatbotConversation.create(attempt, userMessage, attempt.getCurrentParagraphType()));
 
         AiServerChatbotSendRequest aiServerRequest =
                 AiServerChatbotSendRequest.of(
@@ -71,7 +71,7 @@ public class ChatbotService {
                         request.problemId(),
                         chatbotConversation.getId(),
                         userMessage,
-                        attempt.getCurrentNode());
+                        attempt.getCurrentParagraphType());
 
         AiServerApiResponse<AiServerChatbotSendResponse> aiServerResponse =
                 chatbotClient.sendMessage(aiServerRequest);
@@ -159,9 +159,9 @@ public class ChatbotService {
         AiServerChatbotFinalResult result = finalEvent.result();
         String aiMessage = result.aiMessage();
         Boolean isCorrect = result.isCorrect();
-        ParagraphType currentNode =
+        ChatbotParagraphType currentNode =
                 StringUtils.hasText(result.currentNode())
-                        ? ParagraphType.valueOf(result.currentNode())
+                        ? ChatbotParagraphType.valueOf(result.currentNode())
                         : null;
 
         ChatbotConversation conversation =

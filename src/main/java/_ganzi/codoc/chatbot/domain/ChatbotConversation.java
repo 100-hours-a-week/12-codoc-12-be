@@ -1,7 +1,7 @@
 package _ganzi.codoc.chatbot.domain;
 
+import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
 import _ganzi.codoc.global.domain.BaseTimeEntity;
-import _ganzi.codoc.problem.enums.ParagraphType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -29,8 +29,8 @@ public class ChatbotConversation extends BaseTimeEntity {
     private String aiMessage;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "node", nullable = false, length = 20)
-    private ParagraphType node;
+    @Column(name = "paragraph_type", nullable = false, length = 20)
+    private ChatbotParagraphType paragraphType;
 
     @Column(name = "is_correct", nullable = false)
     private boolean isCorrect;
@@ -39,18 +39,18 @@ public class ChatbotConversation extends BaseTimeEntity {
             ChatbotAttempt attempt,
             String userMessage,
             String aiMessage,
-            ParagraphType node,
+            ChatbotParagraphType paragraphType,
             boolean isCorrect) {
         this.attempt = attempt;
         this.userMessage = userMessage;
         this.aiMessage = aiMessage;
-        this.node = node;
+        this.paragraphType = paragraphType;
         this.isCorrect = isCorrect;
     }
 
     public static ChatbotConversation create(
-            ChatbotAttempt attempt, String userMessage, ParagraphType node) {
-        return new ChatbotConversation(attempt, userMessage, null, node, false);
+            ChatbotAttempt attempt, String userMessage, ChatbotParagraphType paragraphType) {
+        return new ChatbotConversation(attempt, userMessage, null, paragraphType, false);
     }
 
     public void recordAiResponse(String aiMessage, boolean isCorrect) {

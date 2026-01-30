@@ -16,6 +16,7 @@ import _ganzi.codoc.user.repository.AvatarRepository;
 import _ganzi.codoc.user.repository.UserRepository;
 import _ganzi.codoc.user.repository.UserStatsRepository;
 import _ganzi.codoc.user.service.dto.UserAvatarListResponse;
+import _ganzi.codoc.user.service.dto.UserDailyGoalResponse;
 import _ganzi.codoc.user.service.dto.UserProfileResponse;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -51,6 +52,11 @@ public class UserService {
         String avatarName = avatar.getName();
         String avatarImageUrl = avatar.getImageUrl();
         return new UserProfileResponse(user.getNickname(), avatarId, avatarName, avatarImageUrl);
+    }
+
+    public UserDailyGoalResponse getDailyGoal(Long id) {
+        User user = getUser(id);
+        return new UserDailyGoalResponse(user.getDailyGoal());
     }
 
     public UserAvatarListResponse getAvatarList() {

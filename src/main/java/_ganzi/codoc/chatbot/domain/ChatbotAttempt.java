@@ -1,9 +1,9 @@
 package _ganzi.codoc.chatbot.domain;
 
 import _ganzi.codoc.chatbot.enums.ChatbotAttemptStatus;
+import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
 import _ganzi.codoc.global.domain.BaseTimeEntity;
 import _ganzi.codoc.problem.domain.Problem;
-import _ganzi.codoc.problem.enums.ParagraphType;
 import _ganzi.codoc.user.domain.User;
 import jakarta.persistence.*;
 import java.time.Duration;
@@ -31,8 +31,8 @@ public class ChatbotAttempt extends BaseTimeEntity {
     private Problem problem;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "current_node", nullable = false, length = 20)
-    private ParagraphType currentNode;
+    @Column(name = "paragraph_type", nullable = false, length = 20)
+    private ChatbotParagraphType currentParagraphType;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -44,12 +44,12 @@ public class ChatbotAttempt extends BaseTimeEntity {
     private ChatbotAttempt(
             User user,
             Problem problem,
-            ParagraphType currentNode,
+            ChatbotParagraphType currentParagraphType,
             ChatbotAttemptStatus status,
             Instant expiresAt) {
         this.user = user;
         this.problem = problem;
-        this.currentNode = currentNode;
+        this.currentParagraphType = currentParagraphType;
         this.status = status;
         this.expiresAt = expiresAt;
     }
@@ -58,7 +58,7 @@ public class ChatbotAttempt extends BaseTimeEntity {
         return new ChatbotAttempt(
                 user,
                 problem,
-                ParagraphType.getInitialType(),
+                ChatbotParagraphType.getInitialType(),
                 ChatbotAttemptStatus.ACTIVE,
                 Instant.now().plus(ttl));
     }
@@ -70,6 +70,6 @@ public class ChatbotAttempt extends BaseTimeEntity {
     }
 
     public void advanceToNextParagraph() {
-        this.currentNode = this.currentNode.next();
+        this.currentParagraphType = this.currentParagraphType.next();
     }
 }

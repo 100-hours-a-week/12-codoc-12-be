@@ -1,8 +1,8 @@
 ---
 name: "♻️ REFACTOR TEMPLATE"
-about: REFACTOR TEMPLATE
+about: 코드/구조 개선
 title: "[refactor] "
-labels: "♻️ refactor"
+labels: ''
 assignees: ''
 
 ---

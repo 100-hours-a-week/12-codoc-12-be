@@ -9,6 +9,7 @@ import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -32,11 +33,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String token = resolveToken(request);
         if (token != null) {
-            AuthUser authUser = jwtTokenProvider.parseUser(token);
-            var authentication =
-                    new UsernamePasswordAuthenticationToken(authUser, null, authUser.getAuthorities());
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+            try {
+                AuthUser authUser = jwtTokenProvider.parseUser(token);
+                var authentication =
+                        new UsernamePasswordAuthenticationToken(authUser, null, authUser.getAuthorities());
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            } catch (Exception exception) {
+                throw new AuthenticationCredentialsNotFoundException("INVALID_TOKEN", exception);
+            }
         }
         filterChain.doFilter(request, response);
     }

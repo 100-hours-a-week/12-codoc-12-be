@@ -5,4 +5,8 @@ import tools.jackson.databind.annotation.JsonNaming;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record AiServerChatbotFinalResult(
-        String status, String aiMessage, String currentNode, Boolean isCorrect, String currentAnswer) {}
+        String status,
+        String aiMessage,
+        String paragraphType,
+        Boolean isCorrect,
+        String currentAnswer) {}

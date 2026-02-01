@@ -1,0 +1,94 @@
+<!-- src/main/resources/logback-spring.xml
+     요구한 JSON "형식"에 맞추기 위해 key를 고정하고,
+     context / error를 nested object로 만든다.
+-->
+<configuration debug="false">
+
+  <!-- 운영 기본값: LOG_DIR 없으면 be/logs -->
+  <property name="LOG_DIR" value="${LOG_DIR:-/home/ubuntu/be/logs}" />
+
+  <!-- ACCESS: 요청 단위 JSON -->
+  <appender name="ACCESS_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_DIR}/access.log</file>
+
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_DIR}/access.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
+
+    <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+      <providers>
+        <!-- timestamp -->
+        <timestamp>
+          <fieldName>timestamp</fieldName>
+        </timestamp>
+
+        <!-- level -->
+        <logLevel>
+          <fieldName>level</fieldName>
+        </logLevel>
+
+        <!-- service: MDC에서 service 가져옴 -->
+        <mdc>
+          <fieldName>_mdc</fieldName>
+        </mdc>
+
+        <!-- message -->
+        <message>
+          <fieldName>message</fieldName>
+        </message>
+
+        <!-- nested: context, error는 아래 CustomJsonProvider로 구성 -->
+        <provider class="_ganzi.codoc.global.log.LogstashFixedSchemaProvider"/>
+      </providers>
+    </encoder>
+  </appender>
+
+  <!-- ERROR: 예외 단위 JSON -->
+  <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_DIR}/error.log</file>
+
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_DIR}/error.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
+
+    <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+      <providers>
+        <timestamp>
+          <fieldName>timestamp</fieldName>
+        </timestamp>
+
+        <logLevel>
+          <fieldName>level</fieldName>
+        </logLevel>
+
+        <mdc>
+          <fieldName>_mdc</fieldName>
+        </mdc>
+
+        <message>
+          <fieldName>message</fieldName>
+        </message>
+
+        <stackTrace>
+          <fieldName>_stacktrace</fieldName>
+        </stackTrace>
+
+        <provider class="_ganzi.codoc.global.log.LogstashFixedSchemaProvider"/>
+      </providers>
+    </encoder>
+  </appender>
+
+  <logger name="ACCESS_LOG" level="INFO" additivity="false">
+    <appender-ref ref="ACCESS_FILE"/>
+  </logger>
+
+  <logger name="ERROR_LOG" level="INFO" additivity="false">
+    <appender-ref ref="ERROR_FILE"/>
+  </logger>
+
+  <!-- root는 콘솔만 (원하면 제거 가능) -->
+  <root level="INFO"/>
+
+</configuration>

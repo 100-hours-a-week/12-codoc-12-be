@@ -23,7 +23,7 @@ public class User {
     @JoinColumn(name = "avatar_id", nullable = false)
     private Avatar avatar;
 
-    @Column(name = "nickname", nullable = false, length = 15)
+    @Column(name = "nickname", unique = true, nullable = false, length = 15)
     private String nickname;
 
     @Enumerated(EnumType.STRING)

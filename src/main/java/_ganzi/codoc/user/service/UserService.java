@@ -18,6 +18,8 @@ import _ganzi.codoc.user.repository.UserStatsRepository;
 import _ganzi.codoc.user.service.dto.UserAvatarListResponse;
 import _ganzi.codoc.user.service.dto.UserDailyGoalResponse;
 import _ganzi.codoc.user.service.dto.UserProfileResponse;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -106,6 +108,19 @@ public class UserService {
     public void markDormantUser(Long id) {
         User user = getUser(id);
         user.markDormant();
+    }
+
+    @Transactional
+    public void markDormantUsersInactiveForDays(int inactiveDays) {
+        Instant cutoff = Instant.now().minus(Duration.ofDays(inactiveDays));
+        List<Long> userIds =
+                userRepository.findIdsByStatusAndLastAccessBefore(UserStatus.ACTIVE, cutoff);
+        if (userIds.isEmpty()) {
+            return;
+        }
+        userRepository.bulkUpdateStatusByLastAccessBefore(
+                UserStatus.ACTIVE, UserStatus.DORMANT, cutoff);
+        refreshTokenRepository.deleteByUserIdIn(userIds);
     }
 
     @Transactional

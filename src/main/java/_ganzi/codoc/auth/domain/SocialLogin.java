@@ -16,6 +16,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -62,6 +63,16 @@ public class SocialLogin extends BaseTimeEntity {
     public void markDeleted() {
         this.isDeleted = true;
         this.deletedAt = Instant.now();
+    }
+
+    public void markDeleted(String anonymizedProviderUserId) {
+        this.isDeleted = true;
+        this.deletedAt = Instant.now();
+        this.providerUserId = anonymizedProviderUserId;
+    }
+
+    public static String anonymizeProviderUserId(String providerUserId) {
+        return "deleted:" + providerUserId + ":" + UUID.randomUUID();
     }
 
     public void restore() {

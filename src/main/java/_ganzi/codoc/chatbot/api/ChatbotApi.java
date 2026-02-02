@@ -74,7 +74,8 @@ public interface ChatbotApi {
             },
             chatbot = {
                 ChatbotErrorCode.CHATBOT_CONVERSATION_NOT_FOUND,
-                ChatbotErrorCode.CHATBOT_CONVERSATION_NO_PERMISSION
+                ChatbotErrorCode.CHATBOT_CONVERSATION_NO_PERMISSION,
+                ChatbotErrorCode.CHATBOT_STREAM_EVENT_FAILED
             })
     Flux<ServerSentEvent<String>> streamMessage(AuthUser authUser, Long conversationId);
 }

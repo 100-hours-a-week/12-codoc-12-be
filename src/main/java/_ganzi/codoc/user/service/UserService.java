@@ -154,6 +154,7 @@ public class UserService {
             return;
         }
         user.markDeleted();
+        user.updateNickname(generateDeletedNickname());
         refreshTokenRepository.deleteByUser(user);
         for (SocialLogin socialLogin : socialLoginRepository.findAllByUser(user)) {
             socialLogin.markDeleted(SocialLogin.anonymizeProviderUserId(socialLogin.getProviderUserId()));
@@ -165,6 +166,15 @@ public class UserService {
         do {
             nickname = UUID.randomUUID().toString().replace("-", "");
             nickname = nickname.substring(0, RANDOM_NICKNAME_LENGTH);
+        } while (userRepository.existsByNickname(nickname));
+        return nickname;
+    }
+
+    private String generateDeletedNickname() {
+        String nickname;
+        do {
+            String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+            nickname = ("deleted_" + suffix).substring(0, RANDOM_NICKNAME_LENGTH);
         } while (userRepository.existsByNickname(nickname));
         return nickname;
     }

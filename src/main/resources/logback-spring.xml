@@ -2,12 +2,26 @@
 
   <property name="LOG_DIR" value="${LOG_DIR:-/home/ubuntu/be/logs}" />
 
+  <!-- 1) 앱(부팅/프레임워크) 로그: 파일로 확실히 남기기 -->
+  <appender name="APP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_DIR}/app.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_DIR}/app.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level %logger - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- 2) 콘솔: 개발/긴급 디버깅용(원하면 나중에 제거) -->
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
       <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
     </encoder>
   </appender>
 
+  <!-- 3) ACCESS JSON -->
   <appender name="ACCESS_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${LOG_DIR}/access.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -19,13 +33,15 @@
       <providers>
         <timestamp><fieldName>timestamp</fieldName></timestamp>
         <logLevel><fieldName>level</fieldName></logLevel>
-        <mdc><fieldName>_mdc</fieldName></mdc>
         <message><fieldName>message</fieldName></message>
+
+        <!-- 여기서 MDC 통째 출력 금지 -->
         <provider class="_ganzi.codoc.global.log.LogstashFixedSchemaProvider"/>
       </providers>
     </encoder>
   </appender>
 
+  <!-- 4) ERROR JSON -->
   <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${LOG_DIR}/error.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -37,23 +53,29 @@
       <providers>
         <timestamp><fieldName>timestamp</fieldName></timestamp>
         <logLevel><fieldName>level</fieldName></logLevel>
-        <mdc><fieldName>_mdc</fieldName></mdc>
         <message><fieldName>message</fieldName></message>
+
+        <!-- stacktrace는 error.log에서만 1번 -->
         <stackTrace><fieldName>stacktrace</fieldName></stackTrace>
+
         <provider class="_ganzi.codoc.global.log.LogstashFixedSchemaProvider"/>
       </providers>
     </encoder>
   </appender>
 
+  <!-- ACCESS_LOG는 access.log -->
   <logger name="ACCESS_LOG" level="INFO" additivity="false">
     <appender-ref ref="ACCESS_FILE"/>
   </logger>
 
+  <!-- ERROR_LOG는 error.log -->
   <logger name="ERROR_LOG" level="INFO" additivity="false">
     <appender-ref ref="ERROR_FILE"/>
   </logger>
 
+  <!-- root: 프레임워크/부팅 로그는 app.log(+콘솔)로 -->
   <root level="INFO">
+    <appender-ref ref="APP_FILE"/>
     <appender-ref ref="CONSOLE"/>
   </root>
 

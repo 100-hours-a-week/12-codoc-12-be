@@ -82,7 +82,7 @@ public class KakaoAuthService {
             return authTokenService.issueTokenPairInternal(newUser);
         }
         if (user.getStatus() == UserStatus.DORMANT) {
-            user.reviveFromDormant();
+            userService.reviveDormantUser(user.getId());
         }
         return authTokenService.issueTokenPairInternal(user);
     }

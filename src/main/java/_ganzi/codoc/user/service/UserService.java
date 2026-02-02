@@ -141,7 +141,7 @@ public class UserService {
         user.markDeleted();
         refreshTokenRepository.deleteByUser(user);
         for (SocialLogin socialLogin : socialLoginRepository.findAllByUser(user)) {
-            socialLogin.markDeleted();
+            socialLogin.markDeleted(SocialLogin.anonymizeProviderUserId(socialLogin.getProviderUserId()));
         }
     }
 

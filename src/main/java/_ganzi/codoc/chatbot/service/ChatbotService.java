@@ -41,6 +41,7 @@ import tools.jackson.databind.json.JsonMapper;
 public class ChatbotService {
 
     private static final String EVENT_FINAL = "final";
+    private static final String EVENT_ERROR = "error";
 
     private final ChatbotClient chatbotClient;
     private final UserRepository userRepository;
@@ -134,6 +135,11 @@ public class ChatbotService {
 
     private void handleFinalEvent(Long conversationId, ServerSentEvent<String> event) {
         String eventName = event.event();
+
+        if (EVENT_ERROR.equals(eventName)) {
+            deleteConversationSilently(conversationId);
+            return;
+        }
 
         if (!EVENT_FINAL.equals(eventName)) {
             return;

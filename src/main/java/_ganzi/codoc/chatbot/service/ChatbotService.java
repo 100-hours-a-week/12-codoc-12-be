@@ -15,6 +15,7 @@ import _ganzi.codoc.chatbot.enums.ChatbotAttemptStatus;
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNoPermissionException;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNotFoundException;
+import _ganzi.codoc.chatbot.exception.ChatbotStreamEventException;
 import _ganzi.codoc.chatbot.repository.ChatbotAttemptRepository;
 import _ganzi.codoc.chatbot.repository.ChatbotConversationRepository;
 import _ganzi.codoc.global.util.JsonUtils;
@@ -33,6 +34,7 @@ import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 @RequiredArgsConstructor
@@ -42,6 +44,9 @@ public class ChatbotService {
 
     private static final String EVENT_FINAL = "final";
     private static final String EVENT_ERROR = "error";
+    private static final String EVENT_STATUS = "status";
+    private static final String EVENT_TOKEN = "token";
+    private static final String CODE_SUCCESS = "SUCCESS";
 
     private final ChatbotClient chatbotClient;
     private final UserRepository userRepository;
@@ -77,7 +82,8 @@ public class ChatbotService {
         AiServerApiResponse<AiServerChatbotSendResponse> aiServerResponse =
                 chatbotClient.sendMessage(aiServerRequest);
 
-        AiServerChatbotSendResponse sendResponse = validateSendResponse(aiServerResponse);
+        AiServerChatbotSendResponse sendResponse =
+                validateSendResponse(chatbotConversation.getId(), aiServerResponse);
 
         return ChatbotMessageSendResponse.of(chatbotConversation.getId(), sendResponse.status());
     }
@@ -104,10 +110,10 @@ public class ChatbotService {
     }
 
     private AiServerChatbotSendResponse validateSendResponse(
-            AiServerApiResponse<AiServerChatbotSendResponse> aiServerResponse) {
+            Long conversationId, AiServerApiResponse<AiServerChatbotSendResponse> aiServerResponse) {
 
         if (aiServerResponse == null || aiServerResponse.data() == null) {
-            throw new IllegalStateException("Ai server response is empty.");
+            deleteAndThrow(conversationId);
         }
 
         return aiServerResponse.data();
@@ -128,40 +134,66 @@ public class ChatbotService {
 
                             return chatbotClient
                                     .streamMessage(conversationId)
-                                    .doOnNext(event -> handleFinalEvent(conversationId, event))
+                                    .doOnNext(event -> handleStreamEvent(conversationId, event))
                                     .doOnError(error -> deleteConversationSilently(conversationId));
                         });
     }
 
-    private void handleFinalEvent(Long conversationId, ServerSentEvent<String> event) {
+    private void handleStreamEvent(Long conversationId, ServerSentEvent<String> event) {
         String eventName = event.event();
-
-        if (EVENT_ERROR.equals(eventName)) {
-            deleteConversationSilently(conversationId);
-            return;
-        }
-
-        if (!EVENT_FINAL.equals(eventName)) {
-            return;
-        }
-
         String data = event.data();
 
-        if (data == null || data.isBlank()) {
+        if (EVENT_FINAL.equals(eventName)) {
+            handleFinalSuccessEvent(conversationId, data);
             return;
         }
 
-        persistFinalEvent(conversationId, data);
+        if (EVENT_STATUS.equals(eventName) || EVENT_TOKEN.equals(eventName)) {
+            validateSuccessCodeOrThrow(conversationId, eventName, data);
+            return;
+        }
+
+        deleteAndThrow(conversationId);
     }
 
-    private void persistFinalEvent(Long conversationId, String data) {
+    private void handleFinalSuccessEvent(Long conversationId, String data) {
+        validateSuccessCodeOrThrow(conversationId, EVENT_FINAL, data);
+
+        if (data == null || data.isBlank()) {
+            deleteAndThrow(conversationId);
+        }
+
         AiServerChatbotFinalEvent finalEvent =
                 JsonUtils.parseJson(jsonMapper, data, AiServerChatbotFinalEvent.class);
 
         if (finalEvent == null || finalEvent.result() == null) {
-            return;
+            deleteAndThrow(conversationId);
         }
 
+        persistFinalEvent(conversationId, finalEvent);
+    }
+
+    private void validateSuccessCodeOrThrow(Long conversationId, String eventName, String data) {
+        if (!hasSuccessCode(data)) {
+            deleteAndThrow(conversationId);
+        }
+    }
+
+    private boolean hasSuccessCode(String data) {
+        if (data == null || data.isBlank()) {
+            return false;
+        }
+
+        JsonNode root = JsonUtils.parseJson(jsonMapper, data);
+        if (root == null) {
+            return false;
+        }
+
+        JsonNode code = root.get("code");
+        return code != null && CODE_SUCCESS.equals(code.asString());
+    }
+
+    private void persistFinalEvent(Long conversationId, AiServerChatbotFinalEvent finalEvent) {
         AiServerChatbotFinalResult result = finalEvent.result();
         String aiMessage = result.aiMessage();
         Boolean isCorrect = result.isCorrect();
@@ -177,7 +209,7 @@ public class ChatbotService {
         }
 
         if (aiMessage != null) {
-            conversation.recordAiResponse(aiMessage, isCorrect);
+            conversation.recordAiResponse(aiMessage, Boolean.TRUE.equals(isCorrect));
         }
 
         if (paragraphType != null) {
@@ -191,5 +223,10 @@ public class ChatbotService {
 
     private void deleteConversationSilently(Long conversationId) {
         chatbotConversationRepository.deleteById(conversationId);
+    }
+
+    private void deleteAndThrow(Long conversationId) {
+        deleteConversationSilently(conversationId);
+        throw new ChatbotStreamEventException();
     }
 }

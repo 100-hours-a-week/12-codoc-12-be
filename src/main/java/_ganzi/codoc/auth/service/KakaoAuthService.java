@@ -68,18 +68,22 @@ public class KakaoAuthService {
         SocialLogin socialLogin =
                 socialLoginRepository
                         .findByProviderNameAndProviderUserId(SocialProvider.KAKAO, userResponse.id())
-                        .orElseGet(() -> createSocialLogin(userResponse));
+                        .orElse(null);
+
+        if (socialLogin == null) {
+            User newUser = createSocialLogin(userResponse).getUser();
+            return authTokenService.issueTokenPairInternal(newUser);
+        }
 
         User user = socialLogin.getUser();
-        if (user.getStatus() == UserStatus.DELETED) {
-            user.restoreActiveFromDeleted();
-        } else if (user.getStatus() == UserStatus.DORMANT) {
+        if (user.getStatus() == UserStatus.DELETED || socialLogin.isDeleted()) {
+            socialLogin.markDeleted(SocialLogin.anonymizeProviderUserId(socialLogin.getProviderUserId()));
+            User newUser = createSocialLogin(userResponse).getUser();
+            return authTokenService.issueTokenPairInternal(newUser);
+        }
+        if (user.getStatus() == UserStatus.DORMANT) {
             user.reviveFromDormant();
         }
-        if (socialLogin.isDeleted()) {
-            socialLogin.restore();
-        }
-
         return authTokenService.issueTokenPairInternal(user);
     }
 

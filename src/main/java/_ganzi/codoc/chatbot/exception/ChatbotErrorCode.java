@@ -11,7 +11,7 @@ public enum ChatbotErrorCode implements ErrorCode {
     CHATBOT_CONVERSATION_NO_PERMISSION(
             HttpStatus.FORBIDDEN, "CHATBOT_CONVERSATION_NO_PERMISSION", "대화 내역에 대한 권한이 없습니다."),
     CHATBOT_STREAM_EVENT_FAILED(
-            HttpStatus.INTERNAL_SERVER_ERROR, "CHATBOT_STREAM_EVENT_FAILED", "챗봇 스트림 요창에 실패했습니다."),
+            HttpStatus.INTERNAL_SERVER_ERROR, "CHATBOT_STREAM_EVENT_FAILED", "챗봇 스트림 요청에 실패했습니다."),
     ;
 
     private final HttpStatus status;

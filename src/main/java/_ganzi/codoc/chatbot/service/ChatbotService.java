@@ -149,7 +149,7 @@ public class ChatbotService {
         }
 
         if (EVENT_STATUS.equals(eventName) || EVENT_TOKEN.equals(eventName)) {
-            validateSuccessCodeOrThrow(conversationId, eventName, data);
+            validateNonFinalEventOrThrow(conversationId, eventName, data);
             return;
         }
 
@@ -157,9 +157,12 @@ public class ChatbotService {
     }
 
     private void handleFinalSuccessEvent(Long conversationId, String data) {
-        validateSuccessCodeOrThrow(conversationId, EVENT_FINAL, data);
-
         if (data == null || data.isBlank()) {
+            deleteAndThrow(conversationId);
+        }
+
+        String code = extractCode(data);
+        if (!CODE_SUCCESS.equals(code)) {
             deleteAndThrow(conversationId);
         }
 
@@ -173,24 +176,30 @@ public class ChatbotService {
         persistFinalEvent(conversationId, finalEvent);
     }
 
-    private void validateSuccessCodeOrThrow(Long conversationId, String eventName, String data) {
-        if (!hasSuccessCode(data)) {
+    private void validateNonFinalEventOrThrow(Long conversationId, String eventName, String data) {
+        String code = extractCode(data);
+
+        if (code == null) {
+            return;
+        }
+
+        if (!CODE_SUCCESS.equals(code)) {
             deleteAndThrow(conversationId);
         }
     }
 
-    private boolean hasSuccessCode(String data) {
+    private String extractCode(String data) {
         if (data == null || data.isBlank()) {
-            return false;
+            return null;
         }
 
         JsonNode root = JsonUtils.parseJson(jsonMapper, data);
         if (root == null) {
-            return false;
+            return null;
         }
 
         JsonNode code = root.get("code");
-        return code != null && CODE_SUCCESS.equals(code.asString());
+        return code != null ? code.asString() : null;
     }
 
     private void persistFinalEvent(Long conversationId, AiServerChatbotFinalEvent finalEvent) {

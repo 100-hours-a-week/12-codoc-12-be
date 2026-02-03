@@ -46,15 +46,15 @@ WHERE NOT EXISTS (SELECT 1 FROM quest WHERE title = '오늘의 첫 문제 해결
 
 INSERT INTO quest (created_at, updated_at, duration, requirements, reward, title, type, issue_conditions)
 SELECT NOW(6), NOW(6), 1, JSON_OBJECT('DailySolvedCount', 1), 10,
-       '일일 문제 해결 목표 달성 (1)', 'DAILY', JSON_OBJECT('DailyGoal', 'ONE')
-WHERE NOT EXISTS (SELECT 1 FROM quest WHERE title = '일일 문제 해결 목표 달성 (1)');
+       '일일 문제 해결 목표 달성 (1 문제)', 'DAILY', JSON_OBJECT('DailyGoal', 'ONE')
+WHERE NOT EXISTS (SELECT 1 FROM quest WHERE title = '일일 문제 해결 목표 달성 (1 문제)');
 
 INSERT INTO quest (created_at, updated_at, duration, requirements, reward, title, type, issue_conditions)
 SELECT NOW(6), NOW(6), 1, JSON_OBJECT('DailySolvedCount', 3), 10,
-       '일일 문제 해결 목표 달성 (3)', 'DAILY', JSON_OBJECT('DailyGoal', 'THREE')
-WHERE NOT EXISTS (SELECT 1 FROM quest WHERE title = '일일 문제 해결 목표 달성 (3)');
+       '일일 문제 해결 목표 달성 (3 문제)', 'DAILY', JSON_OBJECT('DailyGoal', 'THREE')
+WHERE NOT EXISTS (SELECT 1 FROM quest WHERE title = '일일 문제 해결 목표 달성 (3 문제)');
 
 INSERT INTO quest (created_at, updated_at, duration, requirements, reward, title, type, issue_conditions)
 SELECT NOW(6), NOW(6), 1, JSON_OBJECT('DailySolvedCount', 5), 10,
-       '일일 문제 해결 목표 달성 (5)', 'DAILY', JSON_OBJECT('DailyGoal', 'FIVE')
-WHERE NOT EXISTS (SELECT 1 FROM quest WHERE title = '일일 문제 해결 목표 달성 (5)');
+       '일일 문제 해결 목표 달성 (5 문제)', 'DAILY', JSON_OBJECT('DailyGoal', 'FIVE')
+WHERE NOT EXISTS (SELECT 1 FROM quest WHERE title = '일일 문제 해결 목표 달성 (5 문제)');

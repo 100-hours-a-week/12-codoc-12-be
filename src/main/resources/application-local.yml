@@ -23,3 +23,13 @@ logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus, health, metrics, threaddump
+      base-path: /api/actuator
+  endpoint:
+    prometheus:
+      access: read_only

@@ -48,3 +48,8 @@ springdoc:
   api-docs:
     path: ${SWAGGER_API_DOCS_PATH:/v3/api-docs}
     enabled: false
+
+management:
+  endpoints:
+      access:
+        default: none

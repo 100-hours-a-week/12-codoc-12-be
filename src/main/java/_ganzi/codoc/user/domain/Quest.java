@@ -9,7 +9,9 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "quest")
+@Table(
+        name = "quest",
+        indexes = {@Index(name = "idx_quest_type", columnList = "type")})
 @Entity
 public class Quest extends BaseTimeEntity {
 

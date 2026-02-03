@@ -72,7 +72,7 @@ public class QuestService {
     public void refreshUserQuestStatuses(Long userId) {
         User user = getUser(userId);
         List<UserQuest> userQuests =
-                userQuestRepository.findAllByUserAndStatus(user, QuestStatus.IN_PROGRESS);
+                userQuestRepository.findAllByUserAndStatusFetchQuest(user, QuestStatus.IN_PROGRESS);
         Instant now = Instant.now();
         for (UserQuest userQuest : userQuests) {
             if (userQuest.getExpiresAt().isBefore(now)) {

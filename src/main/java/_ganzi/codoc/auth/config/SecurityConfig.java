@@ -59,6 +59,8 @@ public class SecurityConfig {
                                         .permitAll()
                                         .requestMatchers("/api/auth/**")
                                         .permitAll()
+                                        .requestMatchers("/api/dev/auth/**")
+                                        .permitAll()
                                         .requestMatchers(HttpMethod.DELETE, "/api/user")
                                         .hasAnyAuthority(
                                                 UserStatus.ONBOARDING.asAuthority(),

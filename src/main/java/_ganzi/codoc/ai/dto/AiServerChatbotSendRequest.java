@@ -1,6 +1,7 @@
 package _ganzi.codoc.ai.dto;
 
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
+import _ganzi.codoc.user.enums.InitLevel;
 import lombok.Builder;
 
 @Builder
@@ -9,6 +10,7 @@ public record AiServerChatbotSendRequest(
         Long problemId,
         Long runId,
         String userMessage,
+        InitLevel userLevel,
         ChatbotParagraphType paragraphType) {
 
     public static AiServerChatbotSendRequest of(
@@ -16,6 +18,7 @@ public record AiServerChatbotSendRequest(
             Long problemId,
             Long runId,
             String userMessage,
+            InitLevel userLevel,
             ChatbotParagraphType paragraphType) {
 
         return AiServerChatbotSendRequest.builder()
@@ -23,6 +26,7 @@ public record AiServerChatbotSendRequest(
                 .problemId(problemId)
                 .runId(runId)
                 .userMessage(userMessage)
+                .userLevel(userLevel)
                 .paragraphType(paragraphType)
                 .build();
     }

@@ -20,6 +20,15 @@ public class QuestBatchService {
 
     @Transactional
     public void issueDailyQuests(LocalDate issuedDate) {
+        String expireSql =
+                """
+                UPDATE user_quest
+                SET is_expired = true
+                WHERE is_expired = false
+                  AND expires_at < NOW()
+                """;
+        entityManager.createNativeQuery(expireSql).executeUpdate();
+
         Instant expiresAt = issuedDate.plusDays(1).atStartOfDay(SEOUL).toInstant();
         String sql =
                 """
@@ -47,6 +56,16 @@ public class QuestBatchService {
 
     @Transactional
     public void issueDailyQuestsForUser(Long userId, LocalDate issuedDate) {
+        String expireSql =
+                """
+                UPDATE user_quest
+                SET is_expired = true
+                WHERE user_id = :userId
+                  AND is_expired = false
+                  AND expires_at < NOW()
+                """;
+        entityManager.createNativeQuery(expireSql).setParameter("userId", userId).executeUpdate();
+
         Instant expiresAt = issuedDate.plusDays(1).atStartOfDay(SEOUL).toInstant();
         String sql =
                 """

@@ -77,6 +77,7 @@ public class ChatbotService {
                         request.problemId(),
                         chatbotConversation.getId(),
                         userMessage,
+                        user.getInitLevel(),
                         attempt.getCurrentParagraphType());
 
         AiServerApiResponse<AiServerChatbotSendResponse> aiServerResponse =

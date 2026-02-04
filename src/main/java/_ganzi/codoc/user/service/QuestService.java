@@ -34,8 +34,7 @@ public class QuestService {
 
     public UserQuestListResponse getUserQuests(Long userId) {
         User user = getUser(userId);
-        List<UserQuest> userQuests =
-                userQuestRepository.findAllByUserAndStatusNot(user, QuestStatus.EXPIRED);
+        List<UserQuest> userQuests = userQuestRepository.findAllByUserAndIsExpiredFalseFetchQuest(user);
         List<UserQuestListResponse.UserQuestSummary> quests =
                 userQuests.stream()
                         .map(
@@ -71,16 +70,14 @@ public class QuestService {
     @Transactional
     public void refreshUserQuestStatuses(Long userId) {
         User user = getUser(userId);
-        List<UserQuest> userQuests =
-                userQuestRepository.findAllByUserAndStatusInFetchQuest(
-                        user, List.of(QuestStatus.IN_PROGRESS, QuestStatus.COMPLETED, QuestStatus.CLAIMED));
+        List<UserQuest> userQuests = userQuestRepository.findAllByUserAndIsExpiredFalseFetchQuest(user);
         Instant now = Instant.now();
         for (UserQuest userQuest : userQuests) {
             if (userQuest.getExpiresAt().isBefore(now)) {
                 userQuest.markExpired();
                 continue;
             }
-            if (isQuestCompleted(userQuest)) {
+            if (userQuest.getStatus() == QuestStatus.IN_PROGRESS && isQuestCompleted(userQuest)) {
                 userQuest.markCompleted();
             }
         }
@@ -91,7 +88,7 @@ public class QuestService {
     }
 
     private void validateClaimable(UserQuest userQuest) {
-        if (userQuest.getExpiresAt().isBefore(Instant.now())) {
+        if (userQuest.isExpired() || userQuest.getExpiresAt().isBefore(Instant.now())) {
             userQuest.markExpired();
             throw new QuestExpiredException();
         }

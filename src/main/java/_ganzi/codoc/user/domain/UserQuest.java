@@ -14,7 +14,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(
         name = "user_quest",
-        indexes = {@Index(name = "idx_user_quest_user_status", columnList = "user_id,status")},
+        indexes = {
+            @Index(name = "idx_user_quest_user_status", columnList = "user_id,status"),
+            @Index(name = "idx_user_quest_user_expired", columnList = "user_id,is_expired")
+        },
         uniqueConstraints =
                 @UniqueConstraint(
                         name = "uk_user_quest_issue",
@@ -43,6 +46,9 @@ public class UserQuest extends BaseTimeEntity {
 
     @Column(name = "issued_date", nullable = false)
     private LocalDate issuedDate;
+
+    @Column(name = "is_expired", nullable = false)
+    private boolean isExpired;
 
     private UserQuest(
             User user, Quest quest, QuestStatus status, Instant expiresAt, LocalDate issuedDate) {
@@ -75,6 +81,6 @@ public class UserQuest extends BaseTimeEntity {
     }
 
     public void markExpired() {
-        this.status = QuestStatus.EXPIRED;
+        this.isExpired = true;
     }
 }

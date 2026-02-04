@@ -29,5 +29,15 @@ public interface UserQuestRepository extends JpaRepository<UserQuest, Long> {
     List<UserQuest> findAllByUserAndStatusFetchQuest(
             @Param("user") User user, @Param("status") QuestStatus status);
 
+    @Query(
+            """
+            select uq
+            from UserQuest uq
+            join fetch uq.quest q
+            where uq.user = :user and uq.status in :statuses
+            """)
+    List<UserQuest> findAllByUserAndStatusInFetchQuest(
+            @Param("user") User user, @Param("statuses") List<QuestStatus> statuses);
+
     List<UserQuest> findAllByUserAndStatusNot(User user, QuestStatus status);
 }

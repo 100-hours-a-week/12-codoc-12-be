@@ -75,8 +75,6 @@ public class UserQuest extends BaseTimeEntity {
     }
 
     public void markExpired() {
-        if (this.status != QuestStatus.CLAIMED) {
-            this.status = QuestStatus.EXPIRED;
-        }
+        this.status = QuestStatus.EXPIRED;
     }
 }

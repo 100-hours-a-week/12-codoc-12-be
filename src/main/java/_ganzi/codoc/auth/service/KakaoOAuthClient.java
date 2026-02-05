@@ -4,6 +4,7 @@ import _ganzi.codoc.auth.service.dto.KakaoTokenResponse;
 import _ganzi.codoc.auth.service.dto.KakaoUserResponse;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
@@ -12,12 +13,14 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class KakaoOAuthClient {
 
     private static final String TOKEN_URI = "https://kauth.kakao.com/oauth/token";
     private static final String USER_URI = "https://kapi.kakao.com/v2/user/me";
+    private static final String UNLINK_URI = "https://kapi.kakao.com/v1/user/unlink";
 
     private final WebClient webClient;
 
@@ -29,6 +32,9 @@ public class KakaoOAuthClient {
 
     @Value("${kakao.redirect-uri}")
     private String redirectUri;
+
+    @Value("${kakao.admin-key:}")
+    private String adminKey;
 
     public KakaoTokenResponse exchangeToken(String code) {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
@@ -64,5 +70,30 @@ public class KakaoOAuthClient {
         Map<String, Object> properties = (Map<String, Object>) response.get("properties");
         String nickname = properties != null ? String.valueOf(properties.get("nickname")) : null;
         return new KakaoUserResponse(id, nickname);
+    }
+
+    public void unlink(String providerUserId) {
+        if (adminKey.isBlank()) {
+            log.warn("Kakao admin key is missing; skip unlink for providerUserId={}", providerUserId);
+            return;
+        }
+
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("target_id_type", "user_id");
+        form.add("target_id", providerUserId);
+
+        try {
+            webClient
+                    .post()
+                    .uri(UNLINK_URI)
+                    .header("Authorization", "KakaoAK " + adminKey)
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .bodyValue(form)
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .block();
+        } catch (Exception exception) {
+            log.warn("Kakao unlink failed for providerUserId={}", providerUserId, exception);
+        }
     }
 }

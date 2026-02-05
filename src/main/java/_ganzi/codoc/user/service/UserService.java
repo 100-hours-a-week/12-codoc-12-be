@@ -1,8 +1,10 @@
 package _ganzi.codoc.user.service;
 
 import _ganzi.codoc.auth.domain.SocialLogin;
+import _ganzi.codoc.auth.enums.SocialProvider;
 import _ganzi.codoc.auth.repository.RefreshTokenRepository;
 import _ganzi.codoc.auth.repository.SocialLoginRepository;
+import _ganzi.codoc.auth.service.KakaoOAuthClient;
 import _ganzi.codoc.user.api.dto.UserInitSurveyRequest;
 import _ganzi.codoc.user.domain.Avatar;
 import _ganzi.codoc.user.domain.User;
@@ -39,6 +41,7 @@ public class UserService {
     private final SocialLoginRepository socialLoginRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final QuestBatchService questBatchService;
+    private final KakaoOAuthClient kakaoOAuthClient;
 
     private static final int RANDOM_NICKNAME_LENGTH = 15;
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
@@ -144,6 +147,8 @@ public class UserService {
     @Transactional
     public void deleteUser(Long id) {
         User user = getUser(id);
+        List<SocialLogin> socialLogins = socialLoginRepository.findAllByUser(user);
+        unlinkKakaoIfNeeded(socialLogins);
         if (user.getStatus() == UserStatus.ONBOARDING) {
             refreshTokenRepository.deleteByUser(user);
             socialLoginRepository.deleteByUser(user);
@@ -157,8 +162,19 @@ public class UserService {
         user.updateNickname(generateDeletedNickname());
         userStatsRepository.findById(user.getId()).ifPresent(UserStats::markDeleted);
         refreshTokenRepository.deleteByUser(user);
-        for (SocialLogin socialLogin : socialLoginRepository.findAllByUser(user)) {
+        for (SocialLogin socialLogin : socialLogins) {
             socialLogin.markDeleted(SocialLogin.anonymizeProviderUserId(socialLogin.getProviderUserId()));
+        }
+    }
+
+    private void unlinkKakaoIfNeeded(List<SocialLogin> socialLogins) {
+        for (SocialLogin socialLogin : socialLogins) {
+            if (socialLogin.isDeleted()) {
+                continue;
+            }
+            if (socialLogin.getProviderName() == SocialProvider.KAKAO) {
+                kakaoOAuthClient.unlink(socialLogin.getProviderUserId());
+            }
         }
     }
 

@@ -30,6 +30,7 @@ public class AuthTokenService {
 
     @Transactional
     public TokenPair issueTokenPairInternal(User user) {
+        user.touchLastAccess();
         UserStatus status = user.getStatus();
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), status);
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId(), status);
@@ -64,6 +65,7 @@ public class AuthTokenService {
             throw new AuthRequiredException();
         }
         User user = refreshToken.getUser();
+        user.touchLastAccess();
         UserStatus status = user.getStatus();
 
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), status);

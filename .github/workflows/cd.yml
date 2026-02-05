@@ -1,13 +1,17 @@
 name: backend-cd
 
 on:
+  # 자동 배포 트리거
+  # develop에 push(=develop로 PR merge)되면 개발서버 배포
+  # main에 push(=main으로 PR merge)되면 운영서버 배포
   push:
-    branches: [main]
+    branches: [develop, main]
   workflow_dispatch: {}
 
 permissions:
   contents: read
 
+# 배포는 최신 커밋 기준
 concurrency:
   group: backend-cd-${{ github.ref }}
   cancel-in-progress: true
@@ -20,47 +24,56 @@ jobs:
   deploy:
     needs: [ci]
     runs-on: ubuntu-latest
+    env:
+      IS_PROD: ${{ github.ref_name == 'main' }}
+
+      BE_HOST: ${{ github.ref_name == 'develop' && secrets.BE_HOST_DEV || secrets.BE_HOST }}
+      DEPLOY_USER: ${{ github.ref_name == 'develop' && secrets.DEPLOY_USER_DEV || secrets.DEPLOY_USER }}
+      SSH_PRIVATE_KEY: ${{ github.ref_name == 'develop' && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY }}
+      ENV_CONTENT: ${{ github.ref_name == 'develop' && secrets.ENV_DEV || secrets.ENV }}
 
     steps:
-      # backend-cd.yml의 해당 부분 수정
       - name: Download Backend Artifact
         uses: actions/download-artifact@v4
         with:
-          name: backend-jar-${{ github.event.workflow_run.head_sha || github.sha }}
+          name: backend-jar-${{ github.sha }}
           path: ./artifact
 
+
+      # 서버로 JAR 전송(SCP)
       - name: Upload JAR to Server
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.BE_HOST }}           # BE 서버 주소
-          username: ${{ secrets.DEPLOY_USER }}  # 배포 계정
-          key: ${{ secrets.SSH_PRIVATE_KEY }}   # SSH 키
-          source: "artifact/*.jar"              # 전송 대상 JAR
-          target: "/home/ubuntu/be/incoming"    # 서버 수신 디렉터리
+          host: ${{ env.BE_HOST }}
+          username: ${{ env.DEPLOY_USER }}
+          key: ${{ env.SSH_PRIVATE_KEY }}
+          source: "artifact/*.jar"
+          target: "/home/ubuntu/be/incoming"
           strip_components: 1
 
+      # 서버에서 배포 스크립트 실행(SSH)
+      # 1. .env를 서버에 생성/갱신
+      # 2. deploy.sh 실행
       - name: Execute Backend Deploy Script
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.BE_HOST }}           # BE 서버 접속
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          host: ${{ env.BE_HOST }}
+          username: ${{ env.DEPLOY_USER }}
+          key: ${{ env.SSH_PRIVATE_KEY }}
           script: |
             cat << 'EOF' > /home/ubuntu/be/.env
-            ${{ secrets.ENV }}
+            ${{ env.ENV_CONTENT }}
             EOF
-            chmod +x /home/ubuntu/be/deploy.sh   # 실행 권한 부여
-            bash /home/ubuntu/be/deploy.sh   
-
+            chmod +x /home/ubuntu/be/deploy.sh
+            bash /home/ubuntu/be/deploy.sh
 
       - name: Notify Discord
         if: always()
         run: |
-          # push 이벤트 컨텍스트에 맞게 변수 수정
           STATUS="${{ job.status == 'success' && '성공' || '실패' }}"
           COLOR="${{ job.status == 'success' && '65280' || '16711680' }}"
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          
+
           curl -X POST -H "Content-Type: application/json" \
           -d '{
             "embeds": [{
@@ -69,7 +82,7 @@ jobs:
               "color": '"${COLOR}"',
               "fields": [
                 {"name": "커밋 메시지", "value": "${{ github.event.head_commit.message || 'Manual Trigger' }}"},
-                {"name": "로그 확인", "value": "[Github Actions Log]('"${RUN_URL}"')"}
+                {"name": "로그 확인", "value": "'"${RUN_URL}"'"}
               ]
             }]
           }' \

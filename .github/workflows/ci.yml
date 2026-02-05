@@ -1,7 +1,6 @@
 name: backend-ci
 
 on:
-  workflow_call: {} # backend-cd.yml에서 호출 할 수 있도록
   pull_request:
     branches: [develop, main]
   push:
@@ -10,8 +9,8 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
-# 동시에 같은 브랜치/PR에서 CI가 여러 번 호출되면 최신 것만 남기고 이전 건 취소
 concurrency:
   group: backend-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -40,19 +39,16 @@ jobs:
       - name: Check format
         run: ./gradlew spotlessCheck
 
-      # 빌드 (Spring Boot JAR 생성)
-      # test는 별도로 돌리지 않고 있음
       - name: Build (bootJar)
         run: ./gradlew clean bootJar --no-daemon
 
-      # 아티팩트 업로드
-      # develop/main push -> 업로드
-      # pull_request/workflow_dispatch -> 업로드 안 함
+      # push(main/develop)일 때만 업로드
       - name: Upload Artifact (JAR)
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         uses: actions/upload-artifact@v4
         with:
-          name: backend-jar-${{ github.sha }}
+          # run-id로 다운로드 할 거라 이름 고정 했음
+          name: backend-jar
           path: build/libs/*.jar
           if-no-files-found: error
           retention-days: 14
@@ -63,7 +59,6 @@ jobs:
           STATUS="${{ job.status == 'success' && '성공' || '실패' }}"
           COLOR="${{ job.status == 'success' && '65280' || '16711680' }}"
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
           curl -X POST -H "Content-Type: application/json" \
           -d '{
             "embeds": [{
@@ -77,3 +72,13 @@ jobs:
             }]
           }' \
           ${{ secrets.DISCORD_WEBHOOK }}
+
+  # CI가 끝나면 CD를 workflow_call로 호출 (push일 때만)
+  deploy:
+    needs: build-test
+    if: github.event_name == 'push' && (github.ref_name == 'develop' || github.ref_name == 'main')
+    uses: ./.github/workflows/backend-cd.yml
+    secrets: inherit
+    with:
+      ref_name: ${{ github.ref_name }}
+      run_id: ${{ github.run_id }}

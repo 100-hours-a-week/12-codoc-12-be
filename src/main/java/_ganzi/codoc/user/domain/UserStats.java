@@ -74,4 +74,8 @@ public class UserStats extends BaseTimeEntity {
         increaseSolvedCount();
         decreaseSolvingCount();
     }
+
+    public void markDeleted() {
+        this.deletedAt = Instant.now();
+    }
 }

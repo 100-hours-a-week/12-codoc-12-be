@@ -155,6 +155,7 @@ public class UserService {
         }
         user.markDeleted();
         user.updateNickname(generateDeletedNickname());
+        userStatsRepository.findById(user.getId()).ifPresent(UserStats::markDeleted);
         refreshTokenRepository.deleteByUser(user);
         for (SocialLogin socialLogin : socialLoginRepository.findAllByUser(user)) {
             socialLogin.markDeleted(SocialLogin.anonymizeProviderUserId(socialLogin.getProviderUserId()));

@@ -1,23 +1,22 @@
 package _ganzi.codoc.user.service;
 
-import _ganzi.codoc.user.domain.*;
+import _ganzi.codoc.user.domain.Quest;
+import _ganzi.codoc.user.domain.User;
+import _ganzi.codoc.user.domain.UserQuest;
+import _ganzi.codoc.user.domain.UserStats;
 import _ganzi.codoc.user.enums.QuestStatus;
 import _ganzi.codoc.user.exception.*;
-import _ganzi.codoc.user.repository.DailySolvedCountRepository;
 import _ganzi.codoc.user.repository.UserQuestRepository;
 import _ganzi.codoc.user.repository.UserRepository;
 import _ganzi.codoc.user.repository.UserStatsRepository;
 import _ganzi.codoc.user.service.dto.QuestRewardResponse;
 import _ganzi.codoc.user.service.dto.UserQuestListResponse;
+import _ganzi.codoc.user.service.requirements.QuestRequirementRegistry;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 @Service
 @RequiredArgsConstructor
@@ -29,8 +28,7 @@ public class QuestService {
     private final UserRepository userRepository;
     private final UserQuestRepository userQuestRepository;
     private final UserStatsRepository userStatsRepository;
-    private final DailySolvedCountRepository dailySolvedCountRepository;
-    private final JsonMapper jsonMapper;
+    private final QuestRequirementRegistry questRequirementRegistry;
 
     public UserQuestListResponse getUserQuests(Long userId) {
         User user = getUser(userId);
@@ -77,7 +75,8 @@ public class QuestService {
                 userQuest.markExpired();
                 continue;
             }
-            if (userQuest.getStatus() == QuestStatus.IN_PROGRESS && isQuestCompleted(userQuest)) {
+            if (userQuest.getStatus() == QuestStatus.IN_PROGRESS
+                    && questRequirementRegistry.isSatisfied(userQuest)) {
                 userQuest.markCompleted();
             }
         }
@@ -98,39 +97,5 @@ public class QuestService {
         if (userQuest.getStatus() != QuestStatus.COMPLETED) {
             throw new QuestInProgressException();
         }
-    }
-
-    private boolean isQuestCompleted(UserQuest userQuest) {
-        JsonNode requirements = parseRequirements(userQuest.getQuest().getRequirements());
-        if (requirements == null || !requirements.isObject()) {
-            return false;
-        }
-
-        if (requirements.has("DailySolvedCount")) {
-            int required = requirements.path("DailySolvedCount").asInt(0);
-            if (required <= 0 || !hasDailySolvedCount(userQuest.getUser(), required)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private JsonNode parseRequirements(String requirementsJson) {
-        try {
-            return jsonMapper.readTree(requirementsJson);
-        } catch (Exception exception) {
-            return null;
-        }
-    }
-
-    private boolean hasDailySolvedCount(User user, int required) {
-        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
-        int solvedCount =
-                dailySolvedCountRepository
-                        .findByUserAndDate(user, today)
-                        .map(DailySolvedCount::getSolvedCount)
-                        .orElse(0);
-        return solvedCount >= required;
     }
 }

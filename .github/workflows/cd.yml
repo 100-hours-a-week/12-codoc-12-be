@@ -1,46 +1,67 @@
 name: backend-cd
 
 on:
-  # 자동 배포 트리거
-  # develop에 push(=develop로 PR merge)되면 개발서버 배포
-  # main에 push(=main으로 PR merge)되면 운영서버 배포
-  push:
-    branches: [develop, main]
-  workflow_dispatch: {}
+  workflow_call:
+    inputs:
+      ref_name:
+        description: "Branch name from caller workflow"
+        required: true
+        type: string
+      run_id:
+        description: "Caller CI workflow run ID to fetch artifacts"
+        required: true
+        type: string
+
+  workflow_dispatch:
+    inputs:
+      ref_name:
+        description: "Branch name to deploy"
+        required: true
+        type: string
+      run_id:
+        description: "CI workflow run ID to fetch artifacts"
+        required: true
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
-# 배포는 최신 커밋 기준
 concurrency:
-  group: backend-cd-${{ github.ref }}
+  group: backend-cd-${{ inputs.ref_name }}
   cancel-in-progress: true
 
 jobs:
-  ci:
-    uses: ./.github/workflows/ci.yml
-    secrets: inherit
-
   deploy:
-    needs: [ci]
+    if: >
+      inputs.ref_name == 'develop' ||
+      (github.event_name == 'workflow_dispatch' && inputs.ref_name == 'main')
+
     runs-on: ubuntu-latest
     env:
-      IS_PROD: ${{ github.ref_name == 'main' }}
+      IS_PROD: ${{ inputs.ref_name == 'main' }}
 
-      BE_HOST: ${{ github.ref_name == 'develop' && secrets.BE_HOST_DEV || secrets.BE_HOST }}
-      DEPLOY_USER: ${{ github.ref_name == 'develop' && secrets.DEPLOY_USER_DEV || secrets.DEPLOY_USER }}
-      SSH_PRIVATE_KEY: ${{ github.ref_name == 'develop' && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY }}
-      ENV_CONTENT: ${{ github.ref_name == 'develop' && secrets.ENV_DEV || secrets.ENV }}
+      BE_HOST: ${{ inputs.ref_name == 'develop' && secrets.BE_HOST_DEV || secrets.BE_HOST }}
+      DEPLOY_USER: ${{ inputs.ref_name == 'develop' && secrets.DEPLOY_USER_DEV || secrets.DEPLOY_USER }}
+      SSH_PRIVATE_KEY: ${{ inputs.ref_name == 'develop' && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY }}
+      ENV_CONTENT: ${{ inputs.ref_name == 'develop' && secrets.ENV_DEV || secrets.ENV }}
 
     steps:
-      - name: Download Backend Artifact
+      # CI run-id에서 아티팩트 가져오기
+      - name: Download Backend Artifact (from CI run)
         uses: actions/download-artifact@v4
         with:
-          name: backend-jar-${{ github.sha }}
+          name: backend-jar
           path: ./artifact
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
 
+      - name: List downloaded files
+        run: |
+          echo "Downloaded artifact:"
+          ls -al ./artifact
+          find ./artifact -maxdepth 2 -type f
 
-      # 서버로 JAR 전송(SCP)
       - name: Upload JAR to Server
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -51,9 +72,6 @@ jobs:
           target: "/home/ubuntu/be/incoming"
           strip_components: 1
 
-      # 서버에서 배포 스크립트 실행(SSH)
-      # 1. .env를 서버에 생성/갱신
-      # 2. deploy.sh 실행
       - name: Execute Backend Deploy Script
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -61,6 +79,7 @@ jobs:
           username: ${{ env.DEPLOY_USER }}
           key: ${{ env.SSH_PRIVATE_KEY }}
           script: |
+            set -e
             cat << 'EOF' > /home/ubuntu/be/.env
             ${{ env.ENV_CONTENT }}
             EOF
@@ -73,15 +92,14 @@ jobs:
           STATUS="${{ job.status == 'success' && '성공' || '실패' }}"
           COLOR="${{ job.status == 'success' && '65280' || '16711680' }}"
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
           curl -X POST -H "Content-Type: application/json" \
           -d '{
             "embeds": [{
               "title": "BE CD 결과 (Backend)",
-              "description": "상태: '"${STATUS}"'\n브랜치: ${{ github.ref_name }}\n담당자: ${{ github.actor }}",
+              "description": "상태: '"${STATUS}"'\n브랜치: ${{ inputs.ref_name }}\n담당자: ${{ github.actor }}",
               "color": '"${COLOR}"',
               "fields": [
-                {"name": "커밋 메시지", "value": "${{ github.event.head_commit.message || 'Manual Trigger' }}"},
+                {"name": "run_id(CI)", "value": "${{ inputs.run_id }}"},
                 {"name": "로그 확인", "value": "'"${RUN_URL}"'"}
               ]
             }]

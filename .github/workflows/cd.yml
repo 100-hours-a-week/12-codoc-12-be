@@ -20,6 +20,13 @@ jobs:
   deploy:
     needs: [ci]
     runs-on: ubuntu-latest
+    env:
+      IS_PROD: ${{ github.ref_name == 'main' }}
+      IS_DEV_BRANCH: ${{ github.ref_name == 'develop' }}
+      BE_HOST: ${{ github.ref_name == 'develop' && secrets.BE_HOST_DEV || secrets.BE_HOST }}
+      DEPLOY_USER: ${{ github.ref_name == 'develop' && secrets.DEPLOY_USER_DEV || secrets.DEPLOY_USER }}
+      SSH_PRIVATE_KEY: ${{ github.ref_name == 'develop' && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY }}
+      ENV: ${{ github.ref_name == 'develop' && secrets.ENV_DEV || secrets.ENV }}
 
     steps:
       # backend-cd.yml의 해당 부분 수정
@@ -32,9 +39,9 @@ jobs:
       - name: Upload JAR to Server
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.BE_HOST }}           # BE 서버 주소
-          username: ${{ secrets.DEPLOY_USER }}  # 배포 계정
-          key: ${{ secrets.SSH_PRIVATE_KEY }}   # SSH 키
+          host: ${{ env.BE_HOST }}           # BE 서버 주소
+          username: ${{ env.DEPLOY_USER }}  # 배포 계정
+          key: ${{ env.SSH_PRIVATE_KEY }}   # SSH 키
           source: "artifact/*.jar"              # 전송 대상 JAR
           target: "/home/ubuntu/be/incoming"    # 서버 수신 디렉터리
           strip_components: 1
@@ -42,12 +49,12 @@ jobs:
       - name: Execute Backend Deploy Script
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.BE_HOST }}           # BE 서버 접속
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          host: ${{ env.BE_HOST }}           # BE 서버 접속
+          username: ${{ env.DEPLOY_USER }}
+          key: ${{ env.SSH_PRIVATE_KEY }}
           script: |
             cat << 'EOF' > /home/ubuntu/be/.env
-            ${{ secrets.ENV }}
+            ${{ env.ENV }}
             EOF
             chmod +x /home/ubuntu/be/deploy.sh   # 실행 권한 부여
             bash /home/ubuntu/be/deploy.sh   

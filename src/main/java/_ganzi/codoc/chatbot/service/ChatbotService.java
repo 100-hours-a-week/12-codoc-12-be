@@ -10,7 +10,6 @@ import _ganzi.codoc.chatbot.config.ChatbotProperties;
 import _ganzi.codoc.chatbot.domain.ChatbotAttempt;
 import _ganzi.codoc.chatbot.domain.ChatbotConversation;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendRequest;
-import _ganzi.codoc.chatbot.dto.ChatbotMessageSendResponse;
 import _ganzi.codoc.chatbot.enums.ChatbotAttemptStatus;
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNoPermissionException;
@@ -43,7 +42,6 @@ import tools.jackson.databind.json.JsonMapper;
 public class ChatbotService {
 
     private static final String EVENT_FINAL = "final";
-    private static final String EVENT_ERROR = "error";
     private static final String EVENT_STATUS = "status";
     private static final String EVENT_TOKEN = "token";
     private static final String CODE_SUCCESS = "SUCCESS";
@@ -57,7 +55,8 @@ public class ChatbotService {
     private final JsonMapper jsonMapper;
 
     @Transactional
-    public ChatbotMessageSendResponse sendMessage(Long userId, ChatbotMessageSendRequest request) {
+    public Flux<ServerSentEvent<String>> sendAndStream(
+            Long userId, ChatbotMessageSendRequest request) {
 
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
         Problem problem =
@@ -83,10 +82,9 @@ public class ChatbotService {
         AiServerApiResponse<AiServerChatbotSendResponse> aiServerResponse =
                 chatbotClient.sendMessage(aiServerRequest);
 
-        AiServerChatbotSendResponse sendResponse =
-                validateSendResponse(chatbotConversation.getId(), aiServerResponse);
+        validateSendResponse(chatbotConversation.getId(), aiServerResponse);
 
-        return ChatbotMessageSendResponse.of(chatbotConversation.getId(), sendResponse.status());
+        return streamConversation(userId, chatbotConversation.getId());
     }
 
     private ChatbotAttempt resolveAttempt(User user, Problem problem) {
@@ -110,17 +108,15 @@ public class ChatbotService {
         return chatbotAttemptRepository.save(newAttempt);
     }
 
-    private AiServerChatbotSendResponse validateSendResponse(
+    private void validateSendResponse(
             Long conversationId, AiServerApiResponse<AiServerChatbotSendResponse> aiServerResponse) {
 
         if (aiServerResponse == null || aiServerResponse.data() == null) {
             deleteAndThrow(conversationId);
         }
-
-        return aiServerResponse.data();
     }
 
-    public Flux<ServerSentEvent<String>> streamMessage(Long userId, Long conversationId) {
+    private Flux<ServerSentEvent<String>> streamConversation(Long userId, Long conversationId) {
         return Mono.fromCallable(
                         () ->
                                 chatbotConversationRepository

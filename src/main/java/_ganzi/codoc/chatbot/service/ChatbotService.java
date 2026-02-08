@@ -6,7 +6,10 @@ import _ganzi.codoc.ai.dto.AiServerChatbotFinalEvent;
 import _ganzi.codoc.ai.dto.AiServerChatbotFinalResult;
 import _ganzi.codoc.ai.dto.AiServerChatbotSendRequest;
 import _ganzi.codoc.ai.dto.AiServerChatbotSendResponse;
+import _ganzi.codoc.ai.dto.AiServerErrorEvent;
+import _ganzi.codoc.ai.enums.ChatbotStatus;
 import _ganzi.codoc.ai.infra.ChatbotClient;
+import _ganzi.codoc.ai.util.AiServerResponseParser;
 import _ganzi.codoc.chatbot.config.ChatbotProperties;
 import _ganzi.codoc.chatbot.domain.ChatbotAttempt;
 import _ganzi.codoc.chatbot.domain.ChatbotConversation;
@@ -18,7 +21,6 @@ import _ganzi.codoc.chatbot.exception.ChatbotConversationNotFoundException;
 import _ganzi.codoc.chatbot.exception.ChatbotStreamEventException;
 import _ganzi.codoc.chatbot.repository.ChatbotAttemptRepository;
 import _ganzi.codoc.chatbot.repository.ChatbotConversationRepository;
-import _ganzi.codoc.global.util.JsonUtils;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.repository.ProblemRepository;
@@ -34,8 +36,6 @@ import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -43,8 +43,7 @@ import tools.jackson.databind.json.JsonMapper;
 public class ChatbotService {
 
     private static final String EVENT_FINAL = "final";
-    private static final String EVENT_STATUS = "status";
-    private static final String EVENT_TOKEN = "token";
+    private static final String EVENT_ERROR = "error";
     private static final String CODE_SUCCESS = "SUCCESS";
 
     private final ChatbotClient chatbotClient;
@@ -54,7 +53,7 @@ public class ChatbotService {
     private final ChatbotAttemptRepository chatbotAttemptRepository;
     private final ChatbotProperties chatbotProperties;
     private final AiServerProperties aiServerProperties;
-    private final JsonMapper jsonMapper;
+    private final AiServerResponseParser responseParser;
 
     @Transactional
     public Flux<ServerSentEvent<String>> sendAndStream(
@@ -116,7 +115,10 @@ public class ChatbotService {
     private void validateSendResponse(
             Long conversationId, AiServerApiResponse<AiServerChatbotSendResponse> aiServerResponse) {
 
-        if (aiServerResponse == null || aiServerResponse.data() == null) {
+        if (aiServerResponse == null
+                || !CODE_SUCCESS.equals(aiServerResponse.code())
+                || aiServerResponse.data() == null
+                || aiServerResponse.data().status() != ChatbotStatus.ACCEPTED) {
             deleteAndThrow(conversationId);
         }
     }
@@ -150,12 +152,9 @@ public class ChatbotService {
             return;
         }
 
-        if (EVENT_STATUS.equals(eventName) || EVENT_TOKEN.equals(eventName)) {
-            validateNonFinalEventOrThrow(conversationId, eventName, data);
-            return;
+        if (EVENT_ERROR.equals(eventName)) {
+            handleErrorEvent(conversationId, data);
         }
-
-        deleteAndThrow(conversationId);
     }
 
     private void handleFinalSuccessEvent(Long conversationId, String data) {
@@ -163,45 +162,25 @@ public class ChatbotService {
             deleteAndThrow(conversationId);
         }
 
-        String code = extractCode(data);
-        if (!CODE_SUCCESS.equals(code)) {
+        AiServerChatbotFinalEvent finalEvent = responseParser.parseChatbotFinalEvent(data);
+        if (finalEvent == null || !CODE_SUCCESS.equals(finalEvent.code())) {
             deleteAndThrow(conversationId);
         }
 
-        AiServerChatbotFinalEvent finalEvent =
-                JsonUtils.parseJson(jsonMapper, data, AiServerChatbotFinalEvent.class);
-
-        if (finalEvent == null || finalEvent.result() == null) {
+        if (finalEvent.result() == null) {
             deleteAndThrow(conversationId);
         }
 
         persistFinalEvent(conversationId, finalEvent);
     }
 
-    private void validateNonFinalEventOrThrow(Long conversationId, String eventName, String data) {
-        String code = extractCode(data);
-
-        if (code == null) {
-            return;
-        }
-
-        if (!CODE_SUCCESS.equals(code)) {
+    private void handleErrorEvent(Long conversationId, String data) {
+        AiServerErrorEvent errorEvent = responseParser.parseErrorEvent(data);
+        if (errorEvent == null) {
             deleteAndThrow(conversationId);
         }
-    }
 
-    private String extractCode(String data) {
-        if (data == null || data.isBlank()) {
-            return null;
-        }
-
-        JsonNode root = JsonUtils.parseJson(jsonMapper, data);
-        if (root == null) {
-            return null;
-        }
-
-        JsonNode code = root.get("code");
-        return code != null ? code.asString() : null;
+        deleteAndThrow(conversationId);
     }
 
     private void persistFinalEvent(Long conversationId, AiServerChatbotFinalEvent finalEvent) {

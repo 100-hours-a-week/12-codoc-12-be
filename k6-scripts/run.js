@@ -1,5 +1,5 @@
 import { env } from './lib/config.js';
-import { getToken } from './lib/auth.js';
+import { getToken, getTokens } from './lib/auth.js';
 import { scenarioOptions, thresholds } from './lib/scenarios.js';
 import { handleSummary } from './lib/summary.js';
 
@@ -17,8 +17,11 @@ export function setup() {
   if (env.SCENARIO === 'infra') {
     return {};
   }
-  const token = getToken();
-  return { token };
+  if (env.AUTH_MODE === 'token') {
+    return { tokens: [getToken()] };
+  }
+  const tokens = getTokens(env.VUS);
+  return { tokens };
 }
 
 export default function (data) {
@@ -26,7 +29,7 @@ export default function (data) {
     return infraScenario();
   }
 
-  const token = data.token;
+  const token = data.tokens[(__VU - 1) % data.tokens.length];
 
   if (env.SCENARIO === 'read' || env.SCENARIO === 'write') {
     return dbScenario(token);

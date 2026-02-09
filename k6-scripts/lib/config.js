@@ -4,6 +4,7 @@ export const env = {
   AUTH_TOKEN: __ENV.AUTH_TOKEN || '',
   AUTH_USER: __ENV.AUTH_USER || '',
   AUTH_PASS: __ENV.AUTH_PASS || '',
+  DEV_AUTH_ENDPOINT: __ENV.DEV_AUTH_ENDPOINT || '/api/dev/auth/login',
   MODE: __ENV.MODE || 'smoke',
   SCENARIO: __ENV.SCENARIO || 'read',
   VUS: Number.parseInt(__ENV.VUS || '5', 10),

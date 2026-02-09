@@ -16,8 +16,8 @@
 
 환경 변수
 - BASE_URL: 대상 서버 베이스 URL 예: https://dev.codoc.cloud
-- AUTH_MODE: token 또는 login
-- AUTH_TOKEN: 토큰 방식일 때 사용
+- AUTH_MODE: token, login, dev_auth
+- AUTH_TOKEN: token 방식일 때 사용
 - AUTH_USER / AUTH_PASS: 로그인 방식일 때 사용
 - MODE: smoke, step, spike, e2e
 - SCENARIO: read, write, ai, e2e, infra
@@ -30,6 +30,7 @@
 TODO 안내
 - scenarios/*.js의 API 경로/페이로드를 서비스에 맞게 수정
 - lib/auth.js의 로그인 경로/응답 파싱 수정
+- dev_auth 사용 시 DEV_AUTH_ENDPOINT 확인
 
 Soak는 왜 Actions 대신 별도 인스턴스인가
 - Actions 러너는 실행 시간 제한과 네트워크 안정성이 낮아 장시간 테스트에 부적합

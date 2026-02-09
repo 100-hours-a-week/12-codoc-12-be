@@ -1,0 +1,59 @@
+name: loadtest
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "smoke, step, spike, e2e"
+        required: true
+        default: "smoke"
+      scenario:
+        description: "read, write, ai, e2e, infra"
+        required: true
+        default: "read"
+      vus:
+        description: "virtual users"
+        required: true
+        default: "5"
+      duration:
+        description: "duration"
+        required: true
+        default: "30s"
+
+jobs:
+  k6:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve target BASE_URL
+        id: baseurl
+        run: |
+          echo "url=${{ secrets.BASE_URL_DEV }}" >> $GITHUB_OUTPUT
+
+      - name: Run k6
+        uses: grafana/k6-action@v0.3.1
+        with:
+          filename: k6-scripts/run.js
+        env:
+          BASE_URL: ${{ steps.baseurl.outputs.url }}
+          MODE: ${{ inputs.mode }}
+          SCENARIO: ${{ inputs.scenario }}
+          VUS: ${{ inputs.vus }}
+          DURATION: ${{ inputs.duration }}
+          AUTH_MODE: ${{ secrets.AUTH_MODE }}
+          AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
+          AUTH_USER: ${{ secrets.AUTH_USER }}
+          AUTH_PASS: ${{ secrets.AUTH_PASS }}
+          AI_ENABLED: ${{ inputs.scenario == 'ai' && 'true' || 'false' }}
+          SSE_ENABLED: ${{ inputs.scenario == 'ai' && 'true' || 'false' }}
+          SUMMARY_JSON: "true"
+
+      - name: Upload summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-summary-${{ github.run_id }}
+          path: summary.json
+          if-no-files-found: ignore

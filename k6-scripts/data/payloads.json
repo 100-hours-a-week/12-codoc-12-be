@@ -1,0 +1,7 @@
+{
+  "chatbot_message": "k6 test message",
+  "write_payload": {
+    "title": "dummy",
+    "content": "dummy"
+  }
+}

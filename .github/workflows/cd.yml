@@ -35,16 +35,18 @@ jobs:
   deploy:
     if: >
       inputs.ref_name == 'develop' ||
+      inputs.ref_name == 'feature/dev-auth-kakao' ||
       (github.event_name == 'workflow_dispatch' && inputs.ref_name == 'main')
 
     runs-on: ubuntu-latest
     env:
       IS_PROD: ${{ inputs.ref_name == 'main' }}
 
-      BE_HOST: ${{ inputs.ref_name == 'develop' && secrets.BE_HOST_DEV || secrets.BE_HOST }}
-      DEPLOY_USER: ${{ inputs.ref_name == 'develop' && secrets.DEPLOY_USER_DEV || secrets.DEPLOY_USER }}
-      SSH_PRIVATE_KEY: ${{ inputs.ref_name == 'develop' && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY }}
-      ENV_CONTENT: ${{ inputs.ref_name == 'develop' && secrets.ENV_DEV || secrets.ENV }}
+<<<<<<< HEAD
+      BE_HOST: ${{ (inputs.ref_name == 'develop' || inputs.ref_name == 'feature/dev-auth-kakao') && secrets.BE_HOST_DEV || secrets.BE_HOST }}
+      DEPLOY_USER: ${{ (inputs.ref_name == 'develop' || inputs.ref_name == 'feature/dev-auth-kakao') && secrets.DEPLOY_USER_DEV || secrets.DEPLOY_USER }}
+      SSH_PRIVATE_KEY: ${{ (inputs.ref_name == 'develop' || inputs.ref_name == 'feature/dev-auth-kakao') && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY }}
+      ENV_CONTENT: ${{ (inputs.ref_name == 'develop' || inputs.ref_name == 'feature/dev-auth-kakao') && secrets.ENV_DEV || secrets.ENV }}
 
     steps:
       # CI run-id에서 아티팩트 가져오기
@@ -85,6 +87,14 @@ jobs:
             EOF
             chmod +x /home/ubuntu/be/deploy.sh
             bash /home/ubuntu/be/deploy.sh
+
+      - name: k6 Load Test (Develop Only)
+        if: inputs.ref_name == 'develop' || inputs.ref_name == 'feature/dev-auth-kakao'
+        uses: grafana/k6-action@v0.3.1
+        with:
+          filename: k6-scripts/develop-load.js
+        env:
+          BASE_URL: ${{ secrets.BE_BASE_URL_DEV != '' && secrets.BE_BASE_URL_DEV || format('http://{0}:8080', (secrets.BE_HOST_DEV != '' && secrets.BE_HOST_DEV || secrets.BE_HOST)) }}
 
       - name: Notify Discord
         if: always()

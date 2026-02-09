@@ -77,7 +77,7 @@ jobs:
   deploy:
     needs: build-test
     if: github.event_name == 'push' && (github.ref_name == 'develop' || github.ref_name == 'main')
-    uses: ./.github/workflows/backend-cd.yml
+    uses: ./.github/workflows/cd.yml
     secrets: inherit
     with:
       ref_name: ${{ github.ref_name }}

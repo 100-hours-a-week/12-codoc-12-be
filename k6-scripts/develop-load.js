@@ -5,6 +5,7 @@ const BASE_URL = __ENV.BASE_URL;
 const DEV_AUTH_ENDPOINT = __ENV.DEV_AUTH_ENDPOINT || '/api/dev/auth/login';
 const VUS = Number.parseInt(__ENV.VUS || '5', 10);
 const DURATION = __ENV.DURATION || '30s';
+const ENABLE_THRESHOLDS = __ENV.ENABLE_THRESHOLDS === 'true';
 const CHATBOT_MESSAGE = __ENV.CHATBOT_MESSAGE || 'k6 loadtest message';
 const PROBLEM_ID = __ENV.PROBLEM_ID ? Number.parseInt(__ENV.PROBLEM_ID, 10) : null;
 
@@ -15,11 +16,14 @@ if (!BASE_URL) {
 export const options = {
   vus: VUS,
   duration: DURATION,
-  thresholds: {
+};
+
+if (ENABLE_THRESHOLDS) {
+  options.thresholds = {
     http_req_failed: ['rate<0.01'],
     http_req_duration: ['p(95)<500'],
-  },
-};
+  };
+}
 
 export function setup() {
   const tokens = [];

@@ -35,17 +35,14 @@ jobs:
   deploy:
     if: >
       inputs.ref_name == 'develop' ||
-      inputs.ref_name == 'feature/dev-auth-kakao' ||
-      (github.event_name == 'workflow_dispatch' && inputs.ref_name == 'main')
+      inputs.ref_name == 'feature/dev-auth-kakao'
 
     runs-on: ubuntu-latest
     env:
-      IS_PROD: ${{ inputs.ref_name == 'main' }}
-
-      BE_HOST: ${{ (inputs.ref_name == 'develop' || inputs.ref_name == 'feature/dev-auth-kakao') && secrets.BE_HOST_DEV || secrets.BE_HOST }}
-      DEPLOY_USER: ${{ (inputs.ref_name == 'develop' || inputs.ref_name == 'feature/dev-auth-kakao') && secrets.DEPLOY_USER_DEV || secrets.DEPLOY_USER }}
-      SSH_PRIVATE_KEY: ${{ (inputs.ref_name == 'develop' || inputs.ref_name == 'feature/dev-auth-kakao') && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY }}
-      ENV_CONTENT: ${{ (inputs.ref_name == 'develop' || inputs.ref_name == 'feature/dev-auth-kakao') && secrets.ENV_DEV || secrets.ENV }}
+      BE_HOST: ${{ secrets.BE_HOST_DEV }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER_DEV }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_DEV }}
+      ENV_CONTENT: ${{ secrets.ENV_DEV }}
 
     steps:
       - name: Checkout (for k6 script)
@@ -98,7 +95,7 @@ jobs:
         with:
           filename: k6-scripts/develop-load.js
         env:
-          BASE_URL: ${{ secrets.BE_BASE_URL_DEV != '' && secrets.BE_BASE_URL_DEV || format('http://{0}:8080', (secrets.BE_HOST_DEV != '' && secrets.BE_HOST_DEV || secrets.BE_HOST)) }}
+          BASE_URL: ${{ secrets.BE_BASE_URL_DEV }}
 
       - name: Notify Discord
         if: always()

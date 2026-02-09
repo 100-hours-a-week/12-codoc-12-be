@@ -7,9 +7,11 @@ import _ganzi.codoc.user.enums.InitLevel;
 import _ganzi.codoc.user.enums.UserStatus;
 import _ganzi.codoc.user.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Profile("dev")
 @Service
 @RequiredArgsConstructor
 public class DevAuthService {

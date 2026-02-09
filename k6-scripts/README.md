@@ -22,6 +22,7 @@
 - `DURATION` (선택): 기본값 `30s`
 - `CHATBOT_MESSAGE` (선택): 기본값 `k6 loadtest message`
 - `PROBLEM_ID` (선택): 지정 시 해당 문제만 사용 (예: `1`)
+- `ENABLE_THRESHOLDS` (선택): `true`일 때만 임계치 적용 (기본값: 비활성)
 
 ### 로컬 실행
 ```bash

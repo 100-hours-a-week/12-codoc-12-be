@@ -45,3 +45,13 @@ management:
   endpoints:
       access:
         default: none
+
+springdoc:
+  swagger-ui:
+    try-it-out-enabled: false
+    supported-submit-methods: []
+    path: ${SWAGGER_UI_PATH:/swagger-ui.html}
+    enabled: false
+  api-docs:
+    path: ${SWAGGER_API_DOCS_PATH:/v3/api-docs}
+    enabled: false

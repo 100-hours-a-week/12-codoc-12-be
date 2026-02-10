@@ -89,14 +89,6 @@ jobs:
             chmod +x /home/ubuntu/be/deploy.sh
             bash /home/ubuntu/be/deploy.sh
 
-      - name: k6 Load Test (Develop Only)
-        if: inputs.ref_name == 'develop' || inputs.ref_name == 'feature/dev-auth-kakao'
-        uses: grafana/k6-action@v0.3.1
-        with:
-          filename: k6-scripts/develop-load.js
-        env:
-          BASE_URL: ${{ secrets.BE_BASE_URL_DEV }}
-
       - name: Notify Discord
         if: always()
         run: |

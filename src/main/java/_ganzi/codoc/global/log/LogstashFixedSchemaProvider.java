@@ -31,9 +31,6 @@ public class LogstashFixedSchemaProvider extends AbstractJsonProvider<ILoggingEv
         // latency는 사용자가 준 형식대로 "latency" (단위는 일단 신경 안 씀)
         writeDoubleOrNull(gen, "latency", mdc.get("latency"));
 
-        // loadtest flag (from MDC) if present
-        writeString(gen, "loadtest", mdc.get("loadtest"));
-
         // context object
         gen.writeFieldName("context");
         gen.writeStartObject();

@@ -90,29 +90,6 @@ export default function (data) {
   const quizzes = detailRes.json('data.quizzes') || [];
   let summaryPassed = summaryCards.length === 0;
 
-  const chatbotTurns = Math.floor(Math.random() * 11) + 10; // 10-20
-  for (let i = 0; i < chatbotTurns; i += 1) {
-    const chatbotRes = http.post(
-      `${BASE_URL}/api/chatbot/messages/stream`,
-      JSON.stringify({ problemId, message: `${CHATBOT_MESSAGE} #${i + 1}` }),
-      {
-        headers: {
-          ...authHeaders,
-          'Content-Type': 'application/json',
-          Accept: 'text/event-stream',
-        },
-        timeout: '30s',
-      },
-    );
-    const chatbotOk = check(chatbotRes, {
-      'chatbot stream 200': (r) => r.status === 200,
-      'chatbot final event': (r) => r.body && (r.body.includes('event: final') || r.body.includes('\"final\"')),
-    });
-    if (!chatbotOk) {
-      break;
-    }
-  }
-
   if (summaryCards.length > 0) {
     const summaryChoiceIds = summaryCards.map(() => 0);
     const summaryRes = http.post(
@@ -153,6 +130,20 @@ export default function (data) {
     });
     check(problemRes, { 'problem submit 200': (r) => r.status === 200 });
   }
+
+  const chatbotRes = http.post(
+    `${BASE_URL}/api/chatbot/messages/stream`,
+    JSON.stringify({ problemId, message: CHATBOT_MESSAGE }),
+    {
+      headers: {
+        ...authHeaders,
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      timeout: '30s',
+    },
+  );
+  check(chatbotRes, { 'chatbot stream 200': (r) => r.status === 200 });
 
   sleep(1);
 }

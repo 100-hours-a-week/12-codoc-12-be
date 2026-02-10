@@ -9,6 +9,7 @@ import _ganzi.codoc.user.enums.UserStatus;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -92,6 +93,11 @@ public class RecommendedProblemService {
         } finally {
             releaseUserLock(userId);
         }
+    }
+
+    @Transactional
+    public void markProblemSolved(Long userId, Long problemId) {
+        recommendedProblemRepository.markDoneByUserIdAndProblemId(userId, problemId, Instant.now());
     }
 
     private List<RecommendationCandidate> fetchRecommendations(

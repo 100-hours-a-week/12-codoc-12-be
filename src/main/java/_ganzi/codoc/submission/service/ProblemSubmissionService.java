@@ -4,6 +4,7 @@ import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.problem.repository.QuizRepository;
+import _ganzi.codoc.problem.service.RecommendedProblemService;
 import _ganzi.codoc.submission.domain.UserProblemResult;
 import _ganzi.codoc.submission.domain.UserQuizAttempt;
 import _ganzi.codoc.submission.dto.ProblemSubmissionResponse;
@@ -33,6 +34,7 @@ public class ProblemSubmissionService {
     private final UserQuizResultRepository userQuizResultRepository;
     private final UserStatsService userStatsService;
     private final QuestService questService;
+    private final RecommendedProblemService recommendedProblemService;
 
     @Transactional
     public ProblemSubmissionResponse submissionProblem(Long userId, Long problemId) {
@@ -65,6 +67,7 @@ public class ProblemSubmissionService {
         if (correctCount == totalQuizCount && !userProblemResult.isSolved()) {
             userProblemResult.markSolved();
             userStatsService.applyProblemSolved(userId, PROBLEM_SOLVED_XP);
+            recommendedProblemService.markProblemSolved(userId, problemId);
             questService.refreshUserQuestStatuses(userId);
             xpGranted = true;
             nextStatus = ProblemSolvingStatus.SOLVED;

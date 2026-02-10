@@ -97,7 +97,11 @@ public class RecommendedProblemService {
 
     @Transactional
     public void markProblemSolved(Long userId, Long problemId) {
-        recommendedProblemRepository.markDoneByUserIdAndProblemId(userId, problemId, Instant.now());
+        int updated =
+                recommendedProblemRepository.markDoneByUserIdAndProblemId(userId, problemId, Instant.now());
+        if (updated > 0) {
+            replenishIfNeeded(userId);
+        }
     }
 
     private List<RecommendationCandidate> fetchRecommendations(

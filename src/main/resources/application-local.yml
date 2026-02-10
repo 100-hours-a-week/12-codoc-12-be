@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/codoc?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=utf8
     username: codoc
-    password: codoc
+    password: changeme
     driver-class-name: com.mysql.cj.jdbc.Driver
   flyway:
     enabled: true

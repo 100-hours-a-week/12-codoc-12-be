@@ -10,6 +10,10 @@ group = '12ganzi'
 version = '0.0.1-SNAPSHOT'
 description = 'Codoc BE'
 
+ext {
+	bucket4jVersion = '8.16.1'
+}
+
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)
@@ -37,6 +41,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	implementation "com.bucket4j:bucket4j_jdk17-core:${bucket4jVersion}"
 
     implementation 'io.micrometer:micrometer-registry-prometheus'
 

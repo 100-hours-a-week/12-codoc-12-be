@@ -22,12 +22,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class RecommendedProblemService {
 
     private static final int REPLENISH_THRESHOLD = 1;
@@ -109,7 +111,15 @@ public class RecommendedProblemService {
         int updated =
                 recommendedProblemRepository.markDoneByUserIdAndProblemId(userId, problemId, Instant.now());
         if (updated > 0) {
-            replenishIfNeeded(userId);
+            try {
+                replenishIfNeeded(userId);
+            } catch (Exception exception) {
+                log.warn(
+                        "Recommend replenish failed after solve. userId={}, problemId={}",
+                        userId,
+                        problemId,
+                        exception);
+            }
         }
     }
 

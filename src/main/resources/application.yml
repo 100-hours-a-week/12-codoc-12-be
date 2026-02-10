@@ -55,7 +55,3 @@ springdoc:
   api-docs:
     path: ${SWAGGER_API_DOCS_PATH:/v3/api-docs}
     enabled: false
-
-logging:
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - loadtest=%X{loadtest} %msg%n"

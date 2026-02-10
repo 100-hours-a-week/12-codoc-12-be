@@ -32,20 +32,12 @@ public class JwtTokenProvider {
         return buildToken(userId, status, accessTokenTtl);
     }
 
-    public String createAccessToken(Long userId, UserStatus status, Duration ttl) {
-        return buildToken(userId, status, ttl);
-    }
-
     public String createRefreshToken(Long userId, UserStatus status) {
         return buildToken(userId, status, refreshTokenTtl);
     }
 
     public long getAccessTokenTtlSeconds() {
         return accessTokenTtl.toSeconds();
-    }
-
-    public long getAccessTokenTtlSeconds(Duration ttl) {
-        return ttl.toSeconds();
     }
 
     public Instant getRefreshTokenExpiry() {

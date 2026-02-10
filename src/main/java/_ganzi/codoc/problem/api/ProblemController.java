@@ -6,6 +6,7 @@ import _ganzi.codoc.global.dto.CursorPagingResponse;
 import _ganzi.codoc.problem.dto.ProblemListCondition;
 import _ganzi.codoc.problem.dto.ProblemListItem;
 import _ganzi.codoc.problem.dto.ProblemResponse;
+import _ganzi.codoc.problem.dto.RecommendedProblemResponse;
 import _ganzi.codoc.problem.service.ProblemBookmarkService;
 import _ganzi.codoc.problem.service.ProblemService;
 import jakarta.validation.Valid;
@@ -77,5 +78,15 @@ public class ProblemController implements ProblemApi {
         problemBookmarkService.removeBookmark(authUser.userId(), problemId);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    @GetMapping("/recommended")
+    public ResponseEntity<ApiResponse<RecommendedProblemResponse>> getRecommendedProblem(
+            @AuthenticationPrincipal AuthUser authUser) {
+
+        RecommendedProblemResponse response = problemService.getRecommendedProblem(authUser.userId());
+
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

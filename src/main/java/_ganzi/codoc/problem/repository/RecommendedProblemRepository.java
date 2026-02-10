@@ -3,6 +3,7 @@ package _ganzi.codoc.problem.repository;
 import _ganzi.codoc.problem.domain.RecommendedProblem;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +17,8 @@ public interface RecommendedProblemRepository extends JpaRepository<RecommendedP
             "select rp.problem.id from RecommendedProblem rp "
                     + "where rp.user.id = :userId and rp.isDone = false")
     List<Long> findPendingProblemIds(@Param("userId") Long userId);
+
+    Optional<RecommendedProblem> findFirstByUserIdAndIsDoneFalseOrderByRecommendedAtAsc(Long userId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update RecommendedProblem rp set rp.isDone = true where rp.user.id = :userId")

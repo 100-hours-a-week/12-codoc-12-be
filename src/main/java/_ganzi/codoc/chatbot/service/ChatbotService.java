@@ -16,8 +16,6 @@ import _ganzi.codoc.chatbot.domain.ChatbotConversation;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendRequest;
 import _ganzi.codoc.chatbot.enums.ChatbotAttemptStatus;
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
-import _ganzi.codoc.chatbot.exception.ChatbotConversationNoPermissionException;
-import _ganzi.codoc.chatbot.exception.ChatbotConversationNotFoundException;
 import _ganzi.codoc.chatbot.exception.ChatbotStreamEventException;
 import _ganzi.codoc.chatbot.repository.ChatbotAttemptRepository;
 import _ganzi.codoc.chatbot.repository.ChatbotConversationRepository;
@@ -34,8 +32,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -88,7 +84,7 @@ public class ChatbotService {
 
         validateSendResponse(chatbotConversation.getId(), aiServerResponse);
 
-        return streamConversation(userId, chatbotConversation.getId());
+        return streamConversation(chatbotConversation.getId());
     }
 
     private ChatbotAttempt resolveAttempt(User user, Problem problem) {
@@ -123,24 +119,11 @@ public class ChatbotService {
         }
     }
 
-    private Flux<ServerSentEvent<String>> streamConversation(Long userId, Long conversationId) {
-        return Mono.fromCallable(
-                        () ->
-                                chatbotConversationRepository
-                                        .findWithAttemptAndUserById(conversationId)
-                                        .orElseThrow(ChatbotConversationNotFoundException::new))
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMapMany(
-                        conversation -> {
-                            if (!userId.equals(conversation.getAttempt().getUser().getId())) {
-                                return Flux.error(new ChatbotConversationNoPermissionException());
-                            }
-
-                            return chatbotClient
-                                    .streamMessage(conversationId)
-                                    .doOnNext(event -> handleStreamEvent(conversationId, event))
-                                    .doOnError(error -> deleteConversationSilently(conversationId));
-                        });
+    private Flux<ServerSentEvent<String>> streamConversation(Long conversationId) {
+        return chatbotClient
+                .streamMessage(conversationId)
+                .doOnNext(event -> handleStreamEvent(conversationId, event))
+                .doOnError(error -> deleteConversationSilently(conversationId));
     }
 
     private void handleStreamEvent(Long conversationId, ServerSentEvent<String> event) {

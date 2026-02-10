@@ -8,6 +8,7 @@ import _ganzi.codoc.global.exception.GlobalErrorCode;
 import _ganzi.codoc.problem.dto.ProblemListCondition;
 import _ganzi.codoc.problem.dto.ProblemListItem;
 import _ganzi.codoc.problem.dto.ProblemResponse;
+import _ganzi.codoc.problem.dto.RecommendedProblemResponse;
 import _ganzi.codoc.problem.exception.ProblemErrorCode;
 import _ganzi.codoc.user.exception.UserErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -158,4 +159,29 @@ public interface ProblemApi {
             problem = {ProblemErrorCode.PROBLEM_NOT_FOUND},
             user = {UserErrorCode.USER_NOT_FOUND})
     ResponseEntity<Void> removeBookmark(AuthUser authUser, Long problemId);
+
+    @Operation(summary = "Get recommended problem")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "401",
+                description = "AUTH_REQUIRED, UNAUTHORIZED"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "403",
+                description = "FORBIDDEN"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "404",
+                description = "RECOMMEND_NOT_AVAILABLE"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "500",
+                description = "INTERNAL_SERVER_ERROR")
+    })
+    @ErrorCodes(
+            global = {
+                GlobalErrorCode.AUTH_REQUIRED,
+                GlobalErrorCode.UNAUTHORIZED,
+                GlobalErrorCode.FORBIDDEN,
+                GlobalErrorCode.INTERNAL_SERVER_ERROR
+            },
+            problem = {ProblemErrorCode.RECOMMEND_NOT_AVAILABLE})
+    ResponseEntity<ApiResponse<RecommendedProblemResponse>> getRecommendedProblem(AuthUser authUser);
 }

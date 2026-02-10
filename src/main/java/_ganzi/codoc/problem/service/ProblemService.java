@@ -4,15 +4,19 @@ import _ganzi.codoc.global.dto.CursorPagingResponse;
 import _ganzi.codoc.global.util.CursorPagingUtils;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.domain.Quiz;
+import _ganzi.codoc.problem.domain.RecommendedProblem;
 import _ganzi.codoc.problem.domain.SummaryCard;
 import _ganzi.codoc.problem.dto.ProblemListCondition;
 import _ganzi.codoc.problem.dto.ProblemListItem;
 import _ganzi.codoc.problem.dto.ProblemResponse;
 import _ganzi.codoc.problem.dto.ProblemSearchParam;
+import _ganzi.codoc.problem.dto.RecommendedProblemResponse;
 import _ganzi.codoc.problem.exception.ProblemNotFoundException;
+import _ganzi.codoc.problem.exception.RecommendNotAvailableException;
 import _ganzi.codoc.problem.repository.BookmarkRepository;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.problem.repository.QuizRepository;
+import _ganzi.codoc.problem.repository.RecommendedProblemRepository;
 import _ganzi.codoc.problem.repository.SummaryCardRepository;
 import _ganzi.codoc.submission.domain.UserProblemResult;
 import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
@@ -33,6 +37,7 @@ public class ProblemService {
     private final SummaryCardRepository summaryCardRepository;
     private final UserProblemResultRepository userProblemResultRepository;
     private final BookmarkRepository bookmarkRepository;
+    private final RecommendedProblemRepository recommendedProblemRepository;
 
     public CursorPagingResponse<ProblemListItem, Long> getProblemList(
             Long userId, ProblemListCondition condition) {
@@ -71,6 +76,21 @@ public class ProblemService {
         List<Quiz> quizzes = quizRepository.findByProblemIdOrderBySequenceAsc(problemId);
 
         return ProblemResponse.of(problem, status, bookmarked, summaryCards, quizzes);
+    }
+
+    public RecommendedProblemResponse getRecommendedProblem(Long userId) {
+        RecommendedProblem recommendedProblem =
+                recommendedProblemRepository
+                        .findFirstByUserIdAndIsDoneFalseOrderByRecommendedAtAsc(userId)
+                        .orElseThrow(RecommendNotAvailableException::new);
+        Long problemId = recommendedProblem.getProblem().getId();
+        ProblemSolvingStatus status =
+                userProblemResultRepository
+                        .findByUserIdAndProblemId(userId, problemId)
+                        .map(UserProblemResult::getStatus)
+                        .orElse(ProblemSolvingStatus.NOT_ATTEMPTED);
+        boolean bookmarked = bookmarkRepository.existsByUserIdAndProblemId(userId, problemId);
+        return RecommendedProblemResponse.of(recommendedProblem, status, bookmarked);
     }
 
     private ProblemSearchParam createProblemSearchParam(Long userId, ProblemListCondition condition) {

@@ -42,6 +42,7 @@ jobs:
     env:
       IS_PROD: ${{ inputs.ref_name == 'main' }}
 
+<<<<<<< HEAD
       BE_HOST: ${{ (inputs.ref_name == 'develop' || inputs.ref_name == 'feature/dev-auth-kakao') && secrets.BE_HOST_DEV || secrets.BE_HOST }}
       DEPLOY_USER: ${{ (inputs.ref_name == 'develop' || inputs.ref_name == 'feature/dev-auth-kakao') && secrets.DEPLOY_USER_DEV || secrets.DEPLOY_USER }}
       SSH_PRIVATE_KEY: ${{ (inputs.ref_name == 'develop' || inputs.ref_name == 'feature/dev-auth-kakao') && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY }}

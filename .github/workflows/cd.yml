@@ -39,10 +39,10 @@ jobs:
 
     runs-on: ubuntu-latest
     env:
-      BE_HOST: ${{ secrets.BE_HOST_DEV }}
-      DEPLOY_USER: ${{ secrets.DEPLOY_USER_DEV }}
-      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_DEV }}
-      ENV_CONTENT: ${{ secrets.ENV_DEV }}
+      BE_HOST: ${{ secrets.BE_HOST_DEV != '' && secrets.BE_HOST_DEV || secrets.BE_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER_DEV != '' && secrets.DEPLOY_USER_DEV || secrets.DEPLOY_USER }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_DEV != '' && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY }}
+      ENV_CONTENT: ${{ secrets.ENV_DEV != '' && secrets.ENV_DEV || secrets.ENV }}
 
     steps:
       - name: Checkout (for k6 script)

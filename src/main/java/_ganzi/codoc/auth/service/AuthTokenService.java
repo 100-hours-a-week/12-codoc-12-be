@@ -7,7 +7,6 @@ import _ganzi.codoc.auth.service.dto.TokenPairResponse;
 import _ganzi.codoc.global.exception.AuthRequiredException;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.enums.UserStatus;
-import java.time.Duration;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -47,26 +46,6 @@ public class AuthTokenService {
                 accessToken, refreshToken, TOKEN_TYPE_BEARER, jwtTokenProvider.getAccessTokenTtlSeconds());
     }
 
-    @Transactional
-    public TokenPair issueTokenPairInternal(User user, Duration accessTokenTtl) {
-        UserStatus status = user.getStatus();
-        String accessToken = jwtTokenProvider.createAccessToken(user.getId(), status, accessTokenTtl);
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getId(), status);
-        Instant expiresAt = jwtTokenProvider.getRefreshTokenExpiry();
-
-        refreshTokenRepository
-                .findByUser(user)
-                .ifPresentOrElse(
-                        token -> token.rotate(refreshToken, expiresAt),
-                        () -> refreshTokenRepository.save(RefreshToken.create(user, refreshToken, expiresAt)));
-
-        return new TokenPair(
-                accessToken,
-                refreshToken,
-                TOKEN_TYPE_BEARER,
-                jwtTokenProvider.getAccessTokenTtlSeconds(accessTokenTtl));
-    }
-
     public long getRefreshTokenTtlSeconds() {
         return jwtTokenProvider.getRefreshTokenTtlSeconds();
     }
@@ -100,31 +79,6 @@ public class AuthTokenService {
                 newRefreshToken,
                 TOKEN_TYPE_BEARER,
                 jwtTokenProvider.getAccessTokenTtlSeconds());
-    }
-
-    @Transactional
-    public TokenPair refreshTokenPair(String refreshTokenValue, Duration accessTokenTtl) {
-        RefreshToken refreshToken =
-                refreshTokenRepository
-                        .findByTokenValue(refreshTokenValue)
-                        .orElseThrow(AuthRequiredException::new);
-        if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
-            throw new AuthRequiredException();
-        }
-        User user = refreshToken.getUser();
-        UserStatus status = user.getStatus();
-
-        String accessToken = jwtTokenProvider.createAccessToken(user.getId(), status, accessTokenTtl);
-        String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getId(), status);
-        Instant expiresAt = jwtTokenProvider.getRefreshTokenExpiry();
-
-        refreshToken.rotate(newRefreshToken, expiresAt);
-
-        return new TokenPair(
-                accessToken,
-                newRefreshToken,
-                TOKEN_TYPE_BEARER,
-                jwtTokenProvider.getAccessTokenTtlSeconds(accessTokenTtl));
     }
 
     public record TokenPair(

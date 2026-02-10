@@ -4,6 +4,9 @@ import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.domain.RecommendedProblem;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.problem.repository.RecommendedProblemRepository;
+import _ganzi.codoc.submission.domain.UserProblemResult;
+import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
+import _ganzi.codoc.submission.repository.UserProblemResultRepository;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.enums.UserStatus;
 import _ganzi.codoc.user.exception.UserNotFoundException;
@@ -30,6 +33,7 @@ public class RecommendedProblemService {
     private final RecommendedProblemRepository recommendedProblemRepository;
     private final UserRepository userRepository;
     private final ProblemRepository problemRepository;
+    private final UserProblemResultRepository userProblemResultRepository;
     private final EntityManager entityManager;
 
     @Transactional
@@ -106,8 +110,28 @@ public class RecommendedProblemService {
 
     private List<RecommendationCandidate> fetchRecommendations(
             Long userId, RecommendationScenario scenario) {
+        RecommendationFilterInfo filterInfo = buildRecommendationFilterInfo(userId, scenario);
         // TODO: replace with FastAPI client call when contract is finalized.
         return List.of();
+    }
+
+    private RecommendationFilterInfo buildRecommendationFilterInfo(
+            Long userId, RecommendationScenario scenario) {
+        List<UserProblemResult> results = userProblemResultRepository.findAllByUserId(userId);
+        List<Long> solvedIds = new ArrayList<>();
+        List<Long> challengeIds = new ArrayList<>();
+        for (UserProblemResult result : results) {
+            Long problemId = result.getProblem().getId();
+            if (result.getStatus() == ProblemSolvingStatus.SOLVED) {
+                solvedIds.add(problemId);
+            } else {
+                challengeIds.add(problemId);
+            }
+        }
+        if (scenario == RecommendationScenario.ON_DEMAND) {
+            challengeIds.addAll(recommendedProblemRepository.findPendingProblemIds(userId));
+        }
+        return new RecommendationFilterInfo(solvedIds, challengeIds);
     }
 
     private boolean acquireUserLock(Long userId) {
@@ -134,4 +158,7 @@ public class RecommendedProblemService {
     }
 
     public record RecommendationCandidate(Long problemId, String reasonMsg) {}
+
+    public record RecommendationFilterInfo(
+            List<Long> solvedProblemIds, List<Long> challengeProblemIds) {}
 }

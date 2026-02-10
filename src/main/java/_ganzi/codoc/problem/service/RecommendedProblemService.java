@@ -4,10 +4,14 @@ import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.domain.RecommendedProblem;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.problem.repository.RecommendedProblemRepository;
+import _ganzi.codoc.problem.service.recommend.RecommendClient;
+import _ganzi.codoc.problem.service.recommend.dto.RecommendRequest;
+import _ganzi.codoc.problem.service.recommend.dto.RecommendResponse;
 import _ganzi.codoc.submission.domain.UserProblemResult;
 import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
 import _ganzi.codoc.submission.repository.UserProblemResultRepository;
 import _ganzi.codoc.user.domain.User;
+import _ganzi.codoc.user.enums.InitLevel;
 import _ganzi.codoc.user.enums.UserStatus;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
@@ -35,6 +39,7 @@ public class RecommendedProblemService {
     private final ProblemRepository problemRepository;
     private final UserProblemResultRepository userProblemResultRepository;
     private final EntityManager entityManager;
+    private final RecommendClient recommendClient;
 
     @Transactional
     public void issueDailyRecommendations() {
@@ -111,8 +116,18 @@ public class RecommendedProblemService {
     private List<RecommendationCandidate> fetchRecommendations(
             Long userId, RecommendationScenario scenario) {
         RecommendationFilterInfo filterInfo = buildRecommendationFilterInfo(userId, scenario);
-        // TODO: replace with FastAPI client call when contract is finalized.
-        return List.of();
+        InitLevel userLevel =
+                userRepository
+                        .findById(userId)
+                        .map(User::getInitLevel)
+                        .orElseThrow(UserNotFoundException::new);
+        RecommendRequest request = RecommendRequest.of(userId, userLevel, scenario, filterInfo);
+        RecommendResponse response = recommendClient.requestRecommendations(request);
+        return response.recommendations().stream()
+                .map(
+                        recommendation ->
+                                new RecommendationCandidate(recommendation.problemId(), recommendation.reasonMsg()))
+                .toList();
     }
 
     private RecommendationFilterInfo buildRecommendationFilterInfo(

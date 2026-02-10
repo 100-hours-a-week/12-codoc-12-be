@@ -48,11 +48,6 @@ jobs:
       ENV_CONTENT: ${{ (inputs.ref_name == 'develop' || inputs.ref_name == 'feature/dev-auth-kakao') && secrets.ENV_DEV || secrets.ENV }}
 
     steps:
-      - name: Checkout (for k6 script)
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref_name }}
-
       # CI run-id에서 아티팩트 가져오기
       - name: Download Backend Artifact (from CI run)
         uses: actions/download-artifact@v4

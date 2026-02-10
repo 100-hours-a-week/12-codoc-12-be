@@ -30,7 +30,7 @@ jobs:
       - name: Resolve target BASE_URL
         id: baseurl
         run: |
-          echo "url=${{ secrets.BASE_URL_DEV }}" >> $GITHUB_OUTPUT
+          echo "url=${{ secrets.BE_BASE_URL_DEV }}" >> $GITHUB_OUTPUT
 
       - name: Run k6
         uses: grafana/k6-action@v0.3.1

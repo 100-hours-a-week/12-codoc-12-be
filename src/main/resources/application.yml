@@ -48,6 +48,18 @@ app:
   chatbot:
     session-ttl: 30m
 
+  rate-limit:
+    chatbot-stream:
+      enabled: ${RATE_LIMIT_CHATBOT_STREAM_ENABLED:true}
+      limit: ${RATE_LIMIT_CHATBOT_STREAM_LIMIT:1}
+      period: ${RATE_LIMIT_CHATBOT_STREAM_PERIOD:2s}
+      consume-token: ${RATE_LIMIT_CHATBOT_STREAM_CONSUME:1}
+    global:
+      enabled: ${RATE_LIMIT_GLOBAL_ENABLED:true}
+      limit: ${RATE_LIMIT_GLOBAL_LIMIT:10}
+      period: ${RATE_LIMIT_GLOBAL_PERIOD:1s}
+      consume-token: ${RATE_LIMIT_GLOBAL_CONSUME:1}
+
 management:
   endpoints:
       access:

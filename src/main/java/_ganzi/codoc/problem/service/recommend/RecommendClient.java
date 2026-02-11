@@ -24,7 +24,7 @@ public class RecommendClient {
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(RecommendResponse.class)
-                .timeout(aiServerProperties.baseTimeout())
+                .timeout(aiServerProperties.recommendTimeout())
                 .block();
     }
 }

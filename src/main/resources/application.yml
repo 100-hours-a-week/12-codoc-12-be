@@ -37,6 +37,7 @@ app:
   ai-server:
     base-url: ${APP_AI_SERVER_BASE_URL:http://localhost:8000}
     base-timeout: 3s
+    recommend-timeout: 60s
 
   chatbot:
     session-ttl: 30m

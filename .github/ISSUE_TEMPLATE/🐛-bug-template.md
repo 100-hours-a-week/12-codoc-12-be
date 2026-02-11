@@ -2,7 +2,7 @@
 name: "\U0001F41B BUG TEMPLATE"
 about: 버그/오류 수정
 title: "[bug] "
-labels: ''
+labels: BE, bug
 assignees: ''
 
 ---

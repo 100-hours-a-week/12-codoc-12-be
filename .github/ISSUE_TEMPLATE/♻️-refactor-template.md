@@ -2,7 +2,7 @@
 name: "♻️ REFACTOR TEMPLATE"
 about: 코드/구조 개선
 title: "[refactor] "
-labels: ''
+labels: BE, refactor
 assignees: ''
 
 ---

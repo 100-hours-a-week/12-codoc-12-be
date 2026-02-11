@@ -72,7 +72,8 @@ public class RecommendedProblemService {
                 return;
             }
 
-            List<RecommendationCandidate> candidates = fetchRecommendations(userId, scenario);
+            RecommendationFilterInfo filterInfo = buildRecommendationFilterInfo(userId, scenario);
+            List<RecommendationCandidate> candidates = fetchRecommendations(userId, scenario, filterInfo);
             if (candidates.isEmpty()) {
                 return;
             }
@@ -87,8 +88,12 @@ public class RecommendedProblemService {
                             : Set.of();
 
             User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+            Set<Long> solvedProblemIds = new HashSet<>(filterInfo.solvedProblemIds());
             List<RecommendedProblem> toSave = new ArrayList<>();
             for (RecommendationCandidate candidate : candidates) {
+                if (solvedProblemIds.contains(candidate.problemId())) {
+                    continue;
+                }
                 if (existingPendingIds.contains(candidate.problemId())) {
                     continue;
                 }
@@ -124,8 +129,7 @@ public class RecommendedProblemService {
     }
 
     private List<RecommendationCandidate> fetchRecommendations(
-            Long userId, RecommendationScenario scenario) {
-        RecommendationFilterInfo filterInfo = buildRecommendationFilterInfo(userId, scenario);
+            Long userId, RecommendationScenario scenario, RecommendationFilterInfo filterInfo) {
         InitLevel userLevel =
                 userRepository
                         .findById(userId)

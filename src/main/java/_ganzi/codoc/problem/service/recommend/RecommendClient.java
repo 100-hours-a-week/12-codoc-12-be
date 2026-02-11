@@ -11,7 +11,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @RequiredArgsConstructor
 public class RecommendClient {
 
-    private static final String API_PATH_RECOMMEND = "/api/v2/recommend";
+    private static final String API_PATH_RECOMMEND = "/anaylsis/api/v2/recommend";
 
     private final WebClient.Builder aiServerWebClientBuilder;
     private final AiServerProperties aiServerProperties;

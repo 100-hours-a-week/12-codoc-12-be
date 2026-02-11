@@ -51,13 +51,13 @@ app:
   rate-limit:
     chatbot-stream:
       enabled: ${RATE_LIMIT_CHATBOT_STREAM_ENABLED:true}
-      limit: ${RATE_LIMIT_CHATBOT_STREAM_LIMIT:1}
-      period: ${RATE_LIMIT_CHATBOT_STREAM_PERIOD:2s}
+      limit: ${RATE_LIMIT_CHATBOT_STREAM_LIMIT:10}
+      period: ${RATE_LIMIT_CHATBOT_STREAM_PERIOD:1m}
       consume-token: ${RATE_LIMIT_CHATBOT_STREAM_CONSUME:1}
     global:
       enabled: ${RATE_LIMIT_GLOBAL_ENABLED:true}
-      limit: ${RATE_LIMIT_GLOBAL_LIMIT:10}
-      period: ${RATE_LIMIT_GLOBAL_PERIOD:1s}
+      limit: ${RATE_LIMIT_GLOBAL_LIMIT:120}
+      period: ${RATE_LIMIT_GLOBAL_PERIOD:1m}
       consume-token: ${RATE_LIMIT_GLOBAL_CONSUME:1}
 
 management:

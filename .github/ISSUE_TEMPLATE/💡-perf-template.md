@@ -2,7 +2,7 @@
 name: "\U0001F4A1 PERF TEMPLATE"
 about: 성능 개선
 title: "[perf]"
-labels: ''
+labels: BE, perf
 assignees: ''
 
 ---

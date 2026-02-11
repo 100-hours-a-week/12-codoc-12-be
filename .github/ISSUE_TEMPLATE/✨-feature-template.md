@@ -2,7 +2,7 @@
 name: "✨ FEATURE TEMPLATE"
 about: 기능 개발
 title: "[feat] "
-labels: ''
+labels: BE, feat
 assignees: ''
 
 ---

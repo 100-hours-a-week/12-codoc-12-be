@@ -19,7 +19,7 @@ public record RecommendRequest(
             RecommendationFilterInfo filterInfo) {
         return new RecommendRequest(
                 userId,
-                userLevel.name(),
+                userLevel.name().toLowerCase(),
                 scenario.name(),
                 new FilterInfo(filterInfo.solvedProblemIds(), filterInfo.challengeProblemIds()));
     }

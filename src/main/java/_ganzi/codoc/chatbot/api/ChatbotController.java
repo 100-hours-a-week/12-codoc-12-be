@@ -3,6 +3,8 @@ package _ganzi.codoc.chatbot.api;
 import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendRequest;
 import _ganzi.codoc.chatbot.service.ChatbotService;
+import _ganzi.codoc.global.ratelimit.RateLimit;
+import _ganzi.codoc.global.ratelimit.RateLimitApiType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -18,6 +20,7 @@ public class ChatbotController implements ChatbotApi {
 
     private final ChatbotService chatbotService;
 
+    @RateLimit(type = RateLimitApiType.CHATBOT_STREAM)
     @PostMapping(value = "/messages/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> sendAndStream(
             @AuthenticationPrincipal AuthUser authUser,

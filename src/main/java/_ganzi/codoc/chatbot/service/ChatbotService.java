@@ -71,7 +71,10 @@ public class ChatbotService {
                         user.getInitLevel(),
                         attempt.getCurrentParagraphType());
 
-        return streamConversation(chatbotConversation.getId(), aiServerRequest);
+        return chatbotClient
+                .streamMessage(aiServerRequest)
+                .doOnNext(event -> handleStreamEvent(chatbotConversation.getId(), event))
+                .doOnError(error -> deleteConversationSilently(chatbotConversation.getId()));
     }
 
     private ChatbotAttempt resolveAttempt(User user, Problem problem) {
@@ -93,14 +96,6 @@ public class ChatbotService {
                 ChatbotAttempt.create(user, problem, chatbotProperties.sessionTtl());
 
         return chatbotAttemptRepository.save(newAttempt);
-    }
-
-    private Flux<ServerSentEvent<String>> streamConversation(
-            Long conversationId, AiServerChatbotSendRequest aiServerRequest) {
-        return chatbotClient
-                .streamMessage(aiServerRequest)
-                .doOnNext(event -> handleStreamEvent(conversationId, event))
-                .doOnError(error -> deleteConversationSilently(conversationId));
     }
 
     private void handleStreamEvent(Long conversationId, ServerSentEvent<String> event) {

@@ -44,8 +44,6 @@ app:
     base-url: ${APP_ANALYSIS_SERVER_BASE_URL:http://localhost:8010}
     base-timeout: 60s
     recommend-timeout: 60s
-  recommend:
-    cron: ${APP_RECOMMEND_CRON:0 * * * * *}
 
   chatbot:
     session-ttl: 30m

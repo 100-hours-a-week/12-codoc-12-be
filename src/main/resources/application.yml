@@ -40,6 +40,7 @@ app:
   ai-server:
     base-url: ${APP_AI_SERVER_BASE_URL:http://localhost:8000}
     base-timeout: 3s
+    chatbot-stream-timeout: 10s
   analysis-server:
     base-url: ${APP_ANALYSIS_SERVER_BASE_URL:http://localhost:8010}
     base-timeout: 60s

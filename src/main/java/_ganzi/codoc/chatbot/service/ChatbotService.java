@@ -1,5 +1,6 @@
 package _ganzi.codoc.chatbot.service;
 
+import _ganzi.codoc.ai.config.AiServerProperties;
 import _ganzi.codoc.ai.dto.AiServerChatbotFinalEvent;
 import _ganzi.codoc.ai.dto.AiServerChatbotFinalResult;
 import _ganzi.codoc.ai.dto.AiServerChatbotSendRequest;
@@ -44,6 +45,7 @@ public class ChatbotService {
     private final ChatbotConversationRepository chatbotConversationRepository;
     private final ChatbotAttemptRepository chatbotAttemptRepository;
     private final ChatbotProperties chatbotProperties;
+    private final AiServerProperties aiServerProperties;
     private final AiServerResponseParser responseParser;
 
     @Transactional
@@ -73,6 +75,7 @@ public class ChatbotService {
 
         return chatbotClient
                 .streamMessage(aiServerRequest)
+                .timeout(aiServerProperties.chatbotStreamTimeout())
                 .doOnNext(event -> handleStreamEvent(chatbotConversation.getId(), event))
                 .doOnError(error -> deleteConversationSilently(chatbotConversation.getId()));
     }

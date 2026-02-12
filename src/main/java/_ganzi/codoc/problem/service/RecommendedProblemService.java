@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +36,7 @@ public class RecommendedProblemService {
     private static final int REPLENISH_THRESHOLD = 1;
     private static final int BATCH_SIZE = 5;
     private static final int LOCK_TIMEOUT_SECONDS = 2;
+    private static final long RATE_LIMIT_BACKOFF_MILLIS = 500;
 
     private final RecommendedProblemRepository recommendedProblemRepository;
     private final UserRepository userRepository;
@@ -48,7 +50,23 @@ public class RecommendedProblemService {
         List<Long> userIds =
                 userRepository.findAllByStatus(UserStatus.ACTIVE).stream().map(User::getId).toList();
         for (Long userId : userIds) {
-            issueRecommendationsForUser(userId, RecommendationScenario.DAILY);
+            try {
+                issueRecommendationsForUser(userId, RecommendationScenario.DAILY);
+            } catch (WebClientResponseException exception) {
+                if (handleRateLimitOnce(userId, exception)) {
+                    try {
+                        issueRecommendationsForUser(userId, RecommendationScenario.DAILY);
+                    } catch (WebClientResponseException retryException) {
+                        handleIssueFailure(userId, retryException);
+                    } catch (Exception retryException) {
+                        log.warn("Recommend daily issue retry failed. userId={}", userId, retryException);
+                    }
+                } else {
+                    handleIssueFailure(userId, exception);
+                }
+            } catch (Exception exception) {
+                log.warn("Recommend daily issue failed. userId={}", userId, exception);
+            }
         }
     }
 
@@ -58,7 +76,23 @@ public class RecommendedProblemService {
         if (pendingCount > REPLENISH_THRESHOLD) {
             return;
         }
-        issueRecommendationsForUser(userId, RecommendationScenario.ON_DEMAND);
+        try {
+            issueRecommendationsForUser(userId, RecommendationScenario.ON_DEMAND);
+        } catch (WebClientResponseException exception) {
+            if (handleRateLimitOnce(userId, exception)) {
+                try {
+                    issueRecommendationsForUser(userId, RecommendationScenario.ON_DEMAND);
+                } catch (WebClientResponseException retryException) {
+                    handleIssueFailure(userId, retryException);
+                } catch (Exception retryException) {
+                    log.warn("Recommend on-demand issue retry failed. userId={}", userId, retryException);
+                }
+            } else {
+                handleIssueFailure(userId, exception);
+            }
+        } catch (Exception exception) {
+            log.warn("Recommend on-demand issue failed. userId={}", userId, exception);
+        }
     }
 
     @Transactional
@@ -184,6 +218,35 @@ public class RecommendedProblemService {
 
     private String lockName(Long userId) {
         return "recommend:" + userId;
+    }
+
+    private void handleIssueFailure(Long userId, WebClientResponseException exception) {
+        int statusCode = exception.getStatusCode().value();
+        if (statusCode == 429 || statusCode == 503) {
+            log.warn("Recommend daily issue rate limited. userId={}, status={}", userId, statusCode);
+            sleepMillis(RATE_LIMIT_BACKOFF_MILLIS);
+            return;
+        }
+        log.warn("Recommend daily issue failed. userId={}, status={}", userId, statusCode, exception);
+    }
+
+    private boolean handleRateLimitOnce(Long userId, WebClientResponseException exception) {
+        int statusCode = exception.getStatusCode().value();
+        if (statusCode != 429 && statusCode != 503) {
+            return false;
+        }
+        log.warn(
+                "Recommend daily issue rate limited. userId={}, status={}, retry=1", userId, statusCode);
+        sleepMillis(RATE_LIMIT_BACKOFF_MILLIS);
+        return true;
+    }
+
+    private void sleepMillis(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     public record RecommendationCandidate(Long problemId, String reasonMsg) {}

@@ -10,7 +10,7 @@ public class RecommendedProblemScheduler {
 
     private final RecommendedProblemService recommendedProblemService;
 
-    @Scheduled(cron = "${app.recommend.cron:0 0 3 * * *}", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Seoul")
     public void issueDailyRecommendations() {
         recommendedProblemService.issueDailyRecommendations();
     }

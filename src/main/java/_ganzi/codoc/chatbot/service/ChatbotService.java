@@ -1,13 +1,9 @@
 package _ganzi.codoc.chatbot.service;
 
-import _ganzi.codoc.ai.config.AiServerProperties;
-import _ganzi.codoc.ai.dto.AiServerApiResponse;
 import _ganzi.codoc.ai.dto.AiServerChatbotFinalEvent;
 import _ganzi.codoc.ai.dto.AiServerChatbotFinalResult;
 import _ganzi.codoc.ai.dto.AiServerChatbotSendRequest;
-import _ganzi.codoc.ai.dto.AiServerChatbotSendResponse;
 import _ganzi.codoc.ai.dto.AiServerErrorEvent;
-import _ganzi.codoc.ai.enums.ChatbotStatus;
 import _ganzi.codoc.ai.infra.ChatbotClient;
 import _ganzi.codoc.ai.util.AiServerResponseParser;
 import _ganzi.codoc.chatbot.config.ChatbotProperties;
@@ -48,7 +44,6 @@ public class ChatbotService {
     private final ChatbotConversationRepository chatbotConversationRepository;
     private final ChatbotAttemptRepository chatbotAttemptRepository;
     private final ChatbotProperties chatbotProperties;
-    private final AiServerProperties aiServerProperties;
     private final AiServerResponseParser responseParser;
 
     @Transactional
@@ -76,15 +71,7 @@ public class ChatbotService {
                         user.getInitLevel(),
                         attempt.getCurrentParagraphType());
 
-        AiServerApiResponse<AiServerChatbotSendResponse> aiServerResponse =
-                chatbotClient
-                        .sendMessage(aiServerRequest)
-                        .timeout(aiServerProperties.baseTimeout())
-                        .block();
-
-        validateSendResponse(chatbotConversation.getId(), aiServerResponse);
-
-        return streamConversation(chatbotConversation.getId());
+        return streamConversation(chatbotConversation.getId(), aiServerRequest);
     }
 
     private ChatbotAttempt resolveAttempt(User user, Problem problem) {
@@ -108,20 +95,10 @@ public class ChatbotService {
         return chatbotAttemptRepository.save(newAttempt);
     }
 
-    private void validateSendResponse(
-            Long conversationId, AiServerApiResponse<AiServerChatbotSendResponse> aiServerResponse) {
-
-        if (aiServerResponse == null
-                || !CODE_SUCCESS.equals(aiServerResponse.code())
-                || aiServerResponse.data() == null
-                || aiServerResponse.data().status() != ChatbotStatus.ACCEPTED) {
-            deleteAndThrow(conversationId);
-        }
-    }
-
-    private Flux<ServerSentEvent<String>> streamConversation(Long conversationId) {
+    private Flux<ServerSentEvent<String>> streamConversation(
+            Long conversationId, AiServerChatbotSendRequest aiServerRequest) {
         return chatbotClient
-                .streamMessage(conversationId)
+                .streamMessage(aiServerRequest)
                 .doOnNext(event -> handleStreamEvent(conversationId, event))
                 .doOnError(error -> deleteConversationSilently(conversationId));
     }

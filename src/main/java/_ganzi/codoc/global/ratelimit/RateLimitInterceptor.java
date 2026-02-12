@@ -2,10 +2,12 @@ package _ganzi.codoc.global.ratelimit;
 
 import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.auth.support.AuthUserResolver;
+import _ganzi.codoc.chatbot.exception.ChatbotStreamRateLimitExceededException;
 import _ganzi.codoc.global.exception.RateLimitExceededException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
+import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -42,15 +44,21 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         }
 
         AuthUser authUser = authUserResolver.resolveAuthUser();
+        RateLimitApiType apiType = resolveApiType(handlerMethod);
         String prefix =
                 authUser == null ? "ip:" + clientIp(request) : "userId:" + authUser.getUsername();
-        RateLimitApiType apiType = resolveApiType(handlerMethod);
-        applyRateLimit(prefix, policyMap.get(RateLimitApiType.GLOBAL), response);
+
+        applyRateLimit(
+                prefix, policyMap.get(RateLimitApiType.GLOBAL), response, RateLimitExceededException::new);
 
         if (apiType == RateLimitApiType.CHATBOT_STREAM) {
-            String detailKey = prefix + ":" + apiType;
-            applyRateLimit(detailKey, policyMap.get(apiType), response);
+            applyRateLimit(
+                    generateKey(prefix, apiType),
+                    policyMap.get(apiType),
+                    response,
+                    ChatbotStreamRateLimitExceededException::new);
         }
+
         return true;
     }
 
@@ -74,7 +82,11 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         return (rateLimit != null) ? rateLimit.type() : RateLimitApiType.GLOBAL;
     }
 
-    private void applyRateLimit(String key, RateLimitPolicy policy, HttpServletResponse response) {
+    private void applyRateLimit(
+            String key,
+            RateLimitPolicy policy,
+            HttpServletResponse response,
+            Supplier<? extends RuntimeException> exceptionSupplier) {
         if (policy == null || Boolean.FALSE.equals(policy.enabled())) {
             return;
         }
@@ -83,7 +95,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         applyHeaders(response, policy, result);
 
         if (!result.probe().isConsumed()) {
-            throw new RateLimitExceededException();
+            throw exceptionSupplier.get();
         }
     }
 
@@ -100,5 +112,9 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     private long toCeilSeconds(long nanos) {
         return Math.max(0, (nanos + NANOS_PER_SECOND - 1) / NANOS_PER_SECOND);
+    }
+
+    private String generateKey(String prefix, RateLimitApiType apiType) {
+        return prefix + ":" + apiType;
     }
 }

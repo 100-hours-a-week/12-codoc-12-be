@@ -31,6 +31,9 @@ public interface ChatbotApi {
                 responseCode = "404",
                 description = "PROBLEM_NOT_FOUND, USER_NOT_FOUND"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "429",
+                description = "CHATBOT_STREAM_RATE_LIMIT_EXCEEDED"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "500",
                 description = "INTERNAL_SERVER_ERROR")
     })
@@ -42,7 +45,10 @@ public interface ChatbotApi {
                 GlobalErrorCode.FORBIDDEN,
                 GlobalErrorCode.INTERNAL_SERVER_ERROR
             },
-            chatbot = {ChatbotErrorCode.CHATBOT_STREAM_EVENT_FAILED},
+            chatbot = {
+                ChatbotErrorCode.CHATBOT_STREAM_RATE_LIMIT_EXCEEDED,
+                ChatbotErrorCode.CHATBOT_STREAM_EVENT_FAILED
+            },
             problem = {ProblemErrorCode.PROBLEM_NOT_FOUND},
             user = {UserErrorCode.USER_NOT_FOUND})
     Flux<ServerSentEvent<String>> sendAndStream(AuthUser authUser, ChatbotMessageSendRequest request);

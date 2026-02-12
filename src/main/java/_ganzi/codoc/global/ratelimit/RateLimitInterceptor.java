@@ -2,6 +2,7 @@ package _ganzi.codoc.global.ratelimit;
 
 import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.auth.support.AuthUserResolver;
+import _ganzi.codoc.global.exception.RateLimitExceededException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
@@ -11,6 +12,8 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 @Component
 public class RateLimitInterceptor implements HandlerInterceptor {
+
+    private static final long NANOS_PER_SECOND = java.util.concurrent.TimeUnit.SECONDS.toNanos(1);
 
     private final RateLimitService rateLimitService;
     private final AuthUserResolver authUserResolver;
@@ -42,8 +45,12 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         String prefix =
                 authUser == null ? "ip:" + clientIp(request) : "userId:" + authUser.getUsername();
         RateLimitApiType apiType = resolveApiType(handlerMethod);
-        applyGlobalRateLimit(prefix);
-        applyDetailRateLimit(prefix, apiType);
+        applyRateLimit(prefix, policyMap.get(RateLimitApiType.GLOBAL), response);
+
+        if (apiType == RateLimitApiType.CHATBOT_STREAM) {
+            String detailKey = prefix + ":" + apiType;
+            applyRateLimit(detailKey, policyMap.get(apiType), response);
+        }
         return true;
     }
 
@@ -67,25 +74,31 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         return (rateLimit != null) ? rateLimit.type() : RateLimitApiType.GLOBAL;
     }
 
-    private void applyGlobalRateLimit(String prefix) {
-        RateLimitPolicy policy = policyMap.get(RateLimitApiType.GLOBAL);
+    private void applyRateLimit(String key, RateLimitPolicy policy, HttpServletResponse response) {
         if (policy == null || Boolean.FALSE.equals(policy.enabled())) {
             return;
         }
 
-        rateLimitService.tryConsume(prefix, policy);
+        RateLimitResult result = rateLimitService.tryConsume(key, policy);
+        applyHeaders(response, policy, result);
+
+        if (!result.probe().isConsumed()) {
+            throw new RateLimitExceededException();
+        }
     }
 
-    private void applyDetailRateLimit(String prefix, RateLimitApiType apiType) {
-        if (apiType == RateLimitApiType.GLOBAL) {
-            return;
-        }
+    private void applyHeaders(
+            HttpServletResponse response, RateLimitPolicy policy, RateLimitResult result) {
+        response.setHeader("RateLimit-Limit", String.valueOf(policy.limit()));
+        response.setHeader("RateLimit-Remaining", String.valueOf(result.probe().getRemainingTokens()));
+        response.setHeader("RateLimit-Reset", String.valueOf(toCeilSeconds(result.resetNanos())));
 
-        RateLimitPolicy policy = policyMap.get(apiType);
-        if (policy == null || Boolean.FALSE.equals(policy.enabled())) {
-            return;
+        if (!result.probe().isConsumed()) {
+            response.setHeader("Retry-After", String.valueOf(toCeilSeconds(result.retryAfterNanos())));
         }
+    }
 
-        rateLimitService.tryConsume(prefix + ":" + apiType, policy);
+    private long toCeilSeconds(long nanos) {
+        return Math.max(0, (nanos + NANOS_PER_SECOND - 1) / NANOS_PER_SECOND);
     }
 }

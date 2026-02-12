@@ -3,6 +3,7 @@ package _ganzi.codoc.global.api;
 import _ganzi.codoc.global.dto.ApiResponse;
 import _ganzi.codoc.global.exception.BaseException;
 import _ganzi.codoc.global.exception.GlobalErrorCode;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -22,26 +23,32 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BaseException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBaseException(BaseException exception) {
+    public ResponseEntity<?> handleBaseException(
+            BaseException exception, HttpServletRequest request) {
+        if (isSseRequest(request)) {
+            return ResponseEntity.status(exception.getErrorCode().status()).build();
+        }
         return ResponseEntity.status(exception.getErrorCode().status())
                 .body(ApiResponse.error(exception.getErrorCode().code(), exception.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleMethodArgumentNotValidException(
-            MethodArgumentNotValidException exception) {
-        return invalidInputResponse(toFieldErrors(exception.getBindingResult().getFieldErrors()));
+    public ResponseEntity<?> handleMethodArgumentNotValidException(
+            MethodArgumentNotValidException exception, HttpServletRequest request) {
+        return invalidInputResponse(
+                request, toFieldErrors(exception.getBindingResult().getFieldErrors()));
     }
 
     @ExceptionHandler(BindException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleBindException(
-            BindException exception) {
-        return invalidInputResponse(toFieldErrors(exception.getBindingResult().getFieldErrors()));
+    public ResponseEntity<?> handleBindException(
+            BindException exception, HttpServletRequest request) {
+        return invalidInputResponse(
+                request, toFieldErrors(exception.getBindingResult().getFieldErrors()));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleConstraintViolationException(
-            ConstraintViolationException exception) {
+    public ResponseEntity<?> handleConstraintViolationException(
+            ConstraintViolationException exception, HttpServletRequest request) {
         Map<String, String> errors = new LinkedHashMap<>();
         exception
                 .getConstraintViolations()
@@ -49,19 +56,24 @@ public class GlobalExceptionHandler {
                         violation ->
                                 errors.put(violation.getPropertyPath().toString(), violation.getMessage()));
 
-        return invalidInputResponse(errors);
+        return invalidInputResponse(request, errors);
     }
 
     @ExceptionHandler({
         MethodArgumentTypeMismatchException.class,
         HttpMessageNotReadableException.class
     })
-    public ResponseEntity<ApiResponse<Void>> handleBadRequestException(Exception exception) {
-        return invalidInputResponse();
+    public ResponseEntity<?> handleBadRequestException(
+            Exception exception, HttpServletRequest request) {
+        return invalidInputResponse(request);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMethodNotAllowedException(Exception exception) {
+    public ResponseEntity<?> handleMethodNotAllowedException(
+            Exception exception, HttpServletRequest request) {
+        if (isSseRequest(request)) {
+            return ResponseEntity.status(GlobalErrorCode.METHOD_NOT_ALLOWED.status()).build();
+        }
         return ResponseEntity.status(GlobalErrorCode.METHOD_NOT_ALLOWED.status())
                 .body(
                         ApiResponse.error(
@@ -70,9 +82,12 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleException(Exception exception) {
+    public ResponseEntity<?> handleException(Exception exception, HttpServletRequest request) {
         GlobalErrorCode errorCode = GlobalErrorCode.INTERNAL_SERVER_ERROR;
         log.error("[{}] {}", errorCode.code(), errorCode.message(), exception);
+        if (isSseRequest(request)) {
+            return ResponseEntity.status(errorCode.status()).build();
+        }
         return ResponseEntity.status(errorCode.status())
                 .body(ApiResponse.error(errorCode.code(), errorCode.message()));
     }
@@ -85,8 +100,11 @@ public class GlobalExceptionHandler {
         return errors;
     }
 
-    private ResponseEntity<ApiResponse<Map<String, String>>> invalidInputResponse(
-            Map<String, String> errors) {
+    private ResponseEntity<?> invalidInputResponse(
+            HttpServletRequest request, Map<String, String> errors) {
+        if (isSseRequest(request)) {
+            return ResponseEntity.status(GlobalErrorCode.INVALID_INPUT.status()).build();
+        }
         return ResponseEntity.status(GlobalErrorCode.INVALID_INPUT.status())
                 .body(
                         ApiResponse.error(
@@ -95,10 +113,18 @@ public class GlobalExceptionHandler {
                                 errors));
     }
 
-    private ResponseEntity<ApiResponse<Void>> invalidInputResponse() {
+    private ResponseEntity<?> invalidInputResponse(HttpServletRequest request) {
+        if (isSseRequest(request)) {
+            return ResponseEntity.status(GlobalErrorCode.INVALID_INPUT.status()).build();
+        }
         return ResponseEntity.status(GlobalErrorCode.INVALID_INPUT.status())
                 .body(
                         ApiResponse.error(
                                 GlobalErrorCode.INVALID_INPUT.code(), GlobalErrorCode.INVALID_INPUT.message()));
+    }
+
+    private boolean isSseRequest(HttpServletRequest request) {
+        String accept = request.getHeader("Accept");
+        return accept != null && accept.contains("text/event-stream");
     }
 }

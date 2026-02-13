@@ -5,6 +5,8 @@ import _ganzi.codoc.auth.enums.SocialProvider;
 import _ganzi.codoc.auth.repository.RefreshTokenRepository;
 import _ganzi.codoc.auth.repository.SocialLoginRepository;
 import _ganzi.codoc.auth.service.KakaoOAuthClient;
+import _ganzi.codoc.problem.service.RecommendationScenario;
+import _ganzi.codoc.problem.service.RecommendedProblemService;
 import _ganzi.codoc.user.api.dto.UserInitSurveyRequest;
 import _ganzi.codoc.user.domain.Avatar;
 import _ganzi.codoc.user.domain.User;
@@ -42,6 +44,7 @@ public class UserService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final QuestBatchService questBatchService;
     private final KakaoOAuthClient kakaoOAuthClient;
+    private final RecommendedProblemService recommendedProblemService;
 
     private static final int RANDOM_NICKNAME_LENGTH = 15;
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
@@ -132,6 +135,8 @@ public class UserService {
         user.reviveFromDormant();
         if (user.getStatus() == UserStatus.ACTIVE) {
             questBatchService.issueDailyQuestsForUser(user.getId(), LocalDate.now(SEOUL));
+            recommendedProblemService.issueRecommendationsForUser(
+                    user.getId(), RecommendationScenario.DAILY);
         }
     }
 
@@ -141,6 +146,8 @@ public class UserService {
         user.completeOnboarding(request.initLevel(), request.dailyGoal());
         if (user.getStatus() == UserStatus.ACTIVE) {
             questBatchService.issueDailyQuestsForUser(user.getId(), LocalDate.now(SEOUL));
+            recommendedProblemService.issueRecommendationsForUser(
+                    user.getId(), RecommendationScenario.DAILY);
         }
     }
 

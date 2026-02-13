@@ -37,3 +37,28 @@ WHERE NOT EXISTS (SELECT 1 FROM avatar WHERE name = 'profile8');
 INSERT INTO avatar (created_at, updated_at, name, image_url, is_default)
 SELECT NOW(6), NOW(6), 'profile9', 'https://codoc.cloud/images/profile9.png', b'0'
 WHERE NOT EXISTS (SELECT 1 FROM avatar WHERE name = 'profile9');
+
+-- Daily quests
+INSERT INTO quest (created_at, updated_at, title, requirements, issue_conditions, reward, type, duration)
+SELECT NOW(6), NOW(6), '오늘의 첫 문제 해결', JSON_OBJECT('DailySolvedCount', 1), NULL, 10, 'DAILY', 1
+WHERE NOT EXISTS (SELECT 1 FROM quest WHERE title = '오늘의 첫 문제 해결');
+
+INSERT INTO quest (created_at, updated_at, title, requirements, issue_conditions, reward, type, duration)
+SELECT NOW(6), NOW(6), '일일 목표 달성 목표: 1문제', JSON_OBJECT('DailySolvedCount', 1),
+       JSON_OBJECT('DailyGoal', 'ONE'), 10, 'DAILY', 1
+WHERE NOT EXISTS (SELECT 1 FROM quest WHERE title = '일일 목표 달성 목표: 1문제');
+
+INSERT INTO quest (created_at, updated_at, title, requirements, issue_conditions, reward, type, duration)
+SELECT NOW(6), NOW(6), '일일 목표 달성 목표: 3문제', JSON_OBJECT('DailySolvedCount', 3),
+       JSON_OBJECT('DailyGoal', 'THREE'), 30, 'DAILY', 1
+WHERE NOT EXISTS (SELECT 1 FROM quest WHERE title = '일일 목표 달성 목표: 3문제');
+
+INSERT INTO quest (created_at, updated_at, title, requirements, issue_conditions, reward, type, duration)
+SELECT NOW(6), NOW(6), '일일 목표 달성 목표: 5문제', JSON_OBJECT('DailySolvedCount', 5),
+       JSON_OBJECT('DailyGoal', 'FIVE'), 50, 'DAILY', 1
+WHERE NOT EXISTS (SELECT 1 FROM quest WHERE title = '일일 목표 달성 목표: 5문제');
+
+INSERT INTO quest (created_at, updated_at, title, requirements, issue_conditions, reward, type, duration)
+SELECT NOW(6), NOW(6), '추천 문제 해결 (일일)',
+       JSON_OBJECT('RECOMMENDED_SOLVED_DAILY_COUNT', 1), NULL, 50, 'DAILY', 1
+WHERE NOT EXISTS (SELECT 1 FROM quest WHERE title = '추천 문제 해결 (일일)');

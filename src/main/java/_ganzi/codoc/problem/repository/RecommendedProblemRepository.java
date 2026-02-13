@@ -13,6 +13,8 @@ public interface RecommendedProblemRepository extends JpaRepository<RecommendedP
 
     long countByUserIdAndIsDoneFalse(Long userId);
 
+    long countByUserIdAndSolvedAtBetween(Long userId, Instant start, Instant end);
+
     @Query(
             "select rp.problem.id from RecommendedProblem rp "
                     + "where rp.user.id = :userId and rp.isDone = false")

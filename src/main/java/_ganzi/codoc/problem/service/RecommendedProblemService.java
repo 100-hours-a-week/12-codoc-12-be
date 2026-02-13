@@ -169,7 +169,11 @@ public class RecommendedProblemService {
                         .findById(userId)
                         .map(User::getInitLevel)
                         .orElseThrow(UserNotFoundException::new);
-        RecommendRequest request = RecommendRequest.of(userId, userLevel, scenario, filterInfo);
+        RecommendationScenario requestScenario = scenario;
+        if (filterInfo.solvedProblemIds().size() < 5) {
+            requestScenario = RecommendationScenario.NEW;
+        }
+        RecommendRequest request = RecommendRequest.of(userId, userLevel, requestScenario, filterInfo);
         RecommendResponse response = recommendClient.requestRecommendations(request);
         return response.recommendations().stream()
                 .map(

@@ -49,6 +49,9 @@ app:
   chatbot:
     session-ttl: 30m
 
+  fcm:
+    enabled: ${APP_FCM_ENABLED:false}
+
   rate-limit:
     chatbot-stream:
       enabled: ${RATE_LIMIT_CHATBOT_STREAM_ENABLED:true}

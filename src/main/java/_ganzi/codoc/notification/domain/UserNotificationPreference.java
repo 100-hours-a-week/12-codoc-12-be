@@ -49,4 +49,8 @@ public class UserNotificationPreference extends BaseTimeEntity {
             User user, NotificationType type, boolean enabled) {
         return new UserNotificationPreference(user, type, enabled);
     }
+
+    public void updateEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
 }

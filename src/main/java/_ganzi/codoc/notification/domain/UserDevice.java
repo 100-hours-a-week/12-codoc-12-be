@@ -52,4 +52,15 @@ public class UserDevice extends BaseTimeEntity {
     public static UserDevice create(User user, DevicePlatform platform, String pushToken) {
         return new UserDevice(user, platform, pushToken);
     }
+
+    public void updateRegistration(User user, DevicePlatform platform, String pushToken) {
+        this.user = user;
+        this.platform = platform;
+        this.pushToken = pushToken;
+        this.active = true;
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
 }

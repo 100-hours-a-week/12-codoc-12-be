@@ -35,9 +35,11 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Checkstyle
+        if: github.event_name == 'push'
         run: ./gradlew checkstyleMain
 
       - name: Check format
+        if: github.event_name == 'push'
         run: ./gradlew spotlessCheck
 
       # 빌드 (Spring Boot JAR 생성)

@@ -3,6 +3,7 @@ package _ganzi.codoc.user.repository;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.enums.UserStatus;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -34,4 +35,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByNickname(String nickname);
 
     boolean existsByNicknameAndIdNot(String nickname, Long id);
+
+    @Query(
+            """
+            select u.id
+            from User u
+            where u.status = _ganzi.codoc.user.enums.UserStatus.ACTIVE
+              and not exists (
+                  select 1
+                  from DailySolvedCount d
+                  where d.user = u
+                    and d.date = :targetDate
+              )
+            """)
+    List<Long> findActiveUserIdsWithoutSolvedCountOn(@Param("targetDate") LocalDate targetDate);
 }

@@ -1,10 +1,10 @@
 package _ganzi.codoc.notification.service;
 
 import _ganzi.codoc.notification.domain.Notification;
-import _ganzi.codoc.notification.domain.UserDevice;
 import _ganzi.codoc.notification.domain.UserNotificationPreference;
 import _ganzi.codoc.notification.dto.NotificationMessageItem;
 import _ganzi.codoc.notification.enums.NotificationType;
+import _ganzi.codoc.notification.enums.PushNotificationSendResult;
 import _ganzi.codoc.notification.repository.NotificationRepository;
 import _ganzi.codoc.notification.repository.UserDeviceRepository;
 import _ganzi.codoc.notification.repository.UserNotificationPreferenceRepository;
@@ -48,8 +48,14 @@ public class NotificationSendService {
 
         userDeviceRepository
                 .findByUserIdAndActiveTrue(userId)
-                .map(UserDevice::getPushToken)
-                .ifPresent(pushToken -> pushNotificationSender.send(messageItem, pushToken));
+                .ifPresent(
+                        userDevice -> {
+                            PushNotificationSendResult sendResult =
+                                    pushNotificationSender.send(messageItem, userDevice.getPushToken());
+                            if (sendResult == PushNotificationSendResult.INVALID_TOKEN) {
+                                userDevice.deactivate();
+                            }
+                        });
     }
 
     private boolean isPreferenceEnabled(Long userId, NotificationType type) {

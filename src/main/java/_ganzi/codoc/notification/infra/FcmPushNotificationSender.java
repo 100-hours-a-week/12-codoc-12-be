@@ -1,12 +1,14 @@
 package _ganzi.codoc.notification.infra;
 
 import _ganzi.codoc.notification.dto.NotificationMessageItem;
+import _ganzi.codoc.notification.enums.PushNotificationSendResult;
 import _ganzi.codoc.notification.service.PushNotificationSender;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.MessagingErrorCode;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,12 +26,12 @@ public class FcmPushNotificationSender implements PushNotificationSender {
     private final ObjectProvider<FirebaseMessaging> firebaseMessagingProvider;
 
     @Override
-    public void send(NotificationMessageItem messageItem, String pushToken) {
+    public PushNotificationSendResult send(NotificationMessageItem messageItem, String pushToken) {
 
         FirebaseMessaging firebaseMessaging = firebaseMessagingProvider.getIfAvailable();
         if (firebaseMessaging == null) {
             log.info("Skip push notification send because FCM is unavailable");
-            return;
+            return PushNotificationSendResult.FAILED;
         }
 
         Message.Builder messageBuilder =
@@ -55,9 +57,23 @@ public class FcmPushNotificationSender implements PushNotificationSender {
 
         try {
             firebaseMessaging.send(messageBuilder.build());
+            return PushNotificationSendResult.SUCCESS;
         } catch (FirebaseMessagingException exception) {
+            if (isInvalidTokenError(exception)) {
+                log.info(
+                        "Mark push token as invalid. type={}, messagingErrorCode={}, message={}",
+                        messageItem.type(),
+                        exception.getMessagingErrorCode(),
+                        exception.getMessage());
+                return PushNotificationSendResult.INVALID_TOKEN;
+            }
             log.warn("Failed to send push notification. type={}", messageItem.type(), exception);
+            return PushNotificationSendResult.FAILED;
         }
+    }
+
+    private boolean isInvalidTokenError(FirebaseMessagingException exception) {
+        return exception.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED;
     }
 
     private String toJson(Map<String, String> linkParams) {

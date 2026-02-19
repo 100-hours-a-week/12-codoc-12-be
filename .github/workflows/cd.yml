@@ -31,6 +31,7 @@ jobs:
       DEPLOY_USER: ${{ github.ref_name == 'develop' && secrets.DEPLOY_USER_DEV || secrets.DEPLOY_USER }}
       SSH_PRIVATE_KEY: ${{ github.ref_name == 'develop' && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY }}
       ENV_CONTENT: ${{ github.ref_name == 'develop' && secrets.ENV_DEV || secrets.ENV }}
+      GCP_WIF_AWS_JSON_B64: ${{ github.ref_name == 'develop' && secrets.GCP_WIF_AWS_JSON_B64_DEV || secrets.GCP_WIF_AWS_JSON_B64 }}
 
     steps:
       - name: Download Backend Artifact
@@ -64,6 +65,8 @@ jobs:
             cat << 'EOF' > /home/ubuntu/be/.env
             ${{ env.ENV_CONTENT }}
             EOF
+            umask 077
+            echo '${{ env.GCP_WIF_AWS_JSON_B64 }}' | base64 -d > /home/ubuntu/be/gcp-wif-aws.json
             chmod +x /home/ubuntu/be/deploy.sh
             bash /home/ubuntu/be/deploy.sh
 

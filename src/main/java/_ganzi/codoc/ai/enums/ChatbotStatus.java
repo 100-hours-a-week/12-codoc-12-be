@@ -4,5 +4,6 @@ public enum ChatbotStatus {
     ACCEPTED,
     PROCESSING,
     COMPLETED,
+    CANCELED,
     FAILED
 }

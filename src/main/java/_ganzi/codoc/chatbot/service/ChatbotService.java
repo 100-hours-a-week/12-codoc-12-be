@@ -1,10 +1,13 @@
 package _ganzi.codoc.chatbot.service;
 
 import _ganzi.codoc.ai.config.AiServerProperties;
+import _ganzi.codoc.ai.dto.AiServerChatbotCancelResponse;
+import _ganzi.codoc.ai.dto.AiServerChatbotCancelResult;
 import _ganzi.codoc.ai.dto.AiServerChatbotFinalEvent;
 import _ganzi.codoc.ai.dto.AiServerChatbotFinalResult;
 import _ganzi.codoc.ai.dto.AiServerChatbotSendRequest;
 import _ganzi.codoc.ai.dto.AiServerErrorEvent;
+import _ganzi.codoc.ai.enums.ChatbotStatus;
 import _ganzi.codoc.ai.infra.ChatbotClient;
 import _ganzi.codoc.ai.util.AiServerResponseParser;
 import _ganzi.codoc.chatbot.config.ChatbotProperties;
@@ -13,6 +16,9 @@ import _ganzi.codoc.chatbot.domain.ChatbotConversation;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendRequest;
 import _ganzi.codoc.chatbot.enums.ChatbotAttemptStatus;
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
+import _ganzi.codoc.chatbot.exception.ChatbotConversationNoPermissionException;
+import _ganzi.codoc.chatbot.exception.ChatbotConversationNotFoundException;
+import _ganzi.codoc.chatbot.exception.ChatbotStreamCancelException;
 import _ganzi.codoc.chatbot.exception.ChatbotStreamEventException;
 import _ganzi.codoc.chatbot.repository.ChatbotAttemptRepository;
 import _ganzi.codoc.chatbot.repository.ChatbotConversationRepository;
@@ -89,6 +95,17 @@ public class ChatbotService {
                 .doOnError(error -> deleteConversationSilently(chatbotConversation.getId()));
     }
 
+    @Transactional
+    public void cancelStream(Long userId, Long conversationId) {
+        validateConversationOwner(userId, conversationId);
+
+        AiServerChatbotCancelResult cancelResult = requestCancel(conversationId);
+
+        if (cancelResult.status() == ChatbotStatus.CANCELED) {
+            deleteConversationSilently(conversationId);
+        }
+    }
+
     private ChatbotAttempt resolveAttempt(User user, Problem problem) {
         ChatbotAttempt attempt =
                 chatbotAttemptRepository
@@ -163,6 +180,36 @@ public class ChatbotService {
         }
 
         deleteAndThrow(conversationId);
+    }
+
+    private void validateConversationOwner(Long userId, Long conversationId) {
+        ChatbotConversation conversation =
+                chatbotConversationRepository
+                        .findWithAttemptAndUserById(conversationId)
+                        .orElseThrow(ChatbotConversationNotFoundException::new);
+
+        if (!conversation.getAttempt().getUser().getId().equals(userId)) {
+            throw new ChatbotConversationNoPermissionException();
+        }
+    }
+
+    private AiServerChatbotCancelResult requestCancel(Long conversationId) {
+        AiServerChatbotCancelResponse response =
+                chatbotClient
+                        .cancelStream(conversationId)
+                        .timeout(aiServerProperties.baseTimeout())
+                        .block();
+
+        return validateCancelResponse(response);
+    }
+
+    private AiServerChatbotCancelResult validateCancelResponse(
+            AiServerChatbotCancelResponse response) {
+        if (response == null || !CODE_SUCCESS.equals(response.code()) || response.result() == null) {
+            throw new ChatbotStreamCancelException();
+        }
+
+        return response.result();
     }
 
     private void persistFinalEvent(Long conversationId, AiServerChatbotFinalEvent finalEvent) {

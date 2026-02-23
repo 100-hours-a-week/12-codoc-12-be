@@ -14,6 +14,8 @@ public enum ChatbotErrorCode implements ErrorCode {
             HttpStatus.TOO_MANY_REQUESTS, "CHATBOT_STREAM_RATE_LIMIT_EXCEEDED", "챗봇 스트림 요청 횟수를 초과했습니다."),
     CHATBOT_STREAM_EVENT_FAILED(
             HttpStatus.INTERNAL_SERVER_ERROR, "CHATBOT_STREAM_EVENT_FAILED", "챗봇 스트림 요청에 실패했습니다."),
+    CHATBOT_STREAM_CANCEL_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR, "CHATBOT_STREAM_CANCEL_FAILED", "챗봇 스트림 중단 요청에 실패했습니다."),
     ;
 
     private final HttpStatus status;

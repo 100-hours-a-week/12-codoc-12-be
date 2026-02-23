@@ -8,24 +8,30 @@ import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Slf4j
+@EnableConfigurationProperties(FcmProperties.class)
 @ConditionalOnProperty(prefix = "app.fcm", name = "enabled", havingValue = "true")
 @Configuration
 public class FcmConfig {
 
     @Bean
     @Nullable
-    public FirebaseApp firebaseApp() {
+    public FirebaseApp firebaseApp(FcmProperties fcmProperties) {
         try {
             if (!FirebaseApp.getApps().isEmpty()) {
                 return FirebaseApp.getInstance();
             }
 
             GoogleCredentials credentials = GoogleCredentials.getApplicationDefault();
-            FirebaseOptions options = FirebaseOptions.builder().setCredentials(credentials).build();
+            FirebaseOptions options =
+                    FirebaseOptions.builder()
+                            .setCredentials(credentials)
+                            .setProjectId(fcmProperties.projectId())
+                            .build();
             return FirebaseApp.initializeApp(options);
         } catch (Exception e) {
             log.warn("Failed to initialize FCM. Push notifications are disabled.", e);

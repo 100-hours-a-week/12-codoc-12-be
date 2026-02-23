@@ -74,10 +74,10 @@ springdoc:
     try-it-out-enabled: false
     supported-submit-methods: []
     path: ${SWAGGER_UI_PATH:/swagger-ui.html}
-    enabled: false
+    enabled: true
   api-docs:
     path: ${SWAGGER_API_DOCS_PATH:/v3/api-docs}
-    enabled: false
+    enabled: true
 
 logging:
   pattern:

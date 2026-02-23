@@ -2,7 +2,6 @@ package _ganzi.codoc.notification.service;
 
 import _ganzi.codoc.notification.dto.NotificationMessageItem;
 import _ganzi.codoc.notification.enums.NotificationType;
-import _ganzi.codoc.notification.enums.PushNotificationSendResult;
 import _ganzi.codoc.user.repository.UserRepository;
 import java.time.LocalDate;
 import java.util.List;
@@ -18,7 +17,6 @@ public class AttendanceNotificationService {
 
     private final UserRepository userRepository;
     private final NotificationSendService notificationSendService;
-    private final PushNotificationSender pushNotificationSender;
 
     public void sendDailyReminder(LocalDate targetDate) {
         List<Long> targetUserIds = userRepository.findActiveUserIdsWithoutSolvedCountOn(targetDate);
@@ -29,12 +27,5 @@ public class AttendanceNotificationService {
         for (Long userId : targetUserIds) {
             notificationSendService.send(userId, messageItem);
         }
-    }
-
-    public PushNotificationSendResult sendTestReminderToToken(String pushToken) {
-        NotificationMessageItem messageItem =
-                new NotificationMessageItem(NotificationType.ATTENDANCE, title, body, null);
-
-        return pushNotificationSender.send(messageItem, pushToken);
     }
 }

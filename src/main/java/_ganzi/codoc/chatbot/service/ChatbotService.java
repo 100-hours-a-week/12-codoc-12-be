@@ -23,21 +23,25 @@ import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
 import java.time.Instant;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
+import tools.jackson.databind.json.JsonMapper;
 
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 @Service
 public class ChatbotService {
 
+    private static final String EVENT_INIT = "init";
     private static final String EVENT_FINAL = "final";
     private static final String EVENT_ERROR = "error";
     private static final String CODE_SUCCESS = "SUCCESS";
+    private static final String INIT_EVENT_DATA_KEY = "conversationId";
 
     private final ChatbotClient chatbotClient;
     private final UserRepository userRepository;
@@ -47,6 +51,7 @@ public class ChatbotService {
     private final ChatbotProperties chatbotProperties;
     private final AiServerProperties aiServerProperties;
     private final AiServerResponseParser responseParser;
+    private final JsonMapper jsonMapper;
 
     @Transactional
     public Flux<ServerSentEvent<String>> sendAndStream(
@@ -73,8 +78,12 @@ public class ChatbotService {
                         user.getInitLevel(),
                         attempt.getCurrentParagraphType());
 
-        return chatbotClient
-                .streamMessage(aiServerRequest)
+        Flux<ServerSentEvent<String>> initEvent =
+                Flux.just(buildInitEvent(chatbotConversation.getId()));
+
+        Flux<ServerSentEvent<String>> aiStream = chatbotClient.streamMessage(aiServerRequest);
+
+        return Flux.concat(initEvent, aiStream)
                 .timeout(aiServerProperties.chatbotStreamTimeout())
                 .doOnNext(event -> handleStreamEvent(chatbotConversation.getId(), event))
                 .doOnError(error -> deleteConversationSilently(chatbotConversation.getId()));
@@ -112,6 +121,21 @@ public class ChatbotService {
 
         if (EVENT_ERROR.equals(eventName)) {
             handleErrorEvent(conversationId, data);
+        }
+    }
+
+    private ServerSentEvent<String> buildInitEvent(Long conversationId) {
+        return ServerSentEvent.<String>builder()
+                .event(EVENT_INIT)
+                .data(writeInitEventData(conversationId))
+                .build();
+    }
+
+    private String writeInitEventData(Long conversationId) {
+        try {
+            return jsonMapper.writeValueAsString(Map.of(INIT_EVENT_DATA_KEY, conversationId));
+        } catch (Exception exception) {
+            throw new ChatbotStreamEventException();
         }
     }
 

@@ -51,6 +51,7 @@ app:
 
   fcm:
     enabled: ${APP_FCM_ENABLED:false}
+    project-id: ${FCM_PROJECT_ID:}
 
   rate-limit:
     chatbot-stream:

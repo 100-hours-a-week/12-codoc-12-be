@@ -8,6 +8,7 @@ import _ganzi.codoc.global.ratelimit.RateLimitApiType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -26,5 +27,13 @@ public class ChatbotController implements ChatbotApi {
             @AuthenticationPrincipal AuthUser authUser,
             @Valid @RequestBody ChatbotMessageSendRequest request) {
         return chatbotService.sendAndStream(authUser.userId(), request);
+    }
+
+    @Override
+    @DeleteMapping("/messages/stream")
+    public ResponseEntity<Void> cancelStream(
+            @AuthenticationPrincipal AuthUser authUser, @RequestParam Long conversationId) {
+        chatbotService.cancelStream(authUser.userId(), conversationId);
+        return ResponseEntity.noContent().build();
     }
 }

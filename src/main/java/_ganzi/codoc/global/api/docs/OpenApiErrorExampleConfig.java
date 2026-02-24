@@ -162,6 +162,7 @@ public class OpenApiErrorExampleConfig {
         Collections.addAll(codes, errorCodes.user());
         Collections.addAll(codes, errorCodes.quest());
         Collections.addAll(codes, errorCodes.chatbot());
+        Collections.addAll(codes, errorCodes.leaderboard());
         return new ArrayList<>(codes);
     }
 }

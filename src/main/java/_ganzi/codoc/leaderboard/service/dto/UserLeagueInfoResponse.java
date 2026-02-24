@@ -6,4 +6,6 @@ public record UserLeagueInfoResponse(
         Integer leagueId,
         String leagueName,
         String logoUrl,
-        Long groupId) {}
+        Long groupId,
+        Integer promoteTopN,
+        Integer demoteBottomN) {}

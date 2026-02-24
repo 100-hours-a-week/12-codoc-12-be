@@ -5,6 +5,8 @@ import _ganzi.codoc.auth.enums.SocialProvider;
 import _ganzi.codoc.auth.repository.RefreshTokenRepository;
 import _ganzi.codoc.auth.repository.SocialLoginRepository;
 import _ganzi.codoc.auth.service.KakaoOAuthClient;
+import _ganzi.codoc.leaderboard.domain.League;
+import _ganzi.codoc.leaderboard.repository.LeagueRepository;
 import _ganzi.codoc.problem.service.RecommendationScenario;
 import _ganzi.codoc.problem.service.RecommendedProblemService;
 import _ganzi.codoc.user.api.dto.UserInitSurveyRequest;
@@ -45,9 +47,11 @@ public class UserService {
     private final QuestBatchService questBatchService;
     private final KakaoOAuthClient kakaoOAuthClient;
     private final RecommendedProblemService recommendedProblemService;
+    private final LeagueRepository leagueRepository;
 
     private static final int RANDOM_NICKNAME_LENGTH = 15;
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
+    private static final String DEFAULT_LEAGUE_NAME = "BRONZE";
 
     public User getUser(Long id) {
         return userRepository.findById(id).orElseThrow(UserNotFoundException::new);
@@ -83,6 +87,7 @@ public class UserService {
                 avatarRepository.findByIsDefaultTrue().orElseThrow(AvatarNotFoundException::new);
         String nickname = generateUniqueNickname();
         User user = User.createOnboardingUser(nickname, defaultAvatar);
+        user.updateLeague(getDefaultLeague());
         User savedUser = userRepository.save(user);
         UserStats userStats = UserStats.create(savedUser);
         userStatsRepository.save(userStats);
@@ -134,6 +139,7 @@ public class UserService {
         User user = getUser(id);
         user.reviveFromDormant();
         if (user.getStatus() == UserStatus.ACTIVE) {
+            ensureDefaultLeague(user);
             questBatchService.issueDailyQuestsForUser(user.getId(), LocalDate.now(SEOUL));
             recommendedProblemService.issueRecommendationsForUser(
                     user.getId(), RecommendationScenario.DAILY);
@@ -145,6 +151,7 @@ public class UserService {
         User user = getUser(id);
         user.completeOnboarding(request.initLevel(), request.dailyGoal());
         if (user.getStatus() == UserStatus.ACTIVE) {
+            ensureDefaultLeague(user);
             questBatchService.issueDailyQuestsForUser(user.getId(), LocalDate.now(SEOUL));
             recommendedProblemService.issueRecommendationsForUser(
                     user.getId(), RecommendationScenario.DAILY);
@@ -201,5 +208,17 @@ public class UserService {
             nickname = ("deleted_" + suffix).substring(0, RANDOM_NICKNAME_LENGTH);
         } while (userRepository.existsByNickname(nickname));
         return nickname;
+    }
+
+    private League getDefaultLeague() {
+        return leagueRepository
+                .findByName(DEFAULT_LEAGUE_NAME)
+                .orElseThrow(() -> new IllegalStateException("Default league not found"));
+    }
+
+    private void ensureDefaultLeague(User user) {
+        if (user.getLeague() == null) {
+            user.updateLeague(getDefaultLeague());
+        }
     }
 }

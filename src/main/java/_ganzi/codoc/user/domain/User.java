@@ -1,5 +1,6 @@
 package _ganzi.codoc.user.domain;
 
+import _ganzi.codoc.leaderboard.domain.League;
 import _ganzi.codoc.user.enums.DailyGoal;
 import _ganzi.codoc.user.enums.InitLevel;
 import _ganzi.codoc.user.enums.UserStatus;
@@ -24,6 +25,10 @@ public class User {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "avatar_id", nullable = false)
     private Avatar avatar;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "league_id")
+    private League league;
 
     @Column(name = "nickname", unique = true, nullable = false, length = 15)
     private String nickname;
@@ -102,6 +107,10 @@ public class User {
 
     public void updateAvatar(Avatar avatar) {
         this.avatar = avatar;
+    }
+
+    public void updateLeague(League league) {
+        this.league = league;
     }
 
     public void updateDailyGoal(DailyGoal dailyGoal) {

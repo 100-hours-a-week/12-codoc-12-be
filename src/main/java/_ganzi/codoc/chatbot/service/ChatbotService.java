@@ -10,12 +10,16 @@ import _ganzi.codoc.ai.util.AiServerResponseParser;
 import _ganzi.codoc.chatbot.config.ChatbotProperties;
 import _ganzi.codoc.chatbot.domain.ChatbotAttempt;
 import _ganzi.codoc.chatbot.domain.ChatbotConversation;
+import _ganzi.codoc.chatbot.dto.ChatbotConversationListCondition;
+import _ganzi.codoc.chatbot.dto.ChatbotConversationListItem;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendRequest;
 import _ganzi.codoc.chatbot.enums.ChatbotAttemptStatus;
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
 import _ganzi.codoc.chatbot.exception.ChatbotStreamEventException;
 import _ganzi.codoc.chatbot.repository.ChatbotAttemptRepository;
 import _ganzi.codoc.chatbot.repository.ChatbotConversationRepository;
+import _ganzi.codoc.global.dto.CursorPagingResponse;
+import _ganzi.codoc.global.util.CursorPagingUtils;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.repository.ProblemRepository;
@@ -23,7 +27,9 @@ import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
 import java.time.Instant;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,6 +84,30 @@ public class ChatbotService {
                 .timeout(aiServerProperties.chatbotStreamTimeout())
                 .doOnNext(event -> handleStreamEvent(chatbotConversation.getId(), event))
                 .doOnError(error -> deleteConversationSilently(chatbotConversation.getId()));
+    }
+
+    public CursorPagingResponse<ChatbotConversationListItem, Long> getConversationList(
+            Long userId, ChatbotConversationListCondition condition) {
+        ChatbotAttempt attempt =
+                chatbotAttemptRepository
+                        .findCurrentActiveAttemptByUserIdAndProblemId(
+                                userId, condition.problemId(), Instant.now())
+                        .orElse(null);
+
+        if (attempt == null) {
+            return new CursorPagingResponse<>(List.of(), null, false);
+        }
+
+        Pageable pageable = CursorPagingUtils.createPageable(condition.limit());
+        List<ChatbotConversationListItem> items =
+                chatbotConversationRepository
+                        .findConversationListByAttemptId(attempt.getId(), condition.cursor(), pageable)
+                        .stream()
+                        .map(ChatbotConversationListItem::from)
+                        .toList();
+
+        return CursorPagingUtils.apply(
+                items, condition.limit(), ChatbotConversationListItem::conversationId);
     }
 
     private ChatbotAttempt resolveAttempt(User user, Problem problem) {

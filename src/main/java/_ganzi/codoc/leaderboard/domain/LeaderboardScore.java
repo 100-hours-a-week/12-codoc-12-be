@@ -36,4 +36,22 @@ public class LeaderboardScore extends BaseTimeEntity {
 
     @Column(name = "weekly_xp", nullable = false)
     private int weeklyXp;
+
+    private LeaderboardScore(
+            LeaderboardScoreId id, User user, League league, Long groupId, int weeklyXp) {
+        this.id = id;
+        this.user = user;
+        this.league = league;
+        this.groupId = groupId;
+        this.weeklyXp = weeklyXp;
+    }
+
+    public static LeaderboardScore create(
+            LeaderboardScoreId id, User user, League league, Long groupId) {
+        return new LeaderboardScore(id, user, league, groupId, 0);
+    }
+
+    public void addWeeklyXp(int delta) {
+        this.weeklyXp += delta;
+    }
 }

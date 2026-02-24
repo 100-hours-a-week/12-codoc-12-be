@@ -1,5 +1,6 @@
 package _ganzi.codoc.submission.service;
 
+import _ganzi.codoc.leaderboard.service.LeaderboardScoreService;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.repository.ProblemRepository;
@@ -35,6 +36,7 @@ public class ProblemSubmissionService {
     private final UserStatsService userStatsService;
     private final QuestService questService;
     private final RecommendedProblemService recommendedProblemService;
+    private final LeaderboardScoreService leaderboardScoreService;
 
     @Transactional
     public ProblemSubmissionResponse submissionProblem(Long userId, Long problemId) {
@@ -67,6 +69,7 @@ public class ProblemSubmissionService {
         if (correctCount == totalQuizCount && !userProblemResult.isSolved()) {
             userProblemResult.markSolved();
             userStatsService.applyProblemSolved(userId, PROBLEM_SOLVED_XP);
+            leaderboardScoreService.addWeeklyXp(userId, PROBLEM_SOLVED_XP);
             recommendedProblemService.markProblemSolved(userId, problemId);
             questService.refreshUserQuestStatuses(userId);
             xpGranted = true;

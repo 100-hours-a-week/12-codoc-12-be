@@ -15,7 +15,7 @@ public class AttendanceNotificationScheduler {
 
     private final AttendanceNotificationService attendanceNotificationService;
 
-    @Scheduled(cron = "0 0 20 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 12 * * *", zone = "Asia/Seoul")
     public void sendDailyAttendanceReminder() {
         attendanceNotificationService.sendDailyReminder(LocalDate.now(SEOUL));
     }

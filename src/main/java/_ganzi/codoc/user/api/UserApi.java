@@ -4,6 +4,7 @@ import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.global.api.docs.ErrorCodes;
 import _ganzi.codoc.global.dto.ApiResponse;
 import _ganzi.codoc.global.exception.GlobalErrorCode;
+import _ganzi.codoc.leaderboard.service.dto.UserLeagueInfoResponse;
 import _ganzi.codoc.user.api.dto.UserDailyGoalRequest;
 import _ganzi.codoc.user.api.dto.UserInitSurveyRequest;
 import _ganzi.codoc.user.api.dto.UserProfileUpdateRequest;
@@ -43,6 +44,31 @@ public interface UserApi {
             },
             user = {UserErrorCode.USER_NOT_FOUND})
     ResponseEntity<ApiResponse<UserProfileResponse>> getProfile(AuthUser authUser);
+
+    @Operation(summary = "Get user league info")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "401",
+                description = "AUTH_REQUIRED, UNAUTHORIZED"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "403",
+                description = "FORBIDDEN"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "404",
+                description = "USER_NOT_FOUND"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "500",
+                description = "INTERNAL_SERVER_ERROR")
+    })
+    @ErrorCodes(
+            global = {
+                GlobalErrorCode.AUTH_REQUIRED,
+                GlobalErrorCode.UNAUTHORIZED,
+                GlobalErrorCode.FORBIDDEN,
+                GlobalErrorCode.INTERNAL_SERVER_ERROR
+            },
+            user = {UserErrorCode.USER_NOT_FOUND})
+    ResponseEntity<ApiResponse<UserLeagueInfoResponse>> getUserLeague(AuthUser authUser);
 
     @Operation(summary = "Update user profile")
     @ApiResponses({

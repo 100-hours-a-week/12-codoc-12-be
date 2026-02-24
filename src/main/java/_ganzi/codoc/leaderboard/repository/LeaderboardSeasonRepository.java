@@ -9,4 +9,6 @@ public interface LeaderboardSeasonRepository extends JpaRepository<LeaderboardSe
 
     Optional<LeaderboardSeason> findFirstByStartsAtLessThanEqualAndEndsAtAfterOrderByStartsAtDesc(
             Instant now, Instant now2);
+
+    Optional<LeaderboardSeason> findFirstByEndsAtBeforeOrderByEndsAtDesc(Instant now);
 }

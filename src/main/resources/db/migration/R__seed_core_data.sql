@@ -38,6 +38,27 @@ INSERT INTO avatar (created_at, updated_at, name, image_url, is_default)
 SELECT NOW(6), NOW(6), 'profile9', 'https://codoc.cloud/images/profile9.png', b'0'
 WHERE NOT EXISTS (SELECT 1 FROM avatar WHERE name = 'profile9');
 
+-- Leagues
+INSERT INTO league (created_at, updated_at, name, logo_url, sort_order, is_active)
+SELECT NOW(6), NOW(6), 'BRONZE', NULL, 1, b'1'
+WHERE NOT EXISTS (SELECT 1 FROM league WHERE name = 'BRONZE');
+
+INSERT INTO league (created_at, updated_at, name, logo_url, sort_order, is_active)
+SELECT NOW(6), NOW(6), 'SILVER', NULL, 2, b'1'
+WHERE NOT EXISTS (SELECT 1 FROM league WHERE name = 'SILVER');
+
+INSERT INTO league (created_at, updated_at, name, logo_url, sort_order, is_active)
+SELECT NOW(6), NOW(6), 'GOLD', NULL, 3, b'1'
+WHERE NOT EXISTS (SELECT 1 FROM league WHERE name = 'GOLD');
+
+INSERT INTO league (created_at, updated_at, name, logo_url, sort_order, is_active)
+SELECT NOW(6), NOW(6), 'PLATINUM', NULL, 4, b'1'
+WHERE NOT EXISTS (SELECT 1 FROM league WHERE name = 'PLATINUM');
+
+INSERT INTO league (created_at, updated_at, name, logo_url, sort_order, is_active)
+SELECT NOW(6), NOW(6), 'DIAMOND', NULL, 5, b'1'
+WHERE NOT EXISTS (SELECT 1 FROM league WHERE name = 'DIAMOND');
+
 -- Daily quests
 INSERT INTO quest (created_at, updated_at, title, requirements, issue_conditions, reward, type, duration)
 SELECT NOW(6), NOW(6), '오늘의 첫 문제 해결', JSON_OBJECT('DailySolvedCount', 1), NULL, 10, 'DAILY', 1

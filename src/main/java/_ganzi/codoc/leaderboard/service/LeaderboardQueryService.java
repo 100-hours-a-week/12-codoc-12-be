@@ -1,6 +1,7 @@
 package _ganzi.codoc.leaderboard.service;
 
 import _ganzi.codoc.leaderboard.domain.LeaderboardGroupMember;
+import _ganzi.codoc.leaderboard.domain.LeaderboardPolicy;
 import _ganzi.codoc.leaderboard.domain.LeaderboardScopeType;
 import _ganzi.codoc.leaderboard.domain.LeaderboardSeason;
 import _ganzi.codoc.leaderboard.domain.LeaderboardSnapshot;
@@ -9,6 +10,7 @@ import _ganzi.codoc.leaderboard.domain.League;
 import _ganzi.codoc.leaderboard.exception.InvalidStartRankException;
 import _ganzi.codoc.leaderboard.exception.NotLeaderboardParticipantException;
 import _ganzi.codoc.leaderboard.repository.LeaderboardGroupMemberRepository;
+import _ganzi.codoc.leaderboard.repository.LeaderboardPolicyRepository;
 import _ganzi.codoc.leaderboard.repository.LeaderboardSeasonRepository;
 import _ganzi.codoc.leaderboard.repository.LeaderboardSnapshotBatchRepository;
 import _ganzi.codoc.leaderboard.repository.LeaderboardSnapshotRepository;
@@ -45,6 +47,7 @@ public class LeaderboardQueryService {
     private final LeaderboardSnapshotBatchRepository snapshotBatchRepository;
     private final LeaderboardSnapshotRepository snapshotRepository;
     private final LeaderboardGroupMemberRepository groupMemberRepository;
+    private final LeaderboardPolicyRepository policyRepository;
 
     public UserLeagueInfoResponse getUserLeagueInfo(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
@@ -64,13 +67,17 @@ public class LeaderboardQueryService {
                             .orElse(null);
         }
         League league = user.getLeague();
+        LeaderboardPolicy policy =
+                league == null ? null : policyRepository.findByLeagueId(league.getId()).orElse(null);
         return new UserLeagueInfoResponse(
                 seasonId,
                 snapshotId,
                 league == null ? null : league.getId(),
                 league == null ? null : league.getName(),
                 league == null ? null : league.getLogoUrl(),
-                groupId);
+                groupId,
+                policy == null ? null : policy.getPromoteTopN(),
+                policy == null ? null : policy.getDemoteBottomN());
     }
 
     public LeaderboardSeasonResponse getCurrentSeason() {

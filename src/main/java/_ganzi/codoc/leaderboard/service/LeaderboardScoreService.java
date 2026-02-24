@@ -1,7 +1,5 @@
 package _ganzi.codoc.leaderboard.service;
 
-import _ganzi.codoc.leaderboard.domain.LeaderboardGroupMember;
-import _ganzi.codoc.leaderboard.domain.LeaderboardGroupMemberId;
 import _ganzi.codoc.leaderboard.domain.LeaderboardScore;
 import _ganzi.codoc.leaderboard.domain.LeaderboardScoreId;
 import _ganzi.codoc.leaderboard.domain.LeaderboardSeason;
@@ -37,9 +35,14 @@ public class LeaderboardScoreService {
             return;
         }
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        if (user.getLeague() == null) {
+            return;
+        }
         LeaderboardScoreId scoreId = new LeaderboardScoreId(season.getSeasonId(), userId);
         LeaderboardScore score =
-                scoreRepository.findById(scoreId).orElseGet(() -> createScore(scoreId, season, user));
+                scoreRepository
+                        .findById(scoreId)
+                        .orElseGet(() -> scoreRepository.save(createScore(scoreId, season, user)));
         score.addWeeklyXp(delta);
     }
 
@@ -56,10 +59,8 @@ public class LeaderboardScoreService {
     }
 
     private Optional<Long> resolveGroupId(Integer seasonId, Long userId) {
-        LeaderboardGroupMemberId memberId = new LeaderboardGroupMemberId(null, userId);
         return groupMemberRepository
-                .findById(memberId)
-                .map(LeaderboardGroupMember::getGroup)
-                .map(group -> group.getId());
+                .findFirstBySeasonIdAndUserId(seasonId, userId)
+                .map(member -> member.getGroup().getId());
     }
 }

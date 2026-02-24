@@ -18,4 +18,9 @@ public class LeaderboardScoreId implements Serializable {
 
     @Column(name = "user_id", nullable = false)
     private Long userId;
+
+    public LeaderboardScoreId(Integer seasonId, Long userId) {
+        this.seasonId = seasonId;
+        this.userId = userId;
+    }
 }

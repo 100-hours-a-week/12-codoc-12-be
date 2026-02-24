@@ -1,5 +1,6 @@
 package _ganzi.codoc.user.service;
 
+import _ganzi.codoc.leaderboard.service.LeaderboardScoreService;
 import _ganzi.codoc.user.domain.Quest;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.domain.UserQuest;
@@ -29,6 +30,7 @@ public class QuestService {
     private final UserQuestRepository userQuestRepository;
     private final UserStatsRepository userStatsRepository;
     private final QuestRequirementRegistry questRequirementRegistry;
+    private final LeaderboardScoreService leaderboardScoreService;
 
     public UserQuestListResponse getUserQuests(Long userId) {
         User user = getUser(userId);
@@ -60,6 +62,7 @@ public class QuestService {
         UserStats userStats =
                 userStatsRepository.findById(userId).orElseThrow(UserNotFoundException::new);
         userStats.addXp(quest.getReward());
+        leaderboardScoreService.addWeeklyXp(userId, quest.getReward());
         userQuest.markClaimed();
 
         return new QuestRewardResponse(userStats.getXp(), WEEKLY_XP_PLACEHOLDER, userQuest.getId());

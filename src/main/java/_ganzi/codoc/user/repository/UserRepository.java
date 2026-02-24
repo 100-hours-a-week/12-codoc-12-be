@@ -15,6 +15,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findAllByStatus(UserStatus status);
 
+    List<User> findAllByStatusAndLeagueId(UserStatus status, Integer leagueId);
+
     List<User> findAllByStatusAndLastAccessBefore(UserStatus status, Instant lastAccess);
 
     @Query("select u.id from User u where u.status = :status and u.lastAccess < :cutoff")

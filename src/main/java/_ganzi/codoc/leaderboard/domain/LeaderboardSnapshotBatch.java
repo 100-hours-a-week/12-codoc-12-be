@@ -23,4 +23,12 @@ public class LeaderboardSnapshotBatch extends BaseTimeEntity {
 
     @Column(name = "season_id", nullable = false)
     private Integer seasonId;
+
+    private LeaderboardSnapshotBatch(Integer seasonId) {
+        this.seasonId = seasonId;
+    }
+
+    public static LeaderboardSnapshotBatch create(Integer seasonId) {
+        return new LeaderboardSnapshotBatch(seasonId);
+    }
 }

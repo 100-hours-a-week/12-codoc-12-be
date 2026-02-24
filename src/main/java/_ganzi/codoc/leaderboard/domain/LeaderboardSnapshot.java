@@ -56,4 +56,39 @@ public class LeaderboardSnapshot {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    private LeaderboardSnapshot(
+            LeaderboardSnapshotBatch snapshotBatch,
+            Integer seasonId,
+            LeaderboardScopeType scopeType,
+            Long scopeId,
+            User user,
+            int rank,
+            int weeklyXp,
+            Instant updatedAt,
+            Instant createdAt) {
+        this.snapshotBatch = snapshotBatch;
+        this.seasonId = seasonId;
+        this.scopeType = scopeType;
+        this.scopeId = scopeId;
+        this.user = user;
+        this.rank = rank;
+        this.weeklyXp = weeklyXp;
+        this.updatedAt = updatedAt;
+        this.createdAt = createdAt;
+    }
+
+    public static LeaderboardSnapshot create(
+            LeaderboardSnapshotBatch snapshotBatch,
+            Integer seasonId,
+            LeaderboardScopeType scopeType,
+            Long scopeId,
+            User user,
+            int rank,
+            int weeklyXp,
+            Instant updatedAt,
+            Instant createdAt) {
+        return new LeaderboardSnapshot(
+                snapshotBatch, seasonId, scopeType, scopeId, user, rank, weeklyXp, updatedAt, createdAt);
+    }
 }

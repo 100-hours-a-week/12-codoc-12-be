@@ -2,6 +2,7 @@ package _ganzi.codoc.global.api.docs;
 
 import _ganzi.codoc.chatbot.exception.ChatbotErrorCode;
 import _ganzi.codoc.global.exception.GlobalErrorCode;
+import _ganzi.codoc.leaderboard.exception.LeaderboardErrorCode;
 import _ganzi.codoc.problem.exception.ProblemErrorCode;
 import _ganzi.codoc.submission.exception.SubmissionErrorCode;
 import _ganzi.codoc.user.exception.QuestErrorCode;
@@ -26,4 +27,6 @@ public @interface ErrorCodes {
     QuestErrorCode[] quest() default {};
 
     ChatbotErrorCode[] chatbot() default {};
+
+    LeaderboardErrorCode[] leaderboard() default {};
 }

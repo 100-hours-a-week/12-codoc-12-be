@@ -2,6 +2,8 @@ package _ganzi.codoc.user.api;
 
 import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.global.dto.ApiResponse;
+import _ganzi.codoc.leaderboard.service.LeaderboardQueryService;
+import _ganzi.codoc.leaderboard.service.dto.UserLeagueInfoResponse;
 import _ganzi.codoc.user.api.dto.UserDailyGoalRequest;
 import _ganzi.codoc.user.api.dto.UserInitSurveyRequest;
 import _ganzi.codoc.user.api.dto.UserProfileUpdateRequest;
@@ -26,12 +28,21 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController implements UserApi {
 
     private final UserService userService;
+    private final LeaderboardQueryService leaderboardQueryService;
 
     @Override
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getProfile(
             @AuthenticationPrincipal AuthUser authUser) {
         return ResponseEntity.ok(ApiResponse.success(userService.getUserProfile(authUser.userId())));
+    }
+
+    @Override
+    @GetMapping("/league")
+    public ResponseEntity<ApiResponse<UserLeagueInfoResponse>> getUserLeague(
+            @AuthenticationPrincipal AuthUser authUser) {
+        return ResponseEntity.ok(
+                ApiResponse.success(leaderboardQueryService.getUserLeagueInfo(authUser.userId())));
     }
 
     @Override

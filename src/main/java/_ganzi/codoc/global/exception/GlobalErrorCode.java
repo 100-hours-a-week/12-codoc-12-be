@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum GlobalErrorCode implements ErrorCode {
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "INVALID_INPUT", "잘못된 요청입니다."),
+    INVALID_CURSOR_FORMAT(HttpStatus.BAD_REQUEST, "INVALID_CURSOR_FORMAT", "커서 형식이 올바르지 않습니다."),
+    LIMIT_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "LIMIT_OUT_OF_RANGE", "허용 가능한 범위를 초과했습니다."),
     AUTH_REQUIRED(HttpStatus.UNAUTHORIZED, "AUTH_REQUIRED", "로그인이 필요합니다."),
     AUTH_STATE_MISMATCH(HttpStatus.UNAUTHORIZED, "AUTH_STATE_MISMATCH", "인증 상태값이 일치하지 않습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "인증이 필요합니다."),

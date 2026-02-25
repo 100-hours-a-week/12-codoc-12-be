@@ -15,4 +15,14 @@ public class LeaderboardSnapshotScheduler {
     public void createHourlySnapshot() {
         snapshotBatchService.createHourlySnapshot();
     }
+
+    @Scheduled(cron = "0 0 1 * * TUE", zone = "Asia/Seoul")
+    public void createSeasonStartSnapshot() {
+        snapshotBatchService.createSeasonStartSnapshot();
+    }
+
+    @Scheduled(cron = "0 0 0 * * MON", zone = "Asia/Seoul")
+    public void createSeasonEndSnapshot() {
+        snapshotBatchService.createSeasonEndSnapshot();
+    }
 }

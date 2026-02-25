@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 
 public interface LeaderboardSnapshotRepository extends JpaRepository<LeaderboardSnapshot, Long> {
@@ -79,4 +80,24 @@ public interface LeaderboardSnapshotRepository extends JpaRepository<Leaderboard
             @Param("scopeType") LeaderboardScopeType scopeType,
             @Param("scopeId") Long scopeId,
             @Param("userId") Long userId);
+
+    @Query(
+            """
+            select s.scopeId
+            from LeaderboardSnapshot s
+            where s.snapshotBatch.id = :snapshotId
+              and s.scopeType = :scopeType
+              and s.user.id = :userId
+            """)
+    Optional<Long> findScopeIdBySnapshotAndUser(
+            @Param("snapshotId") Long snapshotId,
+            @Param("scopeType") LeaderboardScopeType scopeType,
+            @Param("userId") Long userId);
+
+    List<LeaderboardSnapshot> findBySnapshotBatchIdAndScopeTypeAndScopeIdAndWeeklyXpGreaterThanOrderByRankAsc(
+            Long snapshotId, LeaderboardScopeType scopeType, Long scopeId, int weeklyXp, Pageable pageable);
+
+    List<LeaderboardSnapshot> findBySnapshotBatchIdAndScopeTypeAndScopeIdOrderByRankDesc(
+            Long snapshotId, LeaderboardScopeType scopeType, Long scopeId, Pageable pageable);
+
 }

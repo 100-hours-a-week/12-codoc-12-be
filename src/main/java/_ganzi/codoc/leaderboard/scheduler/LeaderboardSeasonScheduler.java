@@ -11,7 +11,7 @@ public class LeaderboardSeasonScheduler {
 
     private final LeaderboardSeasonBatchService seasonBatchService;
 
-    @Scheduled(cron = "0 5 0 * * TUE", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 10 * * MON", zone = "Asia/Seoul")
     public void assignGroupsForNextSeason() {
         seasonBatchService.assignGroupsForNextSeason();
     }

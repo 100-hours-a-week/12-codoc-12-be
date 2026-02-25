@@ -2,10 +2,13 @@ package _ganzi.codoc.leaderboard.service;
 
 import _ganzi.codoc.leaderboard.domain.LeaderboardGroup;
 import _ganzi.codoc.leaderboard.domain.LeaderboardGroupMember;
+import _ganzi.codoc.leaderboard.domain.LeaderboardScore;
+import _ganzi.codoc.leaderboard.domain.LeaderboardScoreId;
 import _ganzi.codoc.leaderboard.domain.LeaderboardSeason;
 import _ganzi.codoc.leaderboard.domain.League;
 import _ganzi.codoc.leaderboard.repository.LeaderboardGroupMemberRepository;
 import _ganzi.codoc.leaderboard.repository.LeaderboardGroupRepository;
+import _ganzi.codoc.leaderboard.repository.LeaderboardScoreRepository;
 import _ganzi.codoc.leaderboard.repository.LeaderboardSeasonRepository;
 import _ganzi.codoc.leaderboard.repository.LeagueRepository;
 import _ganzi.codoc.user.domain.User;
@@ -38,6 +41,7 @@ public class LeaderboardSeasonBatchService {
     private final UserRepository userRepository;
     private final LeaderboardGroupRepository groupRepository;
     private final LeaderboardGroupMemberRepository groupMemberRepository;
+    private final LeaderboardScoreRepository scoreRepository;
 
     @Transactional
     public void assignGroupsForNextSeason() {
@@ -51,6 +55,7 @@ public class LeaderboardSeasonBatchService {
         seasonRepository.save(season);
 
         List<League> leagues = leagueRepository.findAllByIsActiveTrueOrderBySortOrderAsc();
+        List<LeaderboardScore> scores = new ArrayList<>();
         for (League league : leagues) {
             List<User> users =
                     userRepository.findAllByStatusAndLeagueId(UserStatus.ACTIVE, league.getId());
@@ -71,10 +76,19 @@ public class LeaderboardSeasonBatchService {
                 for (int i = 0; i < groupSize; i++) {
                     User user = shuffled.get(offset + i);
                     members.add(LeaderboardGroupMember.create(group, seasonWindow.seasonId(), user));
+                    scores.add(
+                            LeaderboardScore.create(
+                                    new LeaderboardScoreId(seasonWindow.seasonId(), user.getId()),
+                                    user,
+                                    league,
+                                    group.getId()));
                 }
                 groupMemberRepository.saveAll(members);
                 offset += groupSize;
             }
+        }
+        if (!scores.isEmpty()) {
+            scoreRepository.saveAll(scores);
         }
     }
 

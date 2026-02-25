@@ -14,6 +14,7 @@ import _ganzi.codoc.leaderboard.repository.LeaderboardPolicyRepository;
 import _ganzi.codoc.leaderboard.repository.LeaderboardSeasonRepository;
 import _ganzi.codoc.leaderboard.repository.LeaderboardSnapshotBatchRepository;
 import _ganzi.codoc.leaderboard.repository.LeaderboardSnapshotRepository;
+import _ganzi.codoc.leaderboard.repository.LeagueRepository;
 import _ganzi.codoc.leaderboard.service.dto.LeaderboardGroupPageResponse;
 import _ganzi.codoc.leaderboard.service.dto.LeaderboardRankItem;
 import _ganzi.codoc.leaderboard.service.dto.LeaderboardRankPageResponse;
@@ -48,6 +49,7 @@ public class LeaderboardQueryService {
     private final LeaderboardSnapshotRepository snapshotRepository;
     private final LeaderboardGroupMemberRepository groupMemberRepository;
     private final LeaderboardPolicyRepository policyRepository;
+    private final LeagueRepository leagueRepository;
 
     public UserLeagueInfoResponse getUserLeagueInfo(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
@@ -66,7 +68,21 @@ public class LeaderboardQueryService {
                             .map(member -> member.getGroup().getId())
                             .orElse(null);
         }
-        League league = user.getLeague();
+        Integer leagueId = null;
+        if (snapshotId != null) {
+            leagueId =
+                    snapshotRepository
+                            .findScopeIdBySnapshotAndUser(snapshotId, LeaderboardScopeType.LEAGUE, userId)
+                            .map(Long::intValue)
+                            .orElse(null);
+        }
+        League league = null;
+        if (leagueId != null) {
+            league = leagueRepository.findById(leagueId).orElse(null);
+        }
+        if (league == null) {
+            league = user.getLeague();
+        }
         LeaderboardPolicy policy =
                 league == null ? null : policyRepository.findByLeagueId(league.getId()).orElse(null);
         return new UserLeagueInfoResponse(
@@ -181,14 +197,18 @@ public class LeaderboardQueryService {
 
     private ParticipantContext resolveParticipant(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
-        League league = user.getLeague();
-        if (league == null) {
-            throw new NotLeaderboardParticipantException();
-        }
         LeaderboardSeason season =
                 findSeasonForRead().orElseThrow(NotLeaderboardParticipantException::new);
         LeaderboardSnapshotBatch snapshotBatch =
                 findLatestSnapshotBatch(season).orElseThrow(NotLeaderboardParticipantException::new);
+        Integer leagueId = resolveLeagueIdFromSnapshot(userId, snapshotBatch.getId());
+        League league = leagueId == null ? null : leagueRepository.findById(leagueId).orElse(null);
+        if (league == null) {
+            league = user.getLeague();
+        }
+        if (league == null) {
+            throw new NotLeaderboardParticipantException();
+        }
         LeaderboardGroupMember member =
                 groupMemberRepository
                         .findFirstBySeasonIdAndUserId(season.getSeasonId(), userId)
@@ -219,6 +239,16 @@ public class LeaderboardQueryService {
         if (startRank < 1 || limit < 1) {
             throw new InvalidStartRankException();
         }
+    }
+
+    private Integer resolveLeagueIdFromSnapshot(Long userId, Long snapshotId) {
+        if (snapshotId == null) {
+            return null;
+        }
+        return snapshotRepository
+                .findScopeIdBySnapshotAndUser(snapshotId, LeaderboardScopeType.LEAGUE, userId)
+                .map(Long::intValue)
+                .orElse(null);
     }
 
     private LeaderboardRankPageResponse toRankPageResponse(

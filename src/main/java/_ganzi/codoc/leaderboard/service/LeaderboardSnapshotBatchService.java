@@ -35,6 +35,28 @@ public class LeaderboardSnapshotBatchService {
         if (season == null) {
             return;
         }
+        createSnapshotForSeason(season);
+    }
+
+    @Transactional
+    public void createSeasonStartSnapshot() {
+        LeaderboardSeason season = findCurrentSeason().orElse(null);
+        if (season == null) {
+            return;
+        }
+        createSnapshotForSeason(season);
+    }
+
+    @Transactional
+    public void createSeasonEndSnapshot() {
+        LeaderboardSeason season = findLatestEndedSeason().orElse(null);
+        if (season == null) {
+            return;
+        }
+        createSnapshotForSeason(season);
+    }
+
+    private void createSnapshotForSeason(LeaderboardSeason season) {
         List<LeaderboardScore> scores = scoreRepository.findAllByIdSeasonId(season.getSeasonId());
         if (scores.isEmpty()) {
             return;
@@ -101,6 +123,11 @@ public class LeaderboardSnapshotBatchService {
         Instant now = Instant.now();
         return seasonRepository.findFirstByStartsAtLessThanEqualAndEndsAtAfterOrderByStartsAtDesc(
                 now, now);
+    }
+
+    private java.util.Optional<LeaderboardSeason> findLatestEndedSeason() {
+        Instant now = Instant.now();
+        return seasonRepository.findFirstByEndsAtLessThanEqualOrderByEndsAtDesc(now);
     }
 
     private Comparator<LeaderboardScore> scoreComparator() {

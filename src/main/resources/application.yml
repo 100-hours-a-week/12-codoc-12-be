@@ -49,6 +49,9 @@ app:
   problem-session:
     ttl: 30m
 
+  chat:
+    max-participants: ${CHAT_ROOM_MAX_PARTICIPANT:100}
+
   fcm:
     enabled: ${APP_FCM_ENABLED:false}
     project-id: ${FCM_PROJECT_ID:}

@@ -58,8 +58,7 @@ public class ChatRoomParticipant extends BaseTimeEntity {
         this.leavedAt = null;
     }
 
-    public static ChatRoomParticipant create(Long userId, ChatRoom chatRoom) {
-        long noMessageId = 0;
-        return new ChatRoomParticipant(userId, chatRoom, noMessageId);
+    public static ChatRoomParticipant create(Long userId, ChatRoom chatRoom, long joinedMessageId) {
+        return new ChatRoomParticipant(userId, chatRoom, joinedMessageId);
     }
 }

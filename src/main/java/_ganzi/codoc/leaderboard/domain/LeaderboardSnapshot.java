@@ -45,7 +45,7 @@ public class LeaderboardSnapshot {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "rank", nullable = false)
+    @Column(name = "rank_no", nullable = false)
     private int rank;
 
     @Column(name = "weekly_xp", nullable = false)

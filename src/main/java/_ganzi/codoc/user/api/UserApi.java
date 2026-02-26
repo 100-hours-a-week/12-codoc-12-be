@@ -1,5 +1,6 @@
 package _ganzi.codoc.user.api;
 
+import _ganzi.codoc.analysis.service.dto.AnalysisReportDetailResponse;
 import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.global.api.docs.ErrorCodes;
 import _ganzi.codoc.global.dto.ApiResponse;
@@ -165,6 +166,31 @@ public interface UserApi {
             user = {UserErrorCode.USER_NOT_FOUND})
     ResponseEntity<ApiResponse<UserDailyGoalResponse>> updateDailyGoal(
             AuthUser authUser, UserDailyGoalRequest request);
+
+    @Operation(summary = "Get latest analysis report")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "401",
+                description = "AUTH_REQUIRED, UNAUTHORIZED"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "403",
+                description = "FORBIDDEN"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "404",
+                description = "RESOURCE_NOT_FOUND"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "500",
+                description = "INTERNAL_SERVER_ERROR")
+    })
+    @ErrorCodes(
+            global = {
+                GlobalErrorCode.AUTH_REQUIRED,
+                GlobalErrorCode.UNAUTHORIZED,
+                GlobalErrorCode.FORBIDDEN,
+                GlobalErrorCode.RESOURCE_NOT_FOUND,
+                GlobalErrorCode.INTERNAL_SERVER_ERROR
+            })
+    ResponseEntity<ApiResponse<AnalysisReportDetailResponse>> getAnalysisReport(AuthUser authUser);
 
     @Operation(summary = "Delete user")
     @ApiResponses({

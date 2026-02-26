@@ -1,6 +1,7 @@
 package _ganzi.codoc.chat.service;
 
 import _ganzi.codoc.chat.domain.ChatMessage;
+import _ganzi.codoc.chat.domain.ChatRoom;
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
 import _ganzi.codoc.chat.dto.*;
 import _ganzi.codoc.chat.exception.NoChatRoomParticipantException;
@@ -14,6 +15,7 @@ import _ganzi.codoc.global.util.PageLimitResolver;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ public class ChatMessageService {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final CursorCodec cursorCodec;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public CursorPagingResponse<ChatMessageListItem, String> getMessages(
             Long userId, Long roomId, String cursor, Integer limit) {
@@ -51,5 +54,21 @@ public class ChatMessageService {
 
         return CursorPagingUtils.apply(
                 items, resolvedLimit, item -> cursorCodec.encode(ChatMessageCursorPayload.from(item)));
+    }
+
+    @Transactional
+    public void sendMessage(Long userId, Long roomId, ChatMessageSendRequest request) {
+        ChatRoomParticipant participant =
+                chatRoomParticipantRepository
+                        .findJoinedParticipant(userId, roomId)
+                        .orElseThrow(NoChatRoomParticipantException::new);
+
+        ChatRoom chatRoom = participant.getChatRoom();
+        ChatMessage message = ChatMessage.createText(userId, chatRoom, request.content());
+        chatMessageRepository.save(message);
+        chatRoom.applyLastMessage(message);
+
+        messagingTemplate.convertAndSend(
+                "/sub/chat/rooms/" + roomId, ChatMessageBroadcast.from(message));
     }
 }

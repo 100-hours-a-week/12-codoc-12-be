@@ -10,7 +10,9 @@ import _ganzi.codoc.submission.repository.ProblemSessionRepository;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,5 +73,31 @@ public class ProblemSessionService {
         }
 
         return activeSession;
+    }
+
+    public long calculateSolveDurationSec(Long userId, Instant startAt, Instant endAt) {
+        if (startAt.isAfter(endAt)) {
+            return 0L;
+        }
+
+        List<ProblemSession> sessions =
+                problemSessionRepository.findOverlappingSessions(userId, startAt, endAt);
+
+        long totalSeconds = 0L;
+        for (ProblemSession session : sessions) {
+            Instant sessionStart =
+                    session.getCreatedAt().isAfter(startAt) ? session.getCreatedAt() : startAt;
+            Instant sessionEnd =
+                    session.getClosedAt() != null ? session.getClosedAt() : session.getExpiresAt();
+            if (sessionEnd.isAfter(endAt)) {
+                sessionEnd = endAt;
+            }
+
+            if (sessionEnd.isAfter(sessionStart)) {
+                totalSeconds += Duration.between(sessionStart, sessionEnd).getSeconds();
+            }
+        }
+
+        return totalSeconds;
     }
 }

@@ -6,6 +6,7 @@ import _ganzi.codoc.global.dto.CursorPagingResponse;
 import _ganzi.codoc.problem.dto.ProblemListCondition;
 import _ganzi.codoc.problem.dto.ProblemListItem;
 import _ganzi.codoc.problem.dto.ProblemResponse;
+import _ganzi.codoc.problem.dto.ProblemSessionResponse;
 import _ganzi.codoc.problem.dto.RecommendedProblemResponse;
 import _ganzi.codoc.problem.service.ProblemBookmarkService;
 import _ganzi.codoc.problem.service.ProblemService;
@@ -16,6 +17,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -56,6 +58,17 @@ public class ProblemController implements ProblemApi {
             @AuthenticationPrincipal AuthUser authUser, @PathVariable Long problemId) {
 
         ProblemResponse response = problemService.getProblemDetail(authUser.userId(), problemId);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Override
+    @PostMapping("/{problemId}/session")
+    public ResponseEntity<ApiResponse<ProblemSessionResponse>> startProblemSession(
+            @AuthenticationPrincipal AuthUser authUser, @PathVariable Long problemId) {
+
+        ProblemSessionResponse response =
+                problemService.startProblemSession(authUser.userId(), problemId);
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }

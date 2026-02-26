@@ -14,6 +14,7 @@ public enum SubmissionErrorCode implements ErrorCode {
     INVALID_PROBLEM_SUBMISSION(
             HttpStatus.BAD_REQUEST, "INVALID_PROBLEM_SUBMISSION", "문제를 제출할 수 없는 상태입니다."),
     PREV_QUIZ_NOT_SUBMITTED(HttpStatus.BAD_REQUEST, "PREV_QUIZ_NOT_SUBMITTED", "이전 퀴즈를 먼저 풀어야 합니다."),
+    SESSION_REQUIRED(HttpStatus.BAD_REQUEST, "SESSION_REQUIRED", "문제 풀이 세션이 필요합니다."),
     ;
 
     private final HttpStatus status;

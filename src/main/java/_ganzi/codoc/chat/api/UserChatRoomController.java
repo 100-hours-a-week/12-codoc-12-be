@@ -5,6 +5,7 @@ import _ganzi.codoc.chat.dto.UserChatRoomListItem;
 import _ganzi.codoc.chat.service.ChatRoomService;
 import _ganzi.codoc.global.dto.ApiResponse;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,6 +29,18 @@ public class UserChatRoomController {
                     @RequestParam(required = false) Integer limit) {
         CursorPagingResponse<UserChatRoomListItem, String> response =
                 chatRoomService.getUserChatRooms(authUser.userId(), cursor, limit);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<CursorPagingResponse<UserChatRoomListItem, String>>>
+            searchUserChatRooms(
+                    @AuthenticationPrincipal AuthUser authUser,
+                    @RequestParam @Size(min = 1, max = 100) String keyword,
+                    @RequestParam(required = false) String cursor,
+                    @RequestParam(required = false) Integer limit) {
+        CursorPagingResponse<UserChatRoomListItem, String> response =
+                chatRoomService.searchUserChatRooms(authUser.userId(), keyword, cursor, limit);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

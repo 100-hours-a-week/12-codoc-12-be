@@ -17,6 +17,7 @@ import _ganzi.codoc.global.util.PageLimitResolver;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -61,6 +62,30 @@ public class ChatRoomService {
     public CursorPagingResponse<UserChatRoomListItem, String> getUserChatRooms(
             Long userId, String cursor, Integer limit) {
 
+        return fetchUserChatRooms(
+                cursor,
+                limit,
+                (cursorPayload, pageable) ->
+                        chatRoomParticipantRepository.findLatestJoinedChatRoomsByUserId(
+                                userId, cursorPayload.orderedAt(), cursorPayload.roomId(), pageable));
+    }
+
+    public CursorPagingResponse<UserChatRoomListItem, String> searchUserChatRooms(
+            Long userId, String keyword, String cursor, Integer limit) {
+
+        return fetchUserChatRooms(
+                cursor,
+                limit,
+                (cursorPayload, pageable) ->
+                        chatRoomParticipantRepository.searchJoinedChatRoomsByKeyword(
+                                userId, keyword, cursorPayload.orderedAt(), cursorPayload.roomId(), pageable));
+    }
+
+    private CursorPagingResponse<UserChatRoomListItem, String> fetchUserChatRooms(
+            String cursor,
+            Integer limit,
+            BiFunction<UserChatRoomCursorPayload, Pageable, List<ChatRoomParticipant>> queryFunction) {
+
         int resolvedLimit = PageLimitResolver.resolve(limit);
         UserChatRoomCursorPayload cursorPayload =
                 CursorPayloadConverter.decodeAndValidate(
@@ -70,14 +95,12 @@ public class ChatRoomService {
                         UserChatRoomCursorPayload::firstPage);
 
         Pageable pageable = CursorPagingUtils.createPageable(resolvedLimit);
-        List<ChatRoomParticipant> fetchedParticipants =
-                chatRoomParticipantRepository.findLatestJoinedChatRoomsByUserId(
-                        userId, cursorPayload.orderedAt(), cursorPayload.roomId(), pageable);
+        List<ChatRoomParticipant> participants = queryFunction.apply(cursorPayload, pageable);
 
-        Map<Long, Long> unreadCountByParticipantId = getUnreadCountByParticipantId(fetchedParticipants);
+        Map<Long, Long> unreadCountByParticipantId = getUnreadCountByParticipantId(participants);
 
         List<UserChatRoomListItem> rooms =
-                fetchedParticipants.stream()
+                participants.stream()
                         .map(
                                 participant ->
                                         UserChatRoomListItem.from(

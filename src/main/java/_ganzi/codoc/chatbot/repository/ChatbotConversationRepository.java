@@ -1,6 +1,7 @@
 package _ganzi.codoc.chatbot.repository;
 
 import _ganzi.codoc.chatbot.domain.ChatbotConversation;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -36,4 +37,34 @@ public interface ChatbotConversationRepository extends JpaRepository<ChatbotConv
             """)
     List<ChatbotConversation> findConversationListByAttemptId(
             @Param("attemptId") Long attemptId, @Param("cursor") Long cursor, Pageable pageable);
+
+    @Query(
+            """
+            select count(c)
+            from ChatbotConversation c
+            join c.attempt a
+            join a.problemSession ps
+            where ps.user.id = :userId
+              and c.createdAt between :startAt and :endAt
+            """)
+    long countByUserIdAndCreatedAtBetween(
+            @Param("userId") Long userId,
+            @Param("startAt") Instant startAt,
+            @Param("endAt") Instant endAt);
+
+    @Query(
+            """
+            select c
+            from ChatbotConversation c
+            join fetch c.attempt a
+            join fetch a.problem p
+            join a.problemSession ps
+            where ps.user.id = :userId
+              and c.createdAt between :startAt and :endAt
+            order by c.createdAt asc
+            """)
+    List<ChatbotConversation> findAllByUserIdAndCreatedAtBetweenWithAttempt(
+            @Param("userId") Long userId,
+            @Param("startAt") Instant startAt,
+            @Param("endAt") Instant endAt);
 }

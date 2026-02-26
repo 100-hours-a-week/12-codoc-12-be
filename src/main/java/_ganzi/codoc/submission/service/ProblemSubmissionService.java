@@ -6,12 +6,14 @@ import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.problem.repository.QuizRepository;
 import _ganzi.codoc.problem.service.RecommendedProblemService;
+import _ganzi.codoc.submission.domain.ProblemSession;
 import _ganzi.codoc.submission.domain.UserProblemResult;
 import _ganzi.codoc.submission.domain.UserQuizAttempt;
 import _ganzi.codoc.submission.dto.ProblemSubmissionResponse;
 import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
 import _ganzi.codoc.submission.enums.QuizAttemptStatus;
 import _ganzi.codoc.submission.exception.InvalidProblemSubmissionException;
+import _ganzi.codoc.submission.exception.SessionRequiredException;
 import _ganzi.codoc.submission.repository.UserProblemResultRepository;
 import _ganzi.codoc.submission.repository.UserQuizAttemptRepository;
 import _ganzi.codoc.submission.repository.UserQuizResultRepository;
@@ -37,11 +39,17 @@ public class ProblemSubmissionService {
     private final QuestService questService;
     private final RecommendedProblemService recommendedProblemService;
     private final LeaderboardScoreService leaderboardScoreService;
+    private final ProblemSessionService problemSessionService;
 
     @Transactional
     public ProblemSubmissionResponse submissionProblem(Long userId, Long problemId) {
         Problem problem =
                 problemRepository.findById(problemId).orElseThrow(ProblemNotFoundException::new);
+
+        ProblemSession session = problemSessionService.requireActive(userId, problemId);
+        if (session == null) {
+            throw new SessionRequiredException();
+        }
 
         UserProblemResult userProblemResult =
                 userProblemResultRepository
@@ -50,7 +58,7 @@ public class ProblemSubmissionService {
 
         userProblemResult.validateCanEvaluateProblemResult();
 
-        UserQuizAttempt attempt = findLatestAttempt(userId, problemId);
+        UserQuizAttempt attempt = findLatestAttempt(session.getId());
 
         int totalQuizCount = quizRepository.countByProblemId(problem.getId());
         int solvedCount = userQuizResultRepository.countByAttemptId(attempt.getId());
@@ -66,28 +74,38 @@ public class ProblemSubmissionService {
         boolean xpGranted = false;
         ProblemSolvingStatus nextStatus = userProblemResult.getStatus();
 
-        if (correctCount == totalQuizCount && !userProblemResult.isSolved()) {
-            userProblemResult.markSolved();
-            userStatsService.applyProblemSolved(userId, PROBLEM_SOLVED_XP);
-            leaderboardScoreService.addWeeklyXp(userId, PROBLEM_SOLVED_XP);
-            recommendedProblemService.markProblemSolved(userId, problemId);
-            questService.refreshUserQuestStatuses(userId);
-            xpGranted = true;
-            nextStatus = ProblemSolvingStatus.SOLVED;
+        if (correctCount == totalQuizCount) {
+            closeSessionIfNeeded(attempt);
+            if (!userProblemResult.isSolved()) {
+                userProblemResult.markSolved();
+                userStatsService.applyProblemSolved(userId, PROBLEM_SOLVED_XP);
+                leaderboardScoreService.addWeeklyXp(userId, PROBLEM_SOLVED_XP);
+                recommendedProblemService.markProblemSolved(userId, problemId);
+                questService.refreshUserQuestStatuses(userId);
+                xpGranted = true;
+                nextStatus = ProblemSolvingStatus.SOLVED;
+            }
         }
 
         return ProblemSubmissionResponse.of(correctCount, nextStatus, xpGranted);
     }
 
-    private UserQuizAttempt findLatestAttempt(Long userId, Long problemId) {
+    private void closeSessionIfNeeded(UserQuizAttempt attempt) {
+        ProblemSession session = attempt.getProblemSession();
+        if (session == null || !session.isActive()) {
+            return;
+        }
+        session.close(java.time.Instant.now());
+    }
+
+    private UserQuizAttempt findLatestAttempt(Long sessionId) {
         return userQuizAttemptRepository
-                .findFirstByUserIdAndProblemIdAndStatusOrderByIdDesc(
-                        userId, problemId, QuizAttemptStatus.IN_PROGRESS)
+                .findFirstByProblemSessionIdAndStatusOrderByIdDesc(sessionId, QuizAttemptStatus.IN_PROGRESS)
                 .orElseGet(
                         () ->
                                 userQuizAttemptRepository
-                                        .findFirstByUserIdAndProblemIdAndStatusOrderByIdDesc(
-                                                userId, problemId, QuizAttemptStatus.COMPLETED)
+                                        .findFirstByProblemSessionIdAndStatusOrderByIdDesc(
+                                                sessionId, QuizAttemptStatus.COMPLETED)
                                         .orElseThrow(InvalidProblemSubmissionException::new));
     }
 }

@@ -52,14 +52,16 @@ public class UserQuizAttempt extends BaseTimeEntity {
     @Column(name = "abandoned_at")
     private Instant abandonedAt;
 
-    private UserQuizAttempt(User user, Problem problem, QuizAttemptStatus status) {
+    private UserQuizAttempt(
+            User user, Problem problem, QuizAttemptStatus status, ProblemSession problemSession) {
         this.user = user;
         this.problem = problem;
         this.status = status;
+        this.problemSession = problemSession;
     }
 
-    public static UserQuizAttempt create(User user, Problem problem) {
-        return new UserQuizAttempt(user, problem, QuizAttemptStatus.IN_PROGRESS);
+    public static UserQuizAttempt create(User user, Problem problem, ProblemSession problemSession) {
+        return new UserQuizAttempt(user, problem, QuizAttemptStatus.IN_PROGRESS, problemSession);
     }
 
     public boolean isInProgress() {

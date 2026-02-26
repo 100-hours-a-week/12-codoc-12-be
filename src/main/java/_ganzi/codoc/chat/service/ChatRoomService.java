@@ -1,5 +1,6 @@
 package _ganzi.codoc.chat.service;
 
+import _ganzi.codoc.chat.config.ChatProperties;
 import _ganzi.codoc.chat.domain.ChatMessage;
 import _ganzi.codoc.chat.domain.ChatRoom;
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
@@ -37,6 +38,7 @@ public class ChatRoomService {
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final PasswordEncoder passwordEncoder;
     private final CursorCodec cursorCodec;
+    private final ChatProperties chatProperties;
 
     @Transactional
     public ChatRoomCreateResponse createChatRoom(Long userId, ChatRoomCreateRequest request) {
@@ -79,6 +81,31 @@ public class ChatRoomService {
                 (cursorPayload, pageable) ->
                         chatRoomParticipantRepository.searchJoinedChatRoomsByKeyword(
                                 userId, keyword, cursorPayload.orderedAt(), cursorPayload.roomId(), pageable));
+    }
+
+    public CursorPagingResponse<ChatRoomListItem, String> searchAllChatRooms(
+            String keyword, String cursor, Integer limit) {
+
+        int resolvedLimit = PageLimitResolver.resolve(limit);
+        ChatRoomSearchCursorPayload cursorPayload =
+                CursorPayloadConverter.decodeAndValidate(
+                        cursorCodec,
+                        cursor,
+                        ChatRoomSearchCursorPayload.class,
+                        ChatRoomSearchCursorPayload::firstPage);
+
+        Pageable pageable = CursorPagingUtils.createPageable(resolvedLimit);
+        List<ChatRoom> fetchedRooms =
+                chatRoomRepository.searchChatRoomsByKeyword(
+                        keyword, cursorPayload.orderedAt(), cursorPayload.roomId(), pageable);
+
+        List<ChatRoomListItem> rooms =
+                fetchedRooms.stream()
+                        .map(chatRoom -> ChatRoomListItem.from(chatRoom, chatProperties.maxParticipants()))
+                        .toList();
+
+        return CursorPagingUtils.apply(
+                rooms, resolvedLimit, item -> cursorCodec.encode(ChatRoomSearchCursorPayload.from(item)));
     }
 
     private CursorPagingResponse<UserChatRoomListItem, String> fetchUserChatRooms(

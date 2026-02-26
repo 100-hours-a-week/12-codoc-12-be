@@ -3,6 +3,7 @@ package _ganzi.codoc.submission.service;
 import _ganzi.codoc.problem.domain.Quiz;
 import _ganzi.codoc.problem.exception.QuizNotFoundException;
 import _ganzi.codoc.problem.repository.QuizRepository;
+import _ganzi.codoc.submission.domain.ProblemSession;
 import _ganzi.codoc.submission.domain.UserProblemResult;
 import _ganzi.codoc.submission.domain.UserQuizAttempt;
 import _ganzi.codoc.submission.domain.UserQuizResult;
@@ -15,6 +16,7 @@ import _ganzi.codoc.submission.exception.InvalidQuizAttemptException;
 import _ganzi.codoc.submission.exception.PrevQuizNotSubmittedException;
 import _ganzi.codoc.submission.exception.QuizAlreadySubmittedException;
 import _ganzi.codoc.submission.exception.QuizGradingNotAllowedException;
+import _ganzi.codoc.submission.exception.SessionRequiredException;
 import _ganzi.codoc.submission.repository.UserProblemResultRepository;
 import _ganzi.codoc.submission.repository.UserQuizAttemptRepository;
 import _ganzi.codoc.submission.repository.UserQuizResultRepository;
@@ -39,11 +41,16 @@ public class QuizSubmissionService {
     private final UserQuizAttemptRepository userQuizAttemptRepository;
     private final UserQuizResultRepository userQuizResultRepository;
     private final UserRepository userRepository;
+    private final ProblemSessionService problemSessionService;
 
     @Transactional
     public QuizGradingResponse gradeQuiz(Long userId, Long quizId, QuizGradingRequest request) {
 
         Quiz quiz = quizRepository.findById(quizId).orElseThrow(QuizNotFoundException::new);
+        var session = problemSessionService.requireActive(userId, quiz.getProblem().getId());
+        if (session == null) {
+            throw new SessionRequiredException();
+        }
 
         validateQuizGradingAvailable(userId, quiz);
 
@@ -61,7 +68,8 @@ public class QuizSubmissionService {
             }
         }
 
-        UserQuizAttempt attempt = resolveAttemptIfProvided(userId, quiz, request.attemptId());
+        UserQuizAttempt attempt =
+                resolveAttemptIfProvided(userId, quiz, request.attemptId(), session.getId());
 
         if (attempt != null) {
             UserQuizResult existingResult =
@@ -83,7 +91,7 @@ public class QuizSubmissionService {
         validateChoice(quiz, request.choiceId());
 
         if (attempt == null) {
-            attempt = createNewAttempt(userId, quiz);
+            attempt = createNewAttempt(userId, quiz, session);
         }
 
         boolean result = AnswerChecker.check(quiz.getAnswerIndex(), request.choiceId());
@@ -104,7 +112,8 @@ public class QuizSubmissionService {
         }
     }
 
-    private UserQuizAttempt resolveAttemptIfProvided(Long userId, Quiz quiz, Long attemptId) {
+    private UserQuizAttempt resolveAttemptIfProvided(
+            Long userId, Quiz quiz, Long attemptId, Long sessionId) {
         if (attemptId == null) {
             return null;
         }
@@ -118,13 +127,18 @@ public class QuizSubmissionService {
             throw new InvalidQuizAttemptException();
         }
 
+        if (attempt.getProblemSession() == null
+                || !attempt.getProblemSession().getId().equals(sessionId)) {
+            throw new InvalidQuizAttemptException();
+        }
+
         return attempt;
     }
 
-    private UserQuizAttempt createNewAttempt(Long userId, Quiz quiz) {
+    private UserQuizAttempt createNewAttempt(Long userId, Quiz quiz, ProblemSession session) {
         abandonInProgressAttempts(userId, quiz.getProblem().getId());
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
-        UserQuizAttempt attempt = UserQuizAttempt.create(user, quiz.getProblem());
+        UserQuizAttempt attempt = UserQuizAttempt.create(user, quiz.getProblem(), session);
         return userQuizAttemptRepository.save(attempt);
     }
 

@@ -6,17 +6,23 @@ import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.exception.SummaryCardNotFoundException;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.problem.repository.SummaryCardRepository;
+import _ganzi.codoc.submission.domain.SummaryCardAttempt;
+import _ganzi.codoc.submission.domain.SummaryCardSubmission;
 import _ganzi.codoc.submission.domain.UserProblemResult;
 import _ganzi.codoc.submission.dto.SummaryCardGradingRequest;
 import _ganzi.codoc.submission.dto.SummaryCardGradingResponse;
 import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
 import _ganzi.codoc.submission.exception.InvalidAnswerFormatException;
+import _ganzi.codoc.submission.exception.SessionRequiredException;
+import _ganzi.codoc.submission.repository.SummaryCardAttemptRepository;
+import _ganzi.codoc.submission.repository.SummaryCardSubmissionRepository;
 import _ganzi.codoc.submission.repository.UserProblemResultRepository;
 import _ganzi.codoc.submission.util.AnswerChecker;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
 import _ganzi.codoc.user.service.UserStatsService;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -32,8 +38,11 @@ public class SummaryCardSubmissionService {
     private final ProblemRepository problemRepository;
     private final SummaryCardRepository summaryCardRepository;
     private final UserProblemResultRepository userProblemResultRepository;
+    private final SummaryCardAttemptRepository summaryCardAttemptRepository;
+    private final SummaryCardSubmissionRepository summaryCardSubmissionRepository;
     private final UserRepository userRepository;
     private final UserStatsService userStatsService;
+    private final ProblemSessionService problemSessionService;
 
     @Transactional
     public SummaryCardGradingResponse gradeSummaryCards(
@@ -55,14 +64,29 @@ public class SummaryCardSubmissionService {
 
         validateChoice(choiceIds, summaryCards);
 
+        var session = problemSessionService.requireActive(userId, problemId);
+        if (session == null) {
+            throw new SessionRequiredException();
+        }
+
+        Instant now = Instant.now();
+        SummaryCardAttempt attempt =
+                summaryCardAttemptRepository.save(SummaryCardAttempt.create(session, now));
+
         List<Boolean> results = new ArrayList<>(summaryCards.size());
+        List<SummaryCardSubmission> submissions = new ArrayList<>(summaryCards.size());
         boolean allCorrect = true;
 
         for (int i = 0; i < summaryCards.size(); i++) {
-            boolean result = AnswerChecker.check(summaryCards.get(i).getAnswerIndex(), choiceIds.get(i));
+            SummaryCard card = summaryCards.get(i);
+            boolean result = AnswerChecker.check(card.getAnswerIndex(), choiceIds.get(i));
             results.add(result);
             allCorrect &= result;
+            submissions.add(SummaryCardSubmission.create(attempt, card, result, now));
         }
+
+        summaryCardSubmissionRepository.saveAll(submissions);
+        attempt.complete(now);
 
         ProblemSolvingStatus updatedStatus = updateProblemSolvingStatus(userId, problem, allCorrect);
 

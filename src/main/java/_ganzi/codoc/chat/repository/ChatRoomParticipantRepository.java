@@ -36,6 +36,29 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
 
     @Query(
             """
+            select p
+            from ChatRoomParticipant p
+            join fetch p.chatRoom r
+            where p.userId = :userId
+              and p.isJoined = true
+              and r.isDeleted = false
+              and lower(r.title) like lower(concat('%', :keyword, '%'))
+              and (
+                    :cursorOrderedAt is null
+                    or r.lastMessageAt < :cursorOrderedAt
+                    or (r.lastMessageAt = :cursorOrderedAt and r.id < :cursorRoomId)
+              )
+            order by r.lastMessageAt desc, r.id desc
+            """)
+    List<ChatRoomParticipant> searchJoinedChatRoomsByKeyword(
+            @Param("userId") Long userId,
+            @Param("keyword") String keyword,
+            @Param("cursorOrderedAt") Instant cursorOrderedAt,
+            @Param("cursorRoomId") Long cursorRoomId,
+            Pageable pageable);
+
+    @Query(
+            """
             select new _ganzi.codoc.chat.dto.ParticipantUnreadMessageCount(p.id, count(m.id))
             from ChatRoomParticipant p
             left join ChatMessage m

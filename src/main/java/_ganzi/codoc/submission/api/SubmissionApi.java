@@ -24,7 +24,7 @@ public interface SubmissionApi {
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "400",
-                description = "INVALID_INPUT, INVALID_ANSWER_FORMAT"),
+                description = "INVALID_INPUT, INVALID_ANSWER_FORMAT, SESSION_REQUIRED"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "401",
                 description = "AUTH_REQUIRED, UNAUTHORIZED"),
@@ -46,7 +46,10 @@ public interface SubmissionApi {
                 GlobalErrorCode.FORBIDDEN,
                 GlobalErrorCode.INTERNAL_SERVER_ERROR
             },
-            submission = {SubmissionErrorCode.INVALID_ANSWER_FORMAT},
+            submission = {
+                SubmissionErrorCode.INVALID_ANSWER_FORMAT,
+                SubmissionErrorCode.SESSION_REQUIRED
+            },
             problem = {ProblemErrorCode.PROBLEM_NOT_FOUND, ProblemErrorCode.SUMMARY_CARD_NOT_FOUND},
             user = {UserErrorCode.USER_NOT_FOUND})
     ResponseEntity<ApiResponse<SummaryCardGradingResponse>> gradeSummaryCards(
@@ -58,7 +61,8 @@ public interface SubmissionApi {
                 responseCode = "400",
                 description =
                         "INVALID_INPUT, INVALID_ANSWER_FORMAT, QUIZ_GRADING_NOT_ALLOWED,"
-                                + " INVALID_QUIZ_ATTEMPT, PREV_QUIZ_NOT_SUBMITTED, QUIZ_ALREADY_SUBMITTED"),
+                                + " INVALID_QUIZ_ATTEMPT, PREV_QUIZ_NOT_SUBMITTED, QUIZ_ALREADY_SUBMITTED,"
+                                + " SESSION_REQUIRED"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "401",
                 description = "AUTH_REQUIRED, UNAUTHORIZED"),
@@ -85,7 +89,8 @@ public interface SubmissionApi {
                 SubmissionErrorCode.QUIZ_GRADING_NOT_ALLOWED,
                 SubmissionErrorCode.INVALID_QUIZ_ATTEMPT,
                 SubmissionErrorCode.PREV_QUIZ_NOT_SUBMITTED,
-                SubmissionErrorCode.QUIZ_ALREADY_SUBMITTED
+                SubmissionErrorCode.QUIZ_ALREADY_SUBMITTED,
+                SubmissionErrorCode.SESSION_REQUIRED
             },
             problem = {ProblemErrorCode.QUIZ_NOT_FOUND},
             user = {UserErrorCode.USER_NOT_FOUND})
@@ -96,7 +101,7 @@ public interface SubmissionApi {
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "400",
-                description = "INVALID_INPUT, INVALID_PROBLEM_SUBMISSION"),
+                description = "INVALID_INPUT, INVALID_PROBLEM_SUBMISSION, SESSION_REQUIRED"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "401",
                 description = "AUTH_REQUIRED, UNAUTHORIZED"),
@@ -118,7 +123,10 @@ public interface SubmissionApi {
                 GlobalErrorCode.FORBIDDEN,
                 GlobalErrorCode.INTERNAL_SERVER_ERROR
             },
-            submission = {SubmissionErrorCode.INVALID_PROBLEM_SUBMISSION},
+            submission = {
+                SubmissionErrorCode.INVALID_PROBLEM_SUBMISSION,
+                SubmissionErrorCode.SESSION_REQUIRED
+            },
             problem = {ProblemErrorCode.PROBLEM_NOT_FOUND},
             user = {UserErrorCode.USER_NOT_FOUND})
     ResponseEntity<ApiResponse<ProblemSubmissionResponse>> submissionProblem(

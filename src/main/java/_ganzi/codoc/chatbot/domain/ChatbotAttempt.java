@@ -7,7 +7,6 @@ import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.submission.domain.ProblemSession;
 import _ganzi.codoc.user.domain.User;
 import jakarta.persistence.*;
-import java.time.Duration;
 import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -51,27 +50,24 @@ public class ChatbotAttempt extends BaseTimeEntity {
             Problem problem,
             ChatbotParagraphType currentParagraphType,
             ChatbotAttemptStatus status,
-            Instant expiresAt) {
+            Instant expiresAt,
+            ProblemSession problemSession) {
         this.user = user;
         this.problem = problem;
         this.currentParagraphType = currentParagraphType;
         this.status = status;
         this.expiresAt = expiresAt;
+        this.problemSession = problemSession;
     }
 
-    public static ChatbotAttempt create(User user, Problem problem, Duration ttl) {
+    public static ChatbotAttempt create(User user, Problem problem, ProblemSession problemSession) {
         return new ChatbotAttempt(
                 user,
                 problem,
                 ChatbotParagraphType.getInitialType(),
                 ChatbotAttemptStatus.ACTIVE,
-                Instant.now().plus(ttl));
-    }
-
-    public void expireIfNeeded(Instant now) {
-        if (status == ChatbotAttemptStatus.ACTIVE && !expiresAt.isAfter(now)) {
-            this.status = ChatbotAttemptStatus.EXPIRED;
-        }
+                problemSession.getExpiresAt(),
+                problemSession);
     }
 
     public void advanceToNextParagraph() {

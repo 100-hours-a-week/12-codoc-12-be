@@ -3,13 +3,23 @@ package _ganzi.codoc.chat.service;
 import _ganzi.codoc.chat.domain.ChatMessage;
 import _ganzi.codoc.chat.domain.ChatRoom;
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
+import _ganzi.codoc.chat.dto.*;
 import _ganzi.codoc.chat.dto.ChatRoomCreateRequest;
 import _ganzi.codoc.chat.dto.ChatRoomCreateResponse;
 import _ganzi.codoc.chat.repository.ChatMessageRepository;
 import _ganzi.codoc.chat.repository.ChatRoomParticipantRepository;
 import _ganzi.codoc.chat.repository.ChatRoomRepository;
+import _ganzi.codoc.global.cursor.CursorCodec;
+import _ganzi.codoc.global.cursor.CursorPayloadConverter;
+import _ganzi.codoc.global.dto.CursorPagingResponse;
+import _ganzi.codoc.global.util.CursorPagingUtils;
+import _ganzi.codoc.global.util.PageLimitResolver;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +35,7 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CursorCodec cursorCodec;
 
     @Transactional
     public ChatRoomCreateResponse createChatRoom(Long userId, ChatRoomCreateRequest request) {
@@ -45,5 +56,52 @@ public class ChatRoomService {
                 ChatRoomParticipant.create(userId, chatRoom, initMessage.getId()));
 
         return ChatRoomCreateResponse.from(chatRoom);
+    }
+
+    public CursorPagingResponse<UserChatRoomListItem, String> getUserChatRooms(
+            Long userId, String cursor, Integer limit) {
+
+        int resolvedLimit = PageLimitResolver.resolve(limit);
+        UserChatRoomCursorPayload cursorPayload =
+                CursorPayloadConverter.decodeAndValidate(
+                        cursorCodec,
+                        cursor,
+                        UserChatRoomCursorPayload.class,
+                        UserChatRoomCursorPayload::firstPage);
+
+        Pageable pageable = CursorPagingUtils.createPageable(resolvedLimit);
+        List<ChatRoomParticipant> fetchedParticipants =
+                chatRoomParticipantRepository.findLatestJoinedChatRoomsByUserId(
+                        userId, cursorPayload.orderedAt(), cursorPayload.roomId(), pageable);
+
+        Map<Long, Long> unreadCountByParticipantId = getUnreadCountByParticipantId(fetchedParticipants);
+
+        List<UserChatRoomListItem> rooms =
+                fetchedParticipants.stream()
+                        .map(
+                                participant ->
+                                        UserChatRoomListItem.from(
+                                                participant,
+                                                unreadCountByParticipantId.getOrDefault(participant.getId(), 0L)))
+                        .toList();
+
+        return CursorPagingUtils.apply(
+                rooms, resolvedLimit, item -> cursorCodec.encode(UserChatRoomCursorPayload.from(item)));
+    }
+
+    private Map<Long, Long> getUnreadCountByParticipantId(List<ChatRoomParticipant> participants) {
+        if (participants.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> participantIds = participants.stream().map(ChatRoomParticipant::getId).toList();
+
+        return chatRoomParticipantRepository
+                .countUnreadMessagesByParticipantIds(participantIds)
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                ParticipantUnreadMessageCount::participantId,
+                                ParticipantUnreadMessageCount::unreadCount));
     }
 }

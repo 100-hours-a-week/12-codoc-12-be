@@ -68,6 +68,8 @@ public class SecurityConfig {
                                                 UserStatus.DORMANT.asAuthority())
                                         .requestMatchers("/api/user/init-survey")
                                         .hasAuthority(UserStatus.ONBOARDING.asAuthority())
+                                        .requestMatchers("/ws-chat/**")
+                                        .permitAll()
                                         .requestMatchers("/api/health", "/api/ai-health")
                                         .permitAll()
                                         .anyRequest()

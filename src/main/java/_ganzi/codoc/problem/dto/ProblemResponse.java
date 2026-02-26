@@ -1,11 +1,8 @@
 package _ganzi.codoc.problem.dto;
 
 import _ganzi.codoc.problem.domain.Problem;
-import _ganzi.codoc.problem.domain.Quiz;
-import _ganzi.codoc.problem.domain.SummaryCard;
 import _ganzi.codoc.problem.enums.ProblemDifficulty;
 import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
-import java.util.List;
 import lombok.Builder;
 
 @Builder
@@ -15,16 +12,10 @@ public record ProblemResponse(
         ProblemDifficulty difficulty,
         String content,
         ProblemSolvingStatus status,
-        boolean bookmarked,
-        List<SummaryCardResponse> summaryCards,
-        List<QuizResponse> quizzes) {
+        boolean bookmarked) {
 
     public static ProblemResponse of(
-            Problem problem,
-            ProblemSolvingStatus status,
-            boolean bookmarked,
-            List<SummaryCard> summaryCards,
-            List<Quiz> quizzes) {
+            Problem problem, ProblemSolvingStatus status, boolean bookmarked) {
 
         return ProblemResponse.builder()
                 .problemId(problem.getId())
@@ -33,8 +24,6 @@ public record ProblemResponse(
                 .content(problem.getContent())
                 .status(status)
                 .bookmarked(bookmarked)
-                .summaryCards(summaryCards.stream().map(SummaryCardResponse::from).toList())
-                .quizzes(quizzes.stream().map(QuizResponse::from).toList())
                 .build();
     }
 }

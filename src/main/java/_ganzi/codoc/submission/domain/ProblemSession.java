@@ -56,7 +56,22 @@ public class ProblemSession extends BaseTimeEntity {
         return new ProblemSession(user, problem, ProblemSessionStatus.ACTIVE, expiresAt);
     }
 
+    public boolean isActive() {
+        return status == ProblemSessionStatus.ACTIVE;
+    }
+
     public boolean isExpired(Instant now) {
         return expiresAt.isBefore(now);
+    }
+
+    public void markExpired() {
+        if (status == ProblemSessionStatus.ACTIVE) {
+            status = ProblemSessionStatus.EXPIRED;
+        }
+    }
+
+    public void close(Instant closedAt) {
+        this.status = ProblemSessionStatus.CLOSED;
+        this.closedAt = closedAt;
     }
 }

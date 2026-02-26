@@ -10,6 +10,7 @@ import _ganzi.codoc.problem.dto.ProblemListCondition;
 import _ganzi.codoc.problem.dto.ProblemListItem;
 import _ganzi.codoc.problem.dto.ProblemResponse;
 import _ganzi.codoc.problem.dto.ProblemSearchParam;
+import _ganzi.codoc.problem.dto.ProblemSessionResponse;
 import _ganzi.codoc.problem.dto.RecommendedProblemResponse;
 import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.exception.RecommendNotAvailableException;
@@ -21,6 +22,7 @@ import _ganzi.codoc.problem.repository.SummaryCardRepository;
 import _ganzi.codoc.submission.domain.UserProblemResult;
 import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
 import _ganzi.codoc.submission.repository.UserProblemResultRepository;
+import _ganzi.codoc.submission.service.ProblemSessionService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -35,6 +37,7 @@ public class ProblemService {
     private final ProblemRepository problemRepository;
     private final QuizRepository quizRepository;
     private final SummaryCardRepository summaryCardRepository;
+    private final ProblemSessionService problemSessionService;
     private final UserProblemResultRepository userProblemResultRepository;
     private final BookmarkRepository bookmarkRepository;
     private final RecommendedProblemRepository recommendedProblemRepository;
@@ -70,12 +73,21 @@ public class ProblemService {
 
         boolean bookmarked = bookmarkRepository.existsByUserIdAndProblemId(userId, problemId);
 
+        return ProblemResponse.of(problem, status, bookmarked);
+    }
+
+    @Transactional
+    public ProblemSessionResponse startProblemSession(Long userId, Long problemId) {
+        Problem problem =
+                problemRepository.findById(problemId).orElseThrow(ProblemNotFoundException::new);
+
+        var session = problemSessionService.resolveOrCreate(userId, problemId);
+
         List<SummaryCard> summaryCards =
                 summaryCardRepository.findByProblemIdOrderByParagraphOrderAsc(problemId);
-
         List<Quiz> quizzes = quizRepository.findByProblemIdOrderBySequenceAsc(problemId);
 
-        return ProblemResponse.of(problem, status, bookmarked, summaryCards, quizzes);
+        return ProblemSessionResponse.of(session, summaryCards, quizzes);
     }
 
     public RecommendedProblemResponse getRecommendedProblem(Long userId) {

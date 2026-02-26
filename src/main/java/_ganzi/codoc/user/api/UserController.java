@@ -1,5 +1,7 @@
 package _ganzi.codoc.user.api;
 
+import _ganzi.codoc.analysis.service.AnalysisReportService;
+import _ganzi.codoc.analysis.service.dto.AnalysisReportDetailResponse;
 import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.global.dto.ApiResponse;
 import _ganzi.codoc.leaderboard.service.LeaderboardQueryService;
@@ -29,6 +31,7 @@ public class UserController implements UserApi {
 
     private final UserService userService;
     private final LeaderboardQueryService leaderboardQueryService;
+    private final AnalysisReportService analysisReportService;
 
     @Override
     @GetMapping("/profile")
@@ -79,6 +82,14 @@ public class UserController implements UserApi {
     public ResponseEntity<ApiResponse<UserDailyGoalResponse>> getDailyGoal(
             @AuthenticationPrincipal AuthUser authUser) {
         return ResponseEntity.ok(ApiResponse.success(userService.getDailyGoal(authUser.userId())));
+    }
+
+    @Override
+    @GetMapping("/report")
+    public ResponseEntity<ApiResponse<AnalysisReportDetailResponse>> getAnalysisReport(
+            @AuthenticationPrincipal AuthUser authUser) {
+        return ResponseEntity.ok(
+                ApiResponse.success(analysisReportService.getLatestReport(authUser.userId())));
     }
 
     @Override

@@ -7,7 +7,6 @@ import _ganzi.codoc.ai.dto.AiServerChatbotSendRequest;
 import _ganzi.codoc.ai.dto.AiServerErrorEvent;
 import _ganzi.codoc.ai.infra.ChatbotClient;
 import _ganzi.codoc.ai.util.AiServerResponseParser;
-import _ganzi.codoc.chatbot.config.ChatbotProperties;
 import _ganzi.codoc.chatbot.domain.ChatbotAttempt;
 import _ganzi.codoc.chatbot.domain.ChatbotConversation;
 import _ganzi.codoc.chatbot.dto.ChatbotConversationListCondition;
@@ -23,10 +22,12 @@ import _ganzi.codoc.global.util.CursorPagingUtils;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.repository.ProblemRepository;
+import _ganzi.codoc.submission.domain.ProblemSession;
+import _ganzi.codoc.submission.exception.SessionRequiredException;
+import _ganzi.codoc.submission.service.ProblemSessionService;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
-import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -50,7 +51,7 @@ public class ChatbotService {
     private final ProblemRepository problemRepository;
     private final ChatbotConversationRepository chatbotConversationRepository;
     private final ChatbotAttemptRepository chatbotAttemptRepository;
-    private final ChatbotProperties chatbotProperties;
+    private final ProblemSessionService problemSessionService;
     private final AiServerProperties aiServerProperties;
     private final AiServerResponseParser responseParser;
 
@@ -64,7 +65,12 @@ public class ChatbotService {
 
         String userMessage = request.message();
 
-        ChatbotAttempt attempt = resolveAttempt(user, problem);
+        ProblemSession session = problemSessionService.requireActive(userId, request.problemId());
+        if (session == null) {
+            throw new SessionRequiredException();
+        }
+
+        ChatbotAttempt attempt = resolveAttempt(user, problem, session);
 
         ChatbotConversation chatbotConversation =
                 chatbotConversationRepository.save(
@@ -88,10 +94,15 @@ public class ChatbotService {
 
     public CursorPagingResponse<ChatbotConversationListItem, Long> getConversationList(
             Long userId, ChatbotConversationListCondition condition) {
+        ProblemSession session = problemSessionService.requireActive(userId, condition.problemId());
+        if (session == null) {
+            throw new SessionRequiredException();
+        }
+
         ChatbotAttempt attempt =
                 chatbotAttemptRepository
-                        .findCurrentActiveAttemptByUserIdAndProblemId(
-                                userId, condition.problemId(), Instant.now())
+                        .findFirstByProblemSessionIdAndStatusOrderByIdDesc(
+                                session.getId(), ChatbotAttemptStatus.ACTIVE)
                         .orElse(null);
 
         if (attempt == null) {
@@ -110,23 +121,18 @@ public class ChatbotService {
                 items, condition.limit(), ChatbotConversationListItem::conversationId);
     }
 
-    private ChatbotAttempt resolveAttempt(User user, Problem problem) {
+    private ChatbotAttempt resolveAttempt(User user, Problem problem, ProblemSession session) {
         ChatbotAttempt attempt =
                 chatbotAttemptRepository
-                        .findFirstByUserIdAndProblemIdAndStatusOrderByIdDesc(
-                                user.getId(), problem.getId(), ChatbotAttemptStatus.ACTIVE)
+                        .findFirstByProblemSessionIdAndStatusOrderByIdDesc(
+                                session.getId(), ChatbotAttemptStatus.ACTIVE)
                         .orElse(null);
 
         if (attempt != null) {
-            attempt.expireIfNeeded(Instant.now());
-
-            if (attempt.getStatus() == ChatbotAttemptStatus.ACTIVE) {
-                return attempt;
-            }
+            return attempt;
         }
 
-        ChatbotAttempt newAttempt =
-                ChatbotAttempt.create(user, problem, chatbotProperties.sessionTtl());
+        ChatbotAttempt newAttempt = ChatbotAttempt.create(user, problem, session);
 
         return chatbotAttemptRepository.save(newAttempt);
     }

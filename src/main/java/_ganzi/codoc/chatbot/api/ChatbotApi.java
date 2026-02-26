@@ -10,6 +10,7 @@ import _ganzi.codoc.global.dto.ApiResponse;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
 import _ganzi.codoc.global.exception.GlobalErrorCode;
 import _ganzi.codoc.problem.exception.ProblemErrorCode;
+import _ganzi.codoc.submission.exception.SubmissionErrorCode;
 import _ganzi.codoc.user.exception.UserErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -25,7 +26,7 @@ public interface ChatbotApi {
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "400",
-                description = "INVALID_INPUT"),
+                description = "INVALID_INPUT, SESSION_REQUIRED"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "401",
                 description = "AUTH_REQUIRED, UNAUTHORIZED"),
@@ -54,6 +55,7 @@ public interface ChatbotApi {
                 ChatbotErrorCode.CHATBOT_STREAM_RATE_LIMIT_EXCEEDED,
                 ChatbotErrorCode.CHATBOT_STREAM_EVENT_FAILED
             },
+            submission = {SubmissionErrorCode.SESSION_REQUIRED},
             problem = {ProblemErrorCode.PROBLEM_NOT_FOUND},
             user = {UserErrorCode.USER_NOT_FOUND})
     Flux<ServerSentEvent<String>> sendAndStream(AuthUser authUser, ChatbotMessageSendRequest request);
@@ -62,7 +64,7 @@ public interface ChatbotApi {
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "400",
-                description = "INVALID_INPUT"),
+                description = "INVALID_INPUT, SESSION_REQUIRED"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "401",
                 description = "AUTH_REQUIRED, UNAUTHORIZED"),
@@ -80,7 +82,8 @@ public interface ChatbotApi {
                 GlobalErrorCode.UNAUTHORIZED,
                 GlobalErrorCode.FORBIDDEN,
                 GlobalErrorCode.INTERNAL_SERVER_ERROR
-            })
+            },
+            submission = {SubmissionErrorCode.SESSION_REQUIRED})
     ResponseEntity<ApiResponse<CursorPagingResponse<ChatbotConversationListItem, Long>>>
             getConversationList(AuthUser authUser, ChatbotConversationListCondition condition);
 }

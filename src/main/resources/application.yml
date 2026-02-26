@@ -48,6 +48,8 @@ app:
 
   chatbot:
     session-ttl: 30m
+  problem-session:
+    ttl: 30m
 
   fcm:
     enabled: ${APP_FCM_ENABLED:false}

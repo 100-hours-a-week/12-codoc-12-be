@@ -3,9 +3,9 @@ package _ganzi.codoc.chat.repository;
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import _ganzi.codoc.chat.dto.ParticipantUnreadMessageCount;
-import _ganzi.codoc.chat.enums.ChatMessageType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -56,6 +56,18 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
             @Param("cursorOrderedAt") Instant cursorOrderedAt,
             @Param("cursorRoomId") Long cursorRoomId,
             Pageable pageable);
+
+    @Query(
+            """
+              select p
+              from ChatRoomParticipant p
+              where p.userId = :userId
+              and p.chatRoom.id = :roomId
+              and p.isJoined = true
+            """)
+    Optional<ChatRoomParticipant> findJoinedParticipant(
+      @Param("userId") Long userId, @Param("roomId") Long roomId);
+
 
     @Query(
             """

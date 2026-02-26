@@ -46,8 +46,6 @@ app:
     base-timeout: 60s
     recommend-timeout: 60s
 
-  chatbot:
-    session-ttl: 30m
   problem-session:
     ttl: 30m
 

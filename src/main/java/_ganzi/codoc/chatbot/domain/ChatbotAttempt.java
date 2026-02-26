@@ -4,6 +4,7 @@ import _ganzi.codoc.chatbot.enums.ChatbotAttemptStatus;
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
 import _ganzi.codoc.global.domain.BaseTimeEntity;
 import _ganzi.codoc.problem.domain.Problem;
+import _ganzi.codoc.submission.domain.ProblemSession;
 import _ganzi.codoc.user.domain.User;
 import jakarta.persistence.*;
 import java.time.Duration;
@@ -40,6 +41,10 @@ public class ChatbotAttempt extends BaseTimeEntity {
 
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "problem_session_id")
+    private ProblemSession problemSession;
 
     private ChatbotAttempt(
             User user,

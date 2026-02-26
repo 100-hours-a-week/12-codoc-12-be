@@ -38,6 +38,10 @@ public class UserQuizAttempt extends BaseTimeEntity {
     @JoinColumn(name = "problem_id", nullable = false)
     private Problem problem;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "problem_session_id")
+    private ProblemSession problemSession;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 50)
     private QuizAttemptStatus status;

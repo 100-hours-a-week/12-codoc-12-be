@@ -1,6 +1,8 @@
 name: backend-cd
 
 on:
+  push:
+    branches: [chore/docker_cicd]
   workflow_dispatch: {}
 
 permissions:

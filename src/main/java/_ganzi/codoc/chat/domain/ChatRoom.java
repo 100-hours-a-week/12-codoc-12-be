@@ -80,6 +80,18 @@ public class ChatRoom extends BaseTimeEntity {
         this.lastMessagePreview = toPreview(message.getContent());
     }
 
+    public boolean hasPassword() {
+        return password != null;
+    }
+
+    public void incrementParticipantCount() {
+        this.participantCount++;
+    }
+
+    public void decrementParticipantCount() {
+        this.participantCount--;
+    }
+
     private String toPreview(String originalContent) {
         int codePointCount = originalContent.codePointCount(0, originalContent.length());
         if (codePointCount <= LAST_MESSAGE_PREVIEW_MAX_LENGTH) {

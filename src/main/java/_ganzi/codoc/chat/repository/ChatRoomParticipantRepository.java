@@ -68,6 +68,15 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
     Optional<ChatRoomParticipant> findJoinedParticipant(
       @Param("userId") Long userId, @Param("roomId") Long roomId);
 
+    @Query(
+            """
+              select p
+              from ChatRoomParticipant p
+              where p.userId = :userId
+                and p.chatRoom.id = :roomId
+            """)
+    Optional<ChatRoomParticipant> findByUserIdAndRoomId(
+            @Param("userId") Long userId, @Param("roomId") Long roomId);
 
     @Query(
             """

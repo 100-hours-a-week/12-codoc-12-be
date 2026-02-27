@@ -1,5 +1,6 @@
 package _ganzi.codoc.chat.domain;
 
+import _ganzi.codoc.chat.exception.ChatRoomAlreadyJoinedException;
 import _ganzi.codoc.global.domain.BaseTimeEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -58,7 +59,35 @@ public class ChatRoomParticipant extends BaseTimeEntity {
         this.leavedAt = null;
     }
 
+    public static void validateJoinable(ChatRoomParticipant existing) {
+        if (existing != null && existing.isJoined) {
+            throw new ChatRoomAlreadyJoinedException();
+        }
+    }
+
+    public static ChatRoomParticipant createOrRejoin(
+            ChatRoomParticipant existing, Long userId, ChatRoom chatRoom, long joinedMessageId) {
+        if (existing != null) {
+            existing.rejoin(joinedMessageId);
+            return existing;
+        }
+        return new ChatRoomParticipant(userId, chatRoom, joinedMessageId);
+    }
+
     public static ChatRoomParticipant create(Long userId, ChatRoom chatRoom, long joinedMessageId) {
         return new ChatRoomParticipant(userId, chatRoom, joinedMessageId);
+    }
+
+    private void rejoin(long joinedMessageId) {
+        this.isJoined = true;
+        this.joinedMessageId = joinedMessageId;
+        this.lastReadMessageId = joinedMessageId;
+        this.joinedAt = Instant.now();
+        this.leavedAt = null;
+    }
+
+    public void leave() {
+        this.isJoined = false;
+        this.leavedAt = Instant.now();
     }
 }

@@ -1,13 +1,14 @@
 package _ganzi.codoc.chat.repository;
 
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
+import _ganzi.codoc.chat.dto.ParticipantUnreadMessageCount;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-
-import _ganzi.codoc.chat.dto.ParticipantUnreadMessageCount;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -77,6 +78,29 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
             """)
     Optional<ChatRoomParticipant> findByUserIdAndRoomId(
             @Param("userId") Long userId, @Param("roomId") Long roomId);
+
+    @Query(
+            """
+            select p.userId
+            from ChatRoomParticipant p
+            where p.chatRoom.id = :roomId
+              and p.isJoined = true
+            """)
+    List<Long> findJoinedUserIdsByRoomId(@Param("roomId") Long roomId);
+
+    @Modifying
+    @Query(
+            """
+            update ChatRoomParticipant p
+            set p.lastReadMessageId = :messageId
+            where p.chatRoom.id = :roomId
+              and p.userId in :userIds
+              and p.isJoined = true
+            """)
+    void updateLastReadMessageId(
+            @Param("roomId") Long roomId,
+            @Param("userIds") Collection<Long> userIds,
+            @Param("messageId") long messageId);
 
     @Query(
             """

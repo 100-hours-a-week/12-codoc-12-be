@@ -16,14 +16,17 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final String frontendBaseUrl;
     private final WebSocketAuthInterceptor webSocketAuthInterceptor;
+    private final ChatRoomSubscriptionInterceptor chatRoomSubscriptionInterceptor;
     private final StompAuthUserArgumentResolver stompAuthUserArgumentResolver;
 
     public WebSocketConfig(
             @Value("${app.frontend.base-url}") String frontendBaseUrl,
             WebSocketAuthInterceptor webSocketAuthInterceptor,
+            ChatRoomSubscriptionInterceptor chatRoomSubscriptionInterceptor,
             StompAuthUserArgumentResolver stompAuthUserArgumentResolver) {
         this.frontendBaseUrl = frontendBaseUrl;
         this.webSocketAuthInterceptor = webSocketAuthInterceptor;
+        this.chatRoomSubscriptionInterceptor = chatRoomSubscriptionInterceptor;
         this.stompAuthUserArgumentResolver = stompAuthUserArgumentResolver;
     }
 
@@ -40,7 +43,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(webSocketAuthInterceptor);
+        registration.interceptors(webSocketAuthInterceptor, chatRoomSubscriptionInterceptor);
     }
 
     @Override

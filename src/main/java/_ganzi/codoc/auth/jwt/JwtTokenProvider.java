@@ -63,6 +63,11 @@ public class JwtTokenProvider {
         return new AuthUser(userId.longValue(), UserStatus.valueOf(status));
     }
 
+    public Instant getExpiration(String token) {
+        var claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+        return claims.getExpiration().toInstant();
+    }
+
     private String buildToken(Long userId, UserStatus status, Duration ttl) {
         Instant now = Instant.now();
         return Jwts.builder()

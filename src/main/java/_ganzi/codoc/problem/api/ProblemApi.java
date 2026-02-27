@@ -131,6 +131,56 @@ public interface ProblemApi {
     ResponseEntity<ApiResponse<ProblemSessionResponse>> startProblemSession(
             AuthUser authUser, Long problemId);
 
+    @Operation(summary = "Get active problem session")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "401",
+                description = "AUTH_REQUIRED, UNAUTHORIZED"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "403",
+                description = "FORBIDDEN"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "404",
+                description = "RESOURCE_NOT_FOUND"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "500",
+                description = "INTERNAL_SERVER_ERROR")
+    })
+    @ErrorCodes(
+            global = {
+                GlobalErrorCode.AUTH_REQUIRED,
+                GlobalErrorCode.UNAUTHORIZED,
+                GlobalErrorCode.FORBIDDEN,
+                GlobalErrorCode.RESOURCE_NOT_FOUND,
+                GlobalErrorCode.INTERNAL_SERVER_ERROR
+            })
+    ResponseEntity<ApiResponse<ProblemSessionResponse>> getActiveProblemSession(AuthUser authUser);
+
+    @Operation(summary = "Close active problem session")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "401",
+                description = "AUTH_REQUIRED, UNAUTHORIZED"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "403",
+                description = "FORBIDDEN"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "404",
+                description = "RESOURCE_NOT_FOUND"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "500",
+                description = "INTERNAL_SERVER_ERROR")
+    })
+    @ErrorCodes(
+            global = {
+                GlobalErrorCode.AUTH_REQUIRED,
+                GlobalErrorCode.UNAUTHORIZED,
+                GlobalErrorCode.FORBIDDEN,
+                GlobalErrorCode.RESOURCE_NOT_FOUND,
+                GlobalErrorCode.INTERNAL_SERVER_ERROR
+            })
+    ResponseEntity<Void> closeActiveProblemSession(AuthUser authUser);
+
     @Operation(summary = "Register bookmark")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(

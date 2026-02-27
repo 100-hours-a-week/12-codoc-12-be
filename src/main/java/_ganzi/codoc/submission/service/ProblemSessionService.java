@@ -30,18 +30,9 @@ public class ProblemSessionService {
     @Transactional
     public ProblemSession resolveOrCreate(Long userId, Long problemId) {
         Instant now = Instant.now();
-        ProblemSession activeSession =
-                problemSessionRepository
-                        .findFirstByUserIdAndProblemIdAndStatusOrderByIdDesc(
-                                userId, problemId, ProblemSessionStatus.ACTIVE)
-                        .orElse(null);
-
+        ProblemSession activeSession = findActiveByUser(userId, now);
         if (activeSession != null) {
-            if (!activeSession.isExpired(now)) {
-                return activeSession;
-            }
-            activeSession.markExpired();
-            problemSessionRepository.save(activeSession);
+            return activeSession;
         }
 
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
@@ -56,10 +47,39 @@ public class ProblemSessionService {
     @Transactional
     public ProblemSession requireActive(Long userId, Long problemId) {
         Instant now = Instant.now();
+        ProblemSession activeSession = findActiveByUser(userId, now);
+
+        if (activeSession == null) {
+            return null;
+        }
+
+        if (!activeSession.getProblem().getId().equals(problemId)) {
+            return null;
+        }
+
+        return activeSession;
+    }
+
+    @Transactional
+    public ProblemSession findActiveByUser(Long userId) {
+        return findActiveByUser(userId, Instant.now());
+    }
+
+    @Transactional
+    public ProblemSession closeActiveSession(Long userId) {
+        ProblemSession activeSession = findActiveByUser(userId, Instant.now());
+        if (activeSession == null) {
+            return null;
+        }
+
+        activeSession.close(Instant.now());
+        return problemSessionRepository.save(activeSession);
+    }
+
+    private ProblemSession findActiveByUser(Long userId, Instant now) {
         ProblemSession activeSession =
                 problemSessionRepository
-                        .findFirstByUserIdAndProblemIdAndStatusOrderByIdDesc(
-                                userId, problemId, ProblemSessionStatus.ACTIVE)
+                        .findFirstByUserIdAndStatusOrderByIdDesc(userId, ProblemSessionStatus.ACTIVE)
                         .orElse(null);
 
         if (activeSession == null) {

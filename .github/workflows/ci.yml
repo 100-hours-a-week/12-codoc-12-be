@@ -20,11 +20,11 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     env:
-      AWS_REGION: ${{ github.ref_name == 'develop' && secrets.AWS_REGION_DEV || secrets.AWS_REGION }}
+      AWS_REGION: ${{ (github.ref_name == 'develop' || github.ref_name == 'chore/docker_cicd') && secrets.AWS_REGION_DEV || secrets.AWS_REGION }}
       ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
       ECR_REPO: ${{ secrets.ECR_REPO }}
       IMAGE_TAG: ${{ github.sha }}
-      ENV_TAG: ${{ github.ref_name == 'develop' && 'dev' || 'prod' }}
+      ENV_TAG: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
 
     steps:
       - name: Checkout

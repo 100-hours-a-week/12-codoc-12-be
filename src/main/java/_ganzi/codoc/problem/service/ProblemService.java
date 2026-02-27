@@ -1,6 +1,7 @@
 package _ganzi.codoc.problem.service;
 
 import _ganzi.codoc.global.dto.CursorPagingResponse;
+import _ganzi.codoc.global.exception.ResourceNotFoundException;
 import _ganzi.codoc.global.util.CursorPagingUtils;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.domain.Quiz;
@@ -78,16 +79,41 @@ public class ProblemService {
 
     @Transactional
     public ProblemSessionResponse startProblemSession(Long userId, Long problemId) {
-        Problem problem =
-                problemRepository.findById(problemId).orElseThrow(ProblemNotFoundException::new);
-
         var session = problemSessionService.resolveOrCreate(userId, problemId);
+        Long sessionProblemId = session.getProblem().getId();
+        Problem problem =
+                problemRepository.findById(sessionProblemId).orElseThrow(ProblemNotFoundException::new);
 
         List<SummaryCard> summaryCards =
-                summaryCardRepository.findByProblemIdOrderByParagraphOrderAsc(problemId);
-        List<Quiz> quizzes = quizRepository.findByProblemIdOrderBySequenceAsc(problemId);
+                summaryCardRepository.findByProblemIdOrderByParagraphOrderAsc(problem.getId());
+        List<Quiz> quizzes = quizRepository.findByProblemIdOrderBySequenceAsc(problem.getId());
 
         return ProblemSessionResponse.of(session, summaryCards, quizzes);
+    }
+
+    public ProblemSessionResponse getActiveProblemSession(Long userId) {
+        var session = problemSessionService.findActiveByUser(userId);
+        if (session == null) {
+            throw new ResourceNotFoundException();
+        }
+
+        Long sessionProblemId = session.getProblem().getId();
+        Problem problem =
+                problemRepository.findById(sessionProblemId).orElseThrow(ProblemNotFoundException::new);
+
+        List<SummaryCard> summaryCards =
+                summaryCardRepository.findByProblemIdOrderByParagraphOrderAsc(problem.getId());
+        List<Quiz> quizzes = quizRepository.findByProblemIdOrderBySequenceAsc(problem.getId());
+
+        return ProblemSessionResponse.of(session, summaryCards, quizzes);
+    }
+
+    @Transactional
+    public void closeActiveProblemSession(Long userId) {
+        var session = problemSessionService.closeActiveSession(userId);
+        if (session == null) {
+            throw new ResourceNotFoundException();
+        }
     }
 
     public RecommendedProblemResponse getRecommendedProblem(Long userId) {

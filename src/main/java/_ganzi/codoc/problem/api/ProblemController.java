@@ -74,6 +74,26 @@ public class ProblemController implements ProblemApi {
     }
 
     @Override
+    @GetMapping("/session")
+    public ResponseEntity<ApiResponse<ProblemSessionResponse>> getActiveProblemSession(
+            @AuthenticationPrincipal AuthUser authUser) {
+
+        ProblemSessionResponse response = problemService.getActiveProblemSession(authUser.userId());
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Override
+    @DeleteMapping("/session")
+    public ResponseEntity<Void> closeActiveProblemSession(
+            @AuthenticationPrincipal AuthUser authUser) {
+
+        problemService.closeActiveProblemSession(authUser.userId());
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @Override
     @PutMapping("/{problemId}/bookmark")
     public ResponseEntity<Void> registerBookmark(
             @AuthenticationPrincipal AuthUser authUser, @PathVariable Long problemId) {

@@ -1,5 +1,6 @@
 package _ganzi.codoc.chat.service;
 
+import _ganzi.codoc.chat.config.ChatRoomSubscriptionRegistry;
 import _ganzi.codoc.chat.domain.ChatMessage;
 import _ganzi.codoc.chat.domain.ChatRoom;
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
@@ -13,6 +14,7 @@ import _ganzi.codoc.global.dto.CursorPagingResponse;
 import _ganzi.codoc.global.util.CursorPagingUtils;
 import _ganzi.codoc.global.util.PageLimitResolver;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -26,6 +28,7 @@ public class ChatMessageService {
 
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
+    private final ChatRoomSubscriptionRegistry chatRoomSubscriptionRegistry;
     private final CursorCodec cursorCodec;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -68,7 +71,27 @@ public class ChatMessageService {
         chatMessageRepository.save(message);
         chatRoom.applyLastMessage(message);
 
+        Set<Long> onlineUserIds = chatRoomSubscriptionRegistry.getSubscriberUserIds(roomId);
+
+        if (!onlineUserIds.isEmpty()) {
+            chatRoomParticipantRepository.updateLastReadMessageId(roomId, onlineUserIds, message.getId());
+        }
+
         messagingTemplate.convertAndSend(
                 "/sub/chat/rooms/" + roomId, ChatMessageBroadcast.from(message));
+
+        List<Long> allParticipantUserIds =
+                chatRoomParticipantRepository.findJoinedUserIdsByRoomId(roomId);
+
+        ChatRoomUpdateBroadcast roomUpdate =
+                new ChatRoomUpdateBroadcast(
+                        roomId, chatRoom.getLastMessagePreview(), chatRoom.getLastMessageAt());
+
+        for (Long participantUserId : allParticipantUserIds) {
+            if (!onlineUserIds.contains(participantUserId)) {
+                messagingTemplate.convertAndSend(
+                        "/sub/users/" + participantUserId + "/chat-rooms", roomUpdate);
+            }
+        }
     }
 }

@@ -27,48 +27,40 @@ jobs:
     env:
       IS_PROD: ${{ github.ref_name == 'main' }}
 
-      BE_HOST: ${{ github.ref_name == 'develop' && secrets.BE_HOST_DEV || secrets.BE_HOST }}
-      DEPLOY_USER: ${{ github.ref_name == 'develop' && secrets.DEPLOY_USER_DEV || secrets.DEPLOY_USER }}
-      SSH_PRIVATE_KEY: ${{ github.ref_name == 'develop' && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY }}
-      ENV_CONTENT: ${{ github.ref_name == 'develop' && secrets.ENV_DEV || secrets.ENV }}
-      GCP_WIF_AWS_JSON_B64: ${{ github.ref_name == 'develop' && secrets.GCP_WIF_AWS_JSON_B64_DEV || secrets.GCP_WIF_AWS_JSON_B64 }}
+      AWS_REGION: ${{ github.ref_name == 'develop' && secrets.AWS_REGION_DEV || secrets.AWS_REGION }}
+      CODEDEPLOY_APP: ${{ github.ref_name == 'develop' && secrets.CODEDEPLOY_APP_DEV || secrets.CODEDEPLOY_APP }}
+      CODEDEPLOY_GROUP: ${{ github.ref_name == 'develop' && secrets.CODEDEPLOY_GROUP_DEV || secrets.CODEDEPLOY_GROUP }}
+      S3_BUCKET: ${{ github.ref_name == 'develop' && secrets.DEPLOY_BUCKET_DEV || secrets.DEPLOY_BUCKET }}
+      S3_KEY_PREFIX: ${{ github.ref_name == 'develop' && secrets.DEPLOY_KEY_PREFIX_DEV || secrets.DEPLOY_KEY_PREFIX }}
 
     steps:
-      - name: Download Backend Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-jar-${{ github.sha }}
-          path: ./artifact
+      - name: Checkout
+        uses: actions/checkout@v4
 
-
-      # 서버로 JAR 전송(SCP)
-      - name: Upload JAR to Server
-        uses: appleboy/scp-action@v0.1.7
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          host: ${{ env.BE_HOST }}
-          username: ${{ env.DEPLOY_USER }}
-          key: ${{ env.SSH_PRIVATE_KEY }}
-          source: "artifact/*.jar"
-          target: "/home/ubuntu/be/incoming"
-          strip_components: 1
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      # 서버에서 배포 스크립트 실행(SSH)
-      # 1. .env를 서버에 생성/갱신
-      # 2. deploy.sh 실행
-      - name: Execute Backend Deploy Script
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ env.BE_HOST }}
-          username: ${{ env.DEPLOY_USER }}
-          key: ${{ env.SSH_PRIVATE_KEY }}
-          script: |
-            cat << 'EOF' > /home/ubuntu/be/.env
-            ${{ env.ENV_CONTENT }}
-            EOF
-            umask 077
-            echo '${{ env.GCP_WIF_AWS_JSON_B64 }}' | base64 -d > /home/ubuntu/be/gcp-wif-aws.json
-            chmod +x /home/ubuntu/be/deploy.sh
-            bash /home/ubuntu/be/deploy.sh
+      - name: Build CodeDeploy Bundle
+        run: |
+          cd deploy
+          zip -r /tmp/codoc-deploy.zip .
+
+      - name: Upload Bundle to S3
+        run: |
+          KEY="${S3_KEY_PREFIX}/codoc-deploy-${GITHUB_SHA}.zip"
+          aws s3 cp /tmp/codoc-deploy.zip "s3://${S3_BUCKET}/${KEY}"
+          echo "DEPLOY_S3_KEY=${KEY}" >> $GITHUB_ENV
+
+      - name: Create CodeDeploy Deployment
+        run: |
+          aws deploy create-deployment \
+            --application-name "$CODEDEPLOY_APP" \
+            --deployment-group-name "$CODEDEPLOY_GROUP" \
+            --revision "revisionType=S3,s3Location={bucket=${S3_BUCKET},key=${DEPLOY_S3_KEY},bundleType=zip}"
 
       - name: Notify Discord
         if: always()

@@ -1,11 +1,6 @@
 name: backend-cd
 
 on:
-  # 자동 배포 트리거
-  # develop에 push(=develop로 PR merge)되면 개발서버 배포
-  # main에 push(=main으로 PR merge)되면 운영서버 배포
-  push:
-    branches: [develop, main]
   workflow_dispatch: {}
 
 permissions:

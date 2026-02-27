@@ -60,6 +60,16 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
 
     @Query(
             """
+            select count(p.id) > 0
+            from ChatRoomParticipant p
+            where p.userId = :userId
+              and p.chatRoom.id = :roomId
+              and p.isJoined = true
+            """)
+    boolean existsJoinedParticipant(@Param("userId") Long userId, @Param("roomId") Long roomId);
+
+    @Query(
+            """
               select p
               from ChatRoomParticipant p
               where p.userId = :userId

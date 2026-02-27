@@ -10,6 +10,7 @@ import lombok.Builder;
 @Builder
 public record ProblemSessionResponse(
         Long sessionId,
+        Long problemId,
         Instant expiresAt,
         List<SummaryCardResponse> summaryCards,
         List<QuizResponse> quizzes) {
@@ -18,6 +19,7 @@ public record ProblemSessionResponse(
             ProblemSession session, List<SummaryCard> summaryCards, List<Quiz> quizzes) {
         return ProblemSessionResponse.builder()
                 .sessionId(session.getId())
+                .problemId(session.getProblem().getId())
                 .expiresAt(session.getExpiresAt())
                 .summaryCards(summaryCards.stream().map(SummaryCardResponse::from).toList())
                 .quizzes(quizzes.stream().map(QuizResponse::from).toList())

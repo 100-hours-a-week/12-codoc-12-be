@@ -14,6 +14,9 @@ public interface ProblemSessionRepository extends JpaRepository<ProblemSession, 
     Optional<ProblemSession> findFirstByUserIdAndProblemIdAndStatusOrderByIdDesc(
             Long userId, Long problemId, ProblemSessionStatus status);
 
+    Optional<ProblemSession> findFirstByUserIdAndStatusOrderByIdDesc(
+            Long userId, ProblemSessionStatus status);
+
     @Query(
             """
             select ps

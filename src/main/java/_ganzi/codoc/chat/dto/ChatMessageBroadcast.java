@@ -5,12 +5,18 @@ import _ganzi.codoc.chat.enums.ChatMessageType;
 import java.time.Instant;
 
 public record ChatMessageBroadcast(
-        Long messageId, Long senderId, ChatMessageType type, String content, Instant createdAt) {
+        Long messageId,
+        Long senderId,
+        String senderNickname,
+        ChatMessageType type,
+        String content,
+        Instant createdAt) {
 
-    public static ChatMessageBroadcast from(ChatMessage message) {
+    public static ChatMessageBroadcast from(ChatMessage message, String senderNickname) {
         return new ChatMessageBroadcast(
                 message.getId(),
                 message.getSenderId(),
+                senderNickname,
                 message.getType(),
                 message.getContent(),
                 message.getCreatedAt());

@@ -48,22 +48,7 @@ jobs:
         if: github.event_name == 'push'
         run: ./gradlew spotlessCheck
 
-      # 빌드 (Spring Boot JAR 생성)
-      # test는 별도로 돌리지 않고 있음
-      - name: Build (bootJar)
-        run: ./gradlew clean bootJar --no-daemon
-
-      # 아티팩트 업로드
-      # develop/main push -> 업로드
-      # pull_request/workflow_dispatch -> 업로드 안 함
-      - name: Upload Artifact (JAR)
-        if: (github.event_name == 'push') && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-jar-${{ github.sha }}
-          path: build/libs/*.jar
-          if-no-files-found: error
-          retention-days: 14
+      # Docker build 단계에서 Gradle build를 수행하므로 여기서는 생략
 
       - name: Configure AWS Credentials
         if: (github.event_name == 'push') && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/chore/docker_cicd')

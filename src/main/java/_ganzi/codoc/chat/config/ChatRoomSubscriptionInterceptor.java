@@ -2,6 +2,7 @@ package _ganzi.codoc.chat.config;
 
 import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.chat.repository.ChatRoomParticipantRepository;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -58,11 +59,13 @@ public class ChatRoomSubscriptionInterceptor implements ChannelInterceptor {
             return true;
         }
 
-        if (!participantRepository.existsJoinedParticipant(userId, roomId)) {
+        Long lastMessageId = participantRepository.findLastMessageIdByJoinedParticipant(userId, roomId);
+        if (lastMessageId == null) {
             log.warn("채팅방 구독 거부: userId={}, roomId={}", userId, roomId);
             return false;
         }
 
+        participantRepository.updateLastReadMessageId(roomId, List.of(userId), lastMessageId);
         registry.addSubscription(sessionId, userId, roomId);
         return true;
     }

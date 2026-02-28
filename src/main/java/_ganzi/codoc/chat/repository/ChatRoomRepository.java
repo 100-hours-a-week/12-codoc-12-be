@@ -3,12 +3,22 @@ package _ganzi.codoc.chat.repository;
 import _ganzi.codoc.chat.domain.ChatRoom;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
+
+    @Query(
+            """
+            select r
+            from ChatRoom r
+            where r.id = :roomId
+              and r.isDeleted = false
+            """)
+    Optional<ChatRoom> findActiveById(@Param("roomId") Long roomId);
 
     @Query(
             """

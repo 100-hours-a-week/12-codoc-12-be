@@ -74,7 +74,7 @@ public class ChatRoomService {
     @Transactional
     public void joinChatRoom(Long userId, Long roomId, ChatRoomJoinRequest request) {
         ChatRoom chatRoom =
-                chatRoomRepository.findById(roomId).orElseThrow(ChatRoomNotFoundException::new);
+                chatRoomRepository.findActiveById(roomId).orElseThrow(ChatRoomNotFoundException::new);
 
         ChatRoomParticipant existing =
                 chatRoomParticipantRepository.findByUserIdAndRoomId(userId, roomId).orElse(null);

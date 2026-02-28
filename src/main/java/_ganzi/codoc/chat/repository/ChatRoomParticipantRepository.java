@@ -60,13 +60,15 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
 
     @Query(
             """
-            select count(p.id) > 0
+            select r.lastMessageId
             from ChatRoomParticipant p
+            join p.chatRoom r
             where p.userId = :userId
               and p.chatRoom.id = :roomId
               and p.isJoined = true
             """)
-    boolean existsJoinedParticipant(@Param("userId") Long userId, @Param("roomId") Long roomId);
+    Long findLastMessageIdByJoinedParticipant(
+            @Param("userId") Long userId, @Param("roomId") Long roomId);
 
     @Query(
             """

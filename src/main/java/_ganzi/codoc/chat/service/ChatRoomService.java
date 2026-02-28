@@ -103,7 +103,7 @@ public class ChatRoomService {
         chatRoom.incrementParticipantCount();
 
         messagingTemplate.convertAndSend(
-                "/sub/chat/rooms/" + roomId, ChatMessageBroadcast.from(systemMessage));
+                "/sub/chat/rooms/" + roomId, ChatMessageBroadcast.from(systemMessage, null));
     }
 
     @Transactional
@@ -125,7 +125,7 @@ public class ChatRoomService {
         chatRoom.decrementParticipantCount();
 
         messagingTemplate.convertAndSend(
-                "/sub/chat/rooms/" + roomId, ChatMessageBroadcast.from(systemMessage));
+                "/sub/chat/rooms/" + roomId, ChatMessageBroadcast.from(systemMessage, null));
     }
 
     public CursorPagingResponse<UserChatRoomListItem, String> getUserChatRooms(

@@ -13,6 +13,9 @@ import _ganzi.codoc.global.cursor.CursorPayloadConverter;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
 import _ganzi.codoc.global.util.CursorPagingUtils;
 import _ganzi.codoc.global.util.PageLimitResolver;
+import _ganzi.codoc.user.domain.User;
+import _ganzi.codoc.user.exception.UserNotFoundException;
+import _ganzi.codoc.user.repository.UserRepository;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ChatMessageService {
 
+    private final UserRepository userRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final ChatRoomSubscriptionRegistry chatRoomSubscriptionRegistry;
@@ -49,11 +53,9 @@ public class ChatMessageService {
                         ChatMessageCursorPayload::firstPage);
 
         Pageable pageable = CursorPagingUtils.createPageable(resolvedLimit);
-        List<ChatMessage> messages =
+        List<ChatMessageListItem> items =
                 chatMessageRepository.findVisibleMessages(
                         roomId, participant.getJoinedMessageId(), cursorPayload.messageId(), pageable);
-
-        List<ChatMessageListItem> items = messages.stream().map(ChatMessageListItem::from).toList();
 
         return CursorPagingUtils.apply(
                 items, resolvedLimit, item -> cursorCodec.encode(ChatMessageCursorPayload.from(item)));
@@ -67,6 +69,7 @@ public class ChatMessageService {
                         .orElseThrow(NoChatRoomParticipantException::new);
 
         ChatRoom chatRoom = participant.getChatRoom();
+        User sender = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
         ChatMessage message = ChatMessage.createText(userId, chatRoom, request.content());
         chatMessageRepository.save(message);
         chatRoom.applyLastMessage(message);
@@ -78,7 +81,7 @@ public class ChatMessageService {
         }
 
         messagingTemplate.convertAndSend(
-                "/sub/chat/rooms/" + roomId, ChatMessageBroadcast.from(message));
+                "/sub/chat/rooms/" + roomId, ChatMessageBroadcast.from(message, sender.getNickname()));
 
         List<Long> allParticipantUserIds =
                 chatRoomParticipantRepository.findJoinedUserIdsByRoomId(roomId);

@@ -28,7 +28,7 @@ jobs:
       CODEDEPLOY_APP: ${{ github.ref_name == 'develop' && secrets.CODEDEPLOY_APP_DEV || secrets.CODEDEPLOY_APP }}
       CODEDEPLOY_GROUP: ${{ github.ref_name == 'develop' && secrets.CODEDEPLOY_GROUP_DEV || secrets.CODEDEPLOY_GROUP }}
       S3_BUCKET: ${{ github.ref_name == 'develop' && secrets.DEPLOY_BUCKET_DEV || secrets.DEPLOY_BUCKET }}
-      S3_KEY_PREFIX: ${{ github.ref_name == 'develop' && secrets.DEPLOY_KEY_PREFIX_DEV || secrets.DEPLOY_KEY_PREFIX }}
+      S3_KEY: ${{ github.ref_name == 'develop' && secrets.DEPLOY_KEY_DEV || secrets.DEPLOY_KEY }}
 
     steps:
       - name: Checkout
@@ -41,23 +41,12 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build CodeDeploy Bundle
-        run: |
-          cd deploy
-          zip -r /tmp/codoc-deploy.zip .
-
-      - name: Upload Bundle to S3
-        run: |
-          KEY="${S3_KEY_PREFIX}/codoc-deploy-${GITHUB_SHA}.zip"
-          aws s3 cp /tmp/codoc-deploy.zip "s3://${S3_BUCKET}/${KEY}"
-          echo "DEPLOY_S3_KEY=${KEY}" >> $GITHUB_ENV
-
       - name: Create CodeDeploy Deployment
         run: |
           aws deploy create-deployment \
             --application-name "$CODEDEPLOY_APP" \
             --deployment-group-name "$CODEDEPLOY_GROUP" \
-            --revision "revisionType=S3,s3Location={bucket=${S3_BUCKET},key=${DEPLOY_S3_KEY},bundleType=zip}"
+            --revision "revisionType=S3,s3Location={bucket=${S3_BUCKET},key=${S3_KEY},bundleType=zip}"
 
       - name: Notify Discord
         if: always()

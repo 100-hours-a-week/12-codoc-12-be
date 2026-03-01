@@ -1,7 +1,10 @@
 package _ganzi.codoc.analysis.service.dto;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import java.time.LocalDate;
+import _ganzi.codoc.analysis.dto.AnalysisPeriod;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonRawValue;
 
 public record AnalysisReportDetailResponse(
-        LocalDate periodStart, LocalDate periodEnd, JsonNode report) {}
+        @JsonProperty("user_id") long userId,
+        @JsonProperty("analysis_period") AnalysisPeriod analysisPeriod,
+        @JsonRawValue @JsonProperty("report") String report) {}

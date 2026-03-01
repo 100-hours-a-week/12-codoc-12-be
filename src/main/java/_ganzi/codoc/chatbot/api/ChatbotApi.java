@@ -60,6 +60,46 @@ public interface ChatbotApi {
             user = {UserErrorCode.USER_NOT_FOUND})
     Flux<ServerSentEvent<String>> sendAndStream(AuthUser authUser, ChatbotMessageSendRequest request);
 
+    @Operation(summary = "Stop chatbot stream by conversationId")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "400",
+                description = "INVALID_INPUT"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "401",
+                description = "AUTH_REQUIRED, UNAUTHORIZED"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "403",
+                description = "FORBIDDEN, CHATBOT_CONVERSATION_NO_PERMISSION"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "404",
+                description = "CHATBOT_CONVERSATION_NOT_FOUND"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "409",
+                description = "CHATBOT_CONVERSATION_NOT_PROCESSING"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "503",
+                description = "CHATBOT_STREAM_CANCEL_FAILED"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "500",
+                description = "INTERNAL_SERVER_ERROR")
+    })
+    @ErrorCodes(
+            global = {
+                GlobalErrorCode.INVALID_INPUT,
+                GlobalErrorCode.AUTH_REQUIRED,
+                GlobalErrorCode.UNAUTHORIZED,
+                GlobalErrorCode.FORBIDDEN,
+                GlobalErrorCode.INTERNAL_SERVER_ERROR
+            },
+            chatbot = {
+                ChatbotErrorCode.CHATBOT_CONVERSATION_NOT_FOUND,
+                ChatbotErrorCode.CHATBOT_CONVERSATION_NO_PERMISSION,
+                ChatbotErrorCode.CHATBOT_CONVERSATION_NOT_PROCESSING,
+                ChatbotErrorCode.CHATBOT_STREAM_CANCEL_FAILED
+            })
+    ResponseEntity<Void> stopStream(AuthUser authUser, Long conversationId);
+
     @Operation(summary = "Get chatbot conversation history of current session by problem")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(

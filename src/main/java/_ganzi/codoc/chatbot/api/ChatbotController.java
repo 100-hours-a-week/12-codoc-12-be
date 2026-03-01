@@ -34,6 +34,14 @@ public class ChatbotController implements ChatbotApi {
     }
 
     @Override
+    @DeleteMapping("/messages/{conversationId}")
+    public ResponseEntity<Void> stopStream(
+            @AuthenticationPrincipal AuthUser authUser, @PathVariable Long conversationId) {
+        chatbotService.stopStream(authUser.userId(), conversationId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Override
     @GetMapping("/conversations")
     public ResponseEntity<ApiResponse<CursorPagingResponse<ChatbotConversationListItem, Long>>>
             getConversationList(

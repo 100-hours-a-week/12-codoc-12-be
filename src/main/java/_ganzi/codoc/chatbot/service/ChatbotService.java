@@ -1,10 +1,12 @@
 package _ganzi.codoc.chatbot.service;
 
 import _ganzi.codoc.ai.config.AiServerProperties;
-import _ganzi.codoc.ai.dto.AiServerChatbotFinalEvent;
+import _ganzi.codoc.ai.dto.AiServerApiResponse;
+import _ganzi.codoc.ai.dto.AiServerChatbotEvent;
 import _ganzi.codoc.ai.dto.AiServerChatbotFinalResult;
 import _ganzi.codoc.ai.dto.AiServerChatbotSendRequest;
 import _ganzi.codoc.ai.dto.AiServerErrorEvent;
+import _ganzi.codoc.ai.enums.ChatbotStatus;
 import _ganzi.codoc.ai.infra.ChatbotClient;
 import _ganzi.codoc.ai.util.AiServerResponseParser;
 import _ganzi.codoc.chatbot.domain.ChatbotAttempt;
@@ -12,8 +14,12 @@ import _ganzi.codoc.chatbot.domain.ChatbotConversation;
 import _ganzi.codoc.chatbot.dto.ChatbotConversationListCondition;
 import _ganzi.codoc.chatbot.dto.ChatbotConversationListItem;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendRequest;
+import _ganzi.codoc.chatbot.dto.ChatbotMessageSendResponse;
 import _ganzi.codoc.chatbot.enums.ChatbotAttemptStatus;
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
+import _ganzi.codoc.chatbot.exception.ChatbotConversationNoPermissionException;
+import _ganzi.codoc.chatbot.exception.ChatbotConversationNotFoundException;
+import _ganzi.codoc.chatbot.exception.ChatbotStreamCancelFailedException;
 import _ganzi.codoc.chatbot.exception.ChatbotStreamEventException;
 import _ganzi.codoc.chatbot.repository.ChatbotAttemptRepository;
 import _ganzi.codoc.chatbot.repository.ChatbotConversationRepository;
@@ -36,6 +42,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import tools.jackson.databind.json.JsonMapper;
 
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -44,6 +52,7 @@ public class ChatbotService {
 
     private static final String EVENT_FINAL = "final";
     private static final String EVENT_ERROR = "error";
+    private static final String EVENT_STATUS = "status";
     private static final String CODE_SUCCESS = "SUCCESS";
 
     private final ChatbotClient chatbotClient;
@@ -54,6 +63,7 @@ public class ChatbotService {
     private final ProblemSessionService problemSessionService;
     private final AiServerProperties aiServerProperties;
     private final AiServerResponseParser responseParser;
+    private final JsonMapper jsonMapper;
 
     @Transactional
     public Flux<ServerSentEvent<String>> sendAndStream(
@@ -85,8 +95,9 @@ public class ChatbotService {
                         user.getInitLevel(),
                         attempt.getCurrentParagraphType());
 
-        return chatbotClient
-                .streamMessage(aiServerRequest)
+        ServerSentEvent<String> acceptedEvent = buildAcceptedEvent(chatbotConversation.getId());
+
+        return Flux.concat(Mono.just(acceptedEvent), chatbotClient.streamMessage(aiServerRequest))
                 .timeout(aiServerProperties.chatbotStreamTimeout())
                 .doOnNext(event -> handleStreamEvent(chatbotConversation.getId(), event))
                 .doOnError(error -> deleteConversationSilently(chatbotConversation.getId()));
@@ -119,6 +130,21 @@ public class ChatbotService {
 
         return CursorPagingUtils.apply(
                 items, condition.limit(), ChatbotConversationListItem::conversationId);
+    }
+
+    @Transactional
+    public void stopStream(Long userId, Long conversationId) {
+        ChatbotConversation conversation = validateConversationPermission(userId, conversationId);
+        conversation.validateProcessing();
+
+        AiServerApiResponse<Void> cancelResponse =
+                chatbotClient.cancelMessage(conversationId).block(aiServerProperties.baseTimeout());
+
+        if (cancelResponse == null || !CODE_SUCCESS.equals(cancelResponse.code())) {
+            throw new ChatbotStreamCancelFailedException();
+        }
+
+        conversation.markCanceled();
     }
 
     private ChatbotAttempt resolveAttempt(User user, Problem problem, ProblemSession session) {
@@ -156,7 +182,8 @@ public class ChatbotService {
             deleteAndThrow(conversationId);
         }
 
-        AiServerChatbotFinalEvent finalEvent = responseParser.parseChatbotFinalEvent(data);
+        AiServerChatbotEvent<AiServerChatbotFinalResult> finalEvent =
+                responseParser.parseChatbotEvent(data, AiServerChatbotFinalResult.class);
         if (finalEvent == null || !CODE_SUCCESS.equals(finalEvent.code())) {
             deleteAndThrow(conversationId);
         }
@@ -177,7 +204,8 @@ public class ChatbotService {
         deleteAndThrow(conversationId);
     }
 
-    private void persistFinalEvent(Long conversationId, AiServerChatbotFinalEvent finalEvent) {
+    private void persistFinalEvent(
+            Long conversationId, AiServerChatbotEvent<AiServerChatbotFinalResult> finalEvent) {
         AiServerChatbotFinalResult result = finalEvent.result();
         String aiMessage = result.aiMessage();
         Boolean isCorrect = result.isCorrect();
@@ -209,8 +237,39 @@ public class ChatbotService {
         chatbotConversationRepository.deleteById(conversationId);
     }
 
+    private ServerSentEvent<String> buildAcceptedEvent(Long conversationId) {
+        AiServerChatbotEvent<ChatbotMessageSendResponse> acceptedEventPayload =
+                new AiServerChatbotEvent<>(
+                        CODE_SUCCESS,
+                        null,
+                        ChatbotMessageSendResponse.of(conversationId, ChatbotStatus.ACCEPTED));
+
+        String acceptedEventData;
+        try {
+            acceptedEventData = jsonMapper.writeValueAsString(acceptedEventPayload);
+        } catch (Exception exception) {
+            deleteConversationSilently(conversationId);
+            throw new ChatbotStreamEventException();
+        }
+
+        return ServerSentEvent.<String>builder().event(EVENT_STATUS).data(acceptedEventData).build();
+    }
+
     private void deleteAndThrow(Long conversationId) {
         deleteConversationSilently(conversationId);
         throw new ChatbotStreamEventException();
+    }
+
+    private ChatbotConversation validateConversationPermission(Long userId, Long conversationId) {
+        ChatbotConversation conversation =
+                chatbotConversationRepository
+                        .findWithAttemptAndUserById(conversationId)
+                        .orElseThrow(ChatbotConversationNotFoundException::new);
+
+        if (!conversation.getAttempt().getUser().getId().equals(userId)) {
+            throw new ChatbotConversationNoPermissionException();
+        }
+
+        return conversation;
     }
 }

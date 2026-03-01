@@ -10,4 +10,5 @@ public record ChatMessageListItem(
         String senderAvatarImageUrl,
         ChatMessageType type,
         String content,
+        Integer participantCount,
         Instant createdAt) {}

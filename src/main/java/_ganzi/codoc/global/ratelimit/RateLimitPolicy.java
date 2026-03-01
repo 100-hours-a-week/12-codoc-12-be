@@ -15,4 +15,8 @@ public record RateLimitPolicy(
                 .consumeToken(policy.consumeToken())
                 .build();
     }
+
+    public int consumeTokenOrDefault() {
+        return consumeToken != null && consumeToken > 0 ? consumeToken : 1;
+    }
 }

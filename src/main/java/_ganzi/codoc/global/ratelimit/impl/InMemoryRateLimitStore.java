@@ -18,9 +18,15 @@ public class InMemoryRateLimitStore implements RateLimitStore {
         Bandwidth bandwidth =
                 Bandwidth.builder()
                         .capacity(policy.limit())
-                        .refillIntervally(policy.limit(), policy.period())
+                        .refillGreedy(policy.limit(), policy.period())
                         .build();
 
-        return bucketStore.computeIfAbsent(key, k -> Bucket.builder().addLimit(bandwidth).build());
+        return bucketStore.computeIfAbsent(
+                key,
+                k -> {
+                    var builder = Bucket.builder();
+                    builder.addLimit(bandwidth);
+                    return builder.build();
+                });
     }
 }

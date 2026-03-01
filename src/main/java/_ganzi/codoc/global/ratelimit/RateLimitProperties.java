@@ -2,6 +2,7 @@ package _ganzi.codoc.global.ratelimit;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -13,7 +14,7 @@ public record RateLimitProperties(
 
     public record Policy(
             @NotNull Boolean enabled,
-            @NotNull Integer limit,
+            @Positive Integer limit,
             @NotNull Duration period,
-            @NotNull Integer consumeToken) {}
+            @Positive Integer consumeToken) {}
 }

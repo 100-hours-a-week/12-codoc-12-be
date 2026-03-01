@@ -7,6 +7,7 @@ public record ChatMessageListItem(
         Long messageId,
         Long senderId,
         String senderNickname,
+        String senderAvatarImageUrl,
         ChatMessageType type,
         String content,
         Instant createdAt) {}

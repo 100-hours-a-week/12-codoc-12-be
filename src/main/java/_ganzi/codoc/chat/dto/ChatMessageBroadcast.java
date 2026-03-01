@@ -9,17 +9,22 @@ public record ChatMessageBroadcast(
         Long senderId,
         String senderNickname,
         String senderAvatarImageUrl,
+        Integer participantCount,
         ChatMessageType type,
         String content,
         Instant createdAt) {
 
     public static ChatMessageBroadcast from(
-            ChatMessage message, String senderNickname, String senderAvatarImageUrl) {
+            ChatMessage message,
+            String senderNickname,
+            String senderAvatarImageUrl,
+            Integer participantCount) {
         return new ChatMessageBroadcast(
                 message.getId(),
                 message.getSenderId(),
                 senderNickname,
                 senderAvatarImageUrl,
+                participantCount,
                 message.getType(),
                 message.getContent(),
                 message.getCreatedAt());

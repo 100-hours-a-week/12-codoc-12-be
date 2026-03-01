@@ -16,7 +16,7 @@ public class RateLimitService {
 
     public RateLimitResult tryConsume(String key, RateLimitPolicy policy) {
         Bucket bucket = rateLimitStore.getBucket(key, policy);
-        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(policy.consumeToken());
+        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(policy.consumeTokenOrDefault());
         EstimationProbe resetProbe = bucket.estimateAbilityToConsume(policy.limit());
 
         if (!probe.isConsumed()) {

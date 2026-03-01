@@ -17,7 +17,7 @@ public record AnalysisReportRequest(
             @JsonProperty("chatbot_msg_history") List<ChatbotMessageHistory> chatbotMsgHistory,
             @JsonProperty("total_chatbot_requests") long totalChatbotRequests,
             @JsonProperty("solve_duration_sec") long solveDurationSec,
-            @JsonProperty("solved_problem_weekly") long solvedProblemWeekly) {}
+            @JsonProperty("solved_problems_weekly") long solvedProblemsWeekly) {}
 
     public record ChatbotMessageHistory(
             long id,

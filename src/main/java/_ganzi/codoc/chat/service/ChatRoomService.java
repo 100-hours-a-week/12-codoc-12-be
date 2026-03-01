@@ -150,6 +150,12 @@ public class ChatRoomService {
                                 userId, keyword, cursorPayload.orderedAt(), cursorPayload.roomId(), pageable));
     }
 
+    public UserChatUnreadStatusResponse getUserChatUnreadStatus(Long userId) {
+        boolean hasUnread =
+                chatRoomParticipantRepository.existsJoinedParticipantWithUnreadMessages(userId);
+        return new UserChatUnreadStatusResponse(hasUnread);
+    }
+
     public CursorPagingResponse<ChatRoomListItem, String> searchAllChatRooms(
             String keyword, String cursor, Integer limit) {
 

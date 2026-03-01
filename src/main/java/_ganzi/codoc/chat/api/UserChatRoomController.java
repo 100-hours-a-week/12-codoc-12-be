@@ -2,6 +2,7 @@ package _ganzi.codoc.chat.api;
 
 import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.chat.dto.UserChatRoomListItem;
+import _ganzi.codoc.chat.dto.UserChatUnreadStatusResponse;
 import _ganzi.codoc.chat.service.ChatRoomService;
 import _ganzi.codoc.global.dto.ApiResponse;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
@@ -41,6 +42,14 @@ public class UserChatRoomController {
                     @RequestParam(required = false) Integer limit) {
         CursorPagingResponse<UserChatRoomListItem, String> response =
                 chatRoomService.searchUserChatRooms(authUser.userId(), keyword, cursor, limit);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/unread-status")
+    public ResponseEntity<ApiResponse<UserChatUnreadStatusResponse>> getUserChatUnreadStatus(
+            @AuthenticationPrincipal AuthUser authUser) {
+        UserChatUnreadStatusResponse response =
+                chatRoomService.getUserChatUnreadStatus(authUser.userId());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

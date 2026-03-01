@@ -61,9 +61,33 @@ public class AnalysisReportService {
         AnalysisWindow window = AnalysisWindow.from(ZonedDateTime.now(SEOUL));
         List<User> users = userRepository.findAllByStatus(UserStatus.ACTIVE);
 
+        int successCount = 0;
+        int dependencyNotReadyCount = 0;
+        int unauthorizedCount = 0;
+        int failedCount = 0;
+        log.info(
+                "analysis report batch start. users={}, periodStart={}, periodEnd={}",
+                users.size(),
+                window.periodStart(),
+                window.periodEnd());
+
         for (User user : users) {
-            issueReportForUser(user, window);
+            IssueResult result = issueReportForUser(user, window);
+            switch (result) {
+                case SUCCESS -> successCount++;
+                case DEPENDENCY_NOT_READY -> dependencyNotReadyCount++;
+                case UNAUTHORIZED -> unauthorizedCount++;
+                case FAILED -> failedCount++;
+                default -> {}
+            }
         }
+
+        log.info(
+                "analysis report batch end. success={}, dependencyNotReady={}, unauthorized={}, failed={}",
+                successCount,
+                dependencyNotReadyCount,
+                unauthorizedCount,
+                failedCount);
     }
 
     public AnalysisReportDetailResponse getLatestReport(Long userId) {
@@ -72,33 +96,34 @@ public class AnalysisReportService {
                         .findFirstByUserIdOrderByPeriodEndDesc(userId)
                         .orElseThrow(ResourceNotFoundException::new);
 
-        JsonNode reportNode = parseReportJson(report.getReportJson());
         return new AnalysisReportDetailResponse(
-                report.getPeriodStart(), report.getPeriodEnd(), reportNode);
+                userId,
+                new AnalysisPeriod(report.getPeriodStart(), report.getPeriodEnd()),
+                report.getReportJson());
     }
 
-    private void issueReportForUser(User user, AnalysisWindow window) {
+    private IssueResult issueReportForUser(User user, AnalysisWindow window) {
         AnalysisReportRequest request = buildRequest(user, window);
-        AnalysisReportResponse response = analysisReportClient.requestReport(request);
+        AnalysisReportResponse response = requestReportWithRetry(request, user.getId());
 
         if (response == null || response.code() == null) {
             log.warn("analysis report response empty. userId={}", user.getId());
-            return;
+            return IssueResult.FAILED;
         }
 
         if (CODE_DEPENDENCY_NOT_READY.equals(response.code())) {
             log.info("analysis report dependency not ready. userId={}", user.getId());
-            return;
+            return IssueResult.DEPENDENCY_NOT_READY;
         }
 
         if (CODE_UNAUTHORIZED_INTERNAL.equals(response.code())) {
             log.error("analysis report unauthorized. userId={}", user.getId());
-            throw new IllegalStateException("Analysis report unauthorized");
+            return IssueResult.UNAUTHORIZED;
         }
 
         if (!CODE_SUCCESS.equals(response.code()) || response.data() == null) {
             log.warn("analysis report failed. userId={}, code={}", user.getId(), response.code());
-            return;
+            return IssueResult.FAILED;
         }
 
         String reportJson = serializeReport(response.data().report());
@@ -106,6 +131,27 @@ public class AnalysisReportService {
                 AnalysisReport.create(
                         user, window.periodStart(), window.periodEnd(), reportJson, Instant.now());
         analysisReportRepository.save(report);
+        return IssueResult.SUCCESS;
+    }
+
+    private AnalysisReportResponse requestReportWithRetry(
+            AnalysisReportRequest request, Long userId) {
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                return analysisReportClient.requestReport(request);
+            } catch (Exception ex) {
+                log.warn(
+                        "analysis report request failed. userId={}, attempt={}, error={}",
+                        userId,
+                        attempt,
+                        ex.getClass().getSimpleName());
+                if (attempt == 2) {
+                    return null;
+                }
+            }
+        }
+
+        return null;
     }
 
     private AnalysisReportRequest buildRequest(User user, AnalysisWindow window) {
@@ -121,7 +167,7 @@ public class AnalysisReportService {
                 problemSessionService.calculateSolveDurationSec(
                         user.getId(), window.startAt(), window.endAt());
 
-        long solvedProblemWeekly =
+        long solvedProblemsWeekly =
                 userProblemResultRepository.countByUserIdAndStatusAndUpdatedAtBetween(
                         user.getId(), ProblemSolvingStatus.SOLVED, window.startAt(), window.endAt());
 
@@ -136,7 +182,7 @@ public class AnalysisReportService {
                                 .toList(),
                         totalChatbotRequests,
                         solveDurationSec,
-                        solvedProblemWeekly);
+                        solvedProblemsWeekly);
 
         String userLevel =
                 user.getInitLevel() != null ? user.getInitLevel().name().toLowerCase() : "newbie";
@@ -190,14 +236,6 @@ public class AnalysisReportService {
         }
     }
 
-    private JsonNode parseReportJson(String reportJson) {
-        try {
-            return objectMapper.readTree(reportJson);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to parse analysis report", e);
-        }
-    }
-
     private record AnalysisWindow(
             Instant startAt, Instant endAt, LocalDate periodStart, LocalDate periodEnd) {
 
@@ -207,5 +245,12 @@ public class AnalysisReportService {
             return new AnalysisWindow(
                     startAt.toInstant(), endAt.toInstant(), startAt.toLocalDate(), endAt.toLocalDate());
         }
+    }
+
+    private enum IssueResult {
+        SUCCESS,
+        DEPENDENCY_NOT_READY,
+        UNAUTHORIZED,
+        FAILED
     }
 }

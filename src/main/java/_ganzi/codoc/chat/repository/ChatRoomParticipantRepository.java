@@ -127,4 +127,21 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
             """)
     List<ParticipantUnreadMessageCount> countUnreadMessagesByParticipantIds(
             @Param("participantIds") List<Long> participantIds);
+
+    @Query(
+            """
+            select count(p.id) > 0
+            from ChatRoomParticipant p
+            where p.userId = :userId
+              and p.isJoined = true
+              and p.chatRoom.isDeleted = false
+              and exists (
+                    select 1
+                    from ChatMessage m
+                    where m.chatRoom = p.chatRoom
+                      and m.id > coalesce(p.lastReadMessageId, 0)
+                      and m.senderId is not null
+              )
+            """)
+    boolean existsJoinedParticipantWithUnreadMessages(@Param("userId") Long userId);
 }

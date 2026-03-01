@@ -16,6 +16,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
                 m.id,
                 m.senderId,
                 u.nickname,
+                a.imageUrl,
                 m.type,
                 m.content,
                 m.createdAt
@@ -23,6 +24,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             from ChatMessage m
             left join _ganzi.codoc.user.domain.User u
               on u.id = m.senderId
+            left join u.avatar a
             where m.chatRoom.id = :roomId
               and m.id >= :joinedMessageId
               and m.type != _ganzi.codoc.chat.enums.ChatMessageType.INIT

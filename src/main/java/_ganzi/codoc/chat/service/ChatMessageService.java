@@ -81,7 +81,8 @@ public class ChatMessageService {
         }
 
         messagingTemplate.convertAndSend(
-                "/sub/chat/rooms/" + roomId, ChatMessageBroadcast.from(message, sender.getNickname()));
+                "/sub/chat/rooms/" + roomId,
+                ChatMessageBroadcast.from(message, sender.getNickname(), sender.getAvatar().getImageUrl()));
 
         List<Long> allParticipantUserIds =
                 chatRoomParticipantRepository.findJoinedUserIdsByRoomId(roomId);

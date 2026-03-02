@@ -72,6 +72,20 @@ public class ChatbotConversation extends BaseTimeEntity {
         this.status = ChatbotConversationStatus.CANCELED;
     }
 
+    public void markDisconnected() {
+        if (this.status != ChatbotConversationStatus.PROCESSING) {
+            return;
+        }
+        this.status = ChatbotConversationStatus.DISCONNECTED;
+    }
+
+    public void markFailed() {
+        if (this.status != ChatbotConversationStatus.PROCESSING) {
+            return;
+        }
+        this.status = ChatbotConversationStatus.FAILED;
+    }
+
     public void validateProcessing() {
         if (this.status != ChatbotConversationStatus.PROCESSING) {
             throw new ChatbotConversationNotProcessingException();

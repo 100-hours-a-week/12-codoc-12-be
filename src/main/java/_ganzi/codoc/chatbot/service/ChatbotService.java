@@ -18,6 +18,7 @@ import _ganzi.codoc.chatbot.enums.ChatbotAttemptStatus;
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNoPermissionException;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNotFoundException;
+import _ganzi.codoc.chatbot.exception.ChatbotConversationNotResumableException;
 import _ganzi.codoc.chatbot.exception.ChatbotStreamCancelFailedException;
 import _ganzi.codoc.chatbot.exception.ChatbotStreamEventException;
 import _ganzi.codoc.chatbot.repository.ChatbotAttemptRepository;
@@ -94,13 +95,37 @@ public class ChatbotService {
                         user.getInitLevel(),
                         attempt.getCurrentParagraphType());
 
-        ServerSentEvent<String> acceptedEvent = buildAcceptedEvent(chatbotConversation.getId());
+        return startStream(chatbotConversation.getId(), aiServerRequest);
+    }
 
-        return Flux.concat(Mono.just(acceptedEvent), chatbotClient.streamMessage(aiServerRequest))
-                .timeout(aiServerProperties.chatbotStreamTimeout())
-                .doOnNext(event -> handleStreamEvent(chatbotConversation.getId(), event))
-                .doOnError(error -> markFailedIfProcessing(chatbotConversation.getId()))
-                .doOnCancel(() -> markDisconnectedIfProcessing(chatbotConversation.getId()));
+    @Transactional
+    public Flux<ServerSentEvent<String>> resumeAndStream(Long userId, Long conversationId) {
+        ChatbotConversation conversation = validateConversationPermission(userId, conversationId);
+        ChatbotAttempt attempt = conversation.getAttempt();
+
+        ProblemSession currentSession =
+                problemSessionService.requireActive(userId, attempt.getProblem().getId());
+        if (currentSession == null) {
+            throw new SessionRequiredException();
+        }
+
+        if (attempt.getProblemSession() == null
+                || !currentSession.getId().equals(attempt.getProblemSession().getId())) {
+            throw new ChatbotConversationNotResumableException();
+        }
+
+        conversation.prepareResume();
+
+        AiServerChatbotSendRequest aiServerRequest =
+                AiServerChatbotSendRequest.of(
+                        userId,
+                        attempt.getProblem().getId(),
+                        conversation.getId(),
+                        conversation.getUserMessage(),
+                        attempt.getUser().getInitLevel(),
+                        attempt.getCurrentParagraphType());
+
+        return startStream(conversation.getId(), aiServerRequest);
     }
 
     public CursorPagingResponse<ChatbotConversationListItem, Long> getConversationList(
@@ -152,6 +177,17 @@ public class ChatbotService {
         }
 
         conversation.markCanceled();
+    }
+
+    private Flux<ServerSentEvent<String>> startStream(
+            Long conversationId, AiServerChatbotSendRequest aiServerRequest) {
+        ServerSentEvent<String> acceptedEvent = buildAcceptedEvent(conversationId);
+
+        return Flux.concat(Mono.just(acceptedEvent), chatbotClient.streamMessage(aiServerRequest))
+                .timeout(aiServerProperties.chatbotStreamTimeout())
+                .doOnNext(event -> handleStreamEvent(conversationId, event))
+                .doOnError(error -> markFailedIfProcessing(conversationId))
+                .doOnCancel(() -> markDisconnectedIfProcessing(conversationId));
     }
 
     private ChatbotAttempt resolveAttempt(User user, Problem problem, ProblemSession session) {

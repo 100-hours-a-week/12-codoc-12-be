@@ -1,7 +1,6 @@
 package _ganzi.codoc.ai.util;
 
 import _ganzi.codoc.ai.dto.AiServerChatbotEvent;
-import _ganzi.codoc.ai.dto.AiServerErrorEvent;
 import _ganzi.codoc.global.util.JsonUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -41,13 +40,5 @@ public class AiServerResponseParser {
         String message = messageNode != null && !messageNode.isNull() ? messageNode.asString() : null;
 
         return new AiServerChatbotEvent<>(code, message, result);
-    }
-
-    public AiServerErrorEvent parseErrorEvent(String data) {
-        if (data == null || data.isBlank()) {
-            return null;
-        }
-
-        return JsonUtils.parseJson(jsonMapper, data, AiServerErrorEvent.class);
     }
 }

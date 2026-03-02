@@ -5,7 +5,6 @@ import _ganzi.codoc.ai.dto.AiServerApiResponse;
 import _ganzi.codoc.ai.dto.AiServerChatbotEvent;
 import _ganzi.codoc.ai.dto.AiServerChatbotFinalResult;
 import _ganzi.codoc.ai.dto.AiServerChatbotSendRequest;
-import _ganzi.codoc.ai.dto.AiServerErrorEvent;
 import _ganzi.codoc.ai.enums.ChatbotStatus;
 import _ganzi.codoc.ai.infra.ChatbotClient;
 import _ganzi.codoc.ai.util.AiServerResponseParser;
@@ -100,7 +99,8 @@ public class ChatbotService {
         return Flux.concat(Mono.just(acceptedEvent), chatbotClient.streamMessage(aiServerRequest))
                 .timeout(aiServerProperties.chatbotStreamTimeout())
                 .doOnNext(event -> handleStreamEvent(chatbotConversation.getId(), event))
-                .doOnError(error -> deleteConversationSilently(chatbotConversation.getId()));
+                .doOnError(error -> markFailedIfProcessing(chatbotConversation.getId()))
+                .doOnCancel(() -> markDisconnectedIfProcessing(chatbotConversation.getId()));
     }
 
     public CursorPagingResponse<ChatbotConversationListItem, Long> getConversationList(
@@ -137,10 +137,17 @@ public class ChatbotService {
         ChatbotConversation conversation = validateConversationPermission(userId, conversationId);
         conversation.validateProcessing();
 
-        AiServerApiResponse<Void> cancelResponse =
-                chatbotClient.cancelMessage(conversationId).block(aiServerProperties.baseTimeout());
+        AiServerApiResponse<Void> cancelResponse;
+        try {
+            cancelResponse =
+                    chatbotClient.cancelMessage(conversationId).block(aiServerProperties.baseTimeout());
+        } catch (RuntimeException exception) {
+            conversation.markCanceled();
+            throw new ChatbotStreamCancelFailedException();
+        }
 
         if (cancelResponse == null || !CODE_SUCCESS.equals(cancelResponse.code())) {
+            conversation.markCanceled();
             throw new ChatbotStreamCancelFailedException();
         }
 
@@ -173,35 +180,26 @@ public class ChatbotService {
         }
 
         if (EVENT_ERROR.equals(eventName)) {
-            handleErrorEvent(conversationId, data);
+            markFailedAndThrow(conversationId);
         }
     }
 
     private void handleFinalSuccessEvent(Long conversationId, String data) {
         if (data == null || data.isBlank()) {
-            deleteAndThrow(conversationId);
+            markFailedAndThrow(conversationId);
         }
 
         AiServerChatbotEvent<AiServerChatbotFinalResult> finalEvent =
                 responseParser.parseChatbotEvent(data, AiServerChatbotFinalResult.class);
         if (finalEvent == null || !CODE_SUCCESS.equals(finalEvent.code())) {
-            deleteAndThrow(conversationId);
+            markFailedAndThrow(conversationId);
         }
 
         if (finalEvent.result() == null) {
-            deleteAndThrow(conversationId);
+            markFailedAndThrow(conversationId);
         }
 
         persistFinalEvent(conversationId, finalEvent);
-    }
-
-    private void handleErrorEvent(Long conversationId, String data) {
-        AiServerErrorEvent errorEvent = responseParser.parseErrorEvent(data);
-        if (errorEvent == null) {
-            deleteAndThrow(conversationId);
-        }
-
-        deleteAndThrow(conversationId);
     }
 
     private void persistFinalEvent(
@@ -233,10 +231,6 @@ public class ChatbotService {
         chatbotConversationRepository.save(conversation);
     }
 
-    private void deleteConversationSilently(Long conversationId) {
-        chatbotConversationRepository.deleteById(conversationId);
-    }
-
     private ServerSentEvent<String> buildAcceptedEvent(Long conversationId) {
         AiServerChatbotEvent<ChatbotMessageSendResponse> acceptedEventPayload =
                 new AiServerChatbotEvent<>(
@@ -248,16 +242,34 @@ public class ChatbotService {
         try {
             acceptedEventData = jsonMapper.writeValueAsString(acceptedEventPayload);
         } catch (Exception exception) {
-            deleteConversationSilently(conversationId);
+            markFailedIfProcessing(conversationId);
             throw new ChatbotStreamEventException();
         }
 
         return ServerSentEvent.<String>builder().event(EVENT_STATUS).data(acceptedEventData).build();
     }
 
-    private void deleteAndThrow(Long conversationId) {
-        deleteConversationSilently(conversationId);
+    private void markFailedAndThrow(Long conversationId) {
+        markFailedIfProcessing(conversationId);
         throw new ChatbotStreamEventException();
+    }
+
+    private void markDisconnectedIfProcessing(Long conversationId) {
+        ChatbotConversation conversation =
+                chatbotConversationRepository
+                        .findById(conversationId)
+                        .orElseThrow(ChatbotConversationNotFoundException::new);
+        conversation.markDisconnected();
+        chatbotConversationRepository.save(conversation);
+    }
+
+    private void markFailedIfProcessing(Long conversationId) {
+        ChatbotConversation conversation =
+                chatbotConversationRepository
+                        .findById(conversationId)
+                        .orElseThrow(ChatbotConversationNotFoundException::new);
+        conversation.markFailed();
+        chatbotConversationRepository.save(conversation);
     }
 
     private ChatbotConversation validateConversationPermission(Long userId, Long conversationId) {

@@ -60,6 +60,7 @@ public class ChatbotService {
     private final ProblemRepository problemRepository;
     private final ChatbotConversationRepository chatbotConversationRepository;
     private final ChatbotAttemptRepository chatbotAttemptRepository;
+    private final ChatbotConversationStatusService chatbotConversationStatusService;
     private final ProblemSessionService problemSessionService;
     private final AiServerProperties aiServerProperties;
     private final AiServerResponseParser responseParser;
@@ -167,12 +168,12 @@ public class ChatbotService {
             cancelResponse =
                     chatbotClient.cancelMessage(conversationId).block(aiServerProperties.baseTimeout());
         } catch (RuntimeException exception) {
-            conversation.markCanceled();
+            chatbotConversationStatusService.markCanceled(conversationId);
             throw new ChatbotStreamCancelFailedException();
         }
 
         if (cancelResponse == null || !CODE_SUCCESS.equals(cancelResponse.code())) {
-            conversation.markCanceled();
+            chatbotConversationStatusService.markCanceled(conversationId);
             throw new ChatbotStreamCancelFailedException();
         }
 

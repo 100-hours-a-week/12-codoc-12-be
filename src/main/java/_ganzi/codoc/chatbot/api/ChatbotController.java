@@ -34,6 +34,16 @@ public class ChatbotController implements ChatbotApi {
     }
 
     @Override
+    @RateLimit(type = RateLimitApiType.CHATBOT_STREAM)
+    @PostMapping(
+            value = "/messages/{conversationId}/stream",
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> resumeAndStream(
+            @AuthenticationPrincipal AuthUser authUser, @PathVariable Long conversationId) {
+        return chatbotService.resumeAndStream(authUser.userId(), conversationId);
+    }
+
+    @Override
     @DeleteMapping("/messages/{conversationId}")
     public ResponseEntity<Void> stopStream(
             @AuthenticationPrincipal AuthUser authUser, @PathVariable Long conversationId) {

@@ -12,6 +12,8 @@ public enum ChatbotErrorCode implements ErrorCode {
             HttpStatus.FORBIDDEN, "CHATBOT_CONVERSATION_NO_PERMISSION", "대화 내역에 대한 권한이 없습니다."),
     CHATBOT_CONVERSATION_NOT_PROCESSING(
             HttpStatus.CONFLICT, "CHATBOT_CONVERSATION_NOT_PROCESSING", "처리 중인 대화만 중단할 수 있습니다."),
+    CHATBOT_CONVERSATION_NOT_RESUMABLE(
+            HttpStatus.CONFLICT, "CHATBOT_CONVERSATION_NOT_RESUMABLE", "재요청할 수 없는 대화 상태입니다."),
     CHATBOT_STREAM_RATE_LIMIT_EXCEEDED(
             HttpStatus.TOO_MANY_REQUESTS, "CHATBOT_STREAM_RATE_LIMIT_EXCEEDED", "챗봇 스트림 요청 횟수를 초과했습니다."),
     CHATBOT_STREAM_EVENT_FAILED(

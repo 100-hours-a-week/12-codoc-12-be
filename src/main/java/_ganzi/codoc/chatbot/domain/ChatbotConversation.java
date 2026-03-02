@@ -3,6 +3,7 @@ package _ganzi.codoc.chatbot.domain;
 import _ganzi.codoc.chatbot.enums.ChatbotConversationStatus;
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNotProcessingException;
+import _ganzi.codoc.chatbot.exception.ChatbotConversationNotResumableException;
 import _ganzi.codoc.global.domain.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -90,5 +91,17 @@ public class ChatbotConversation extends BaseTimeEntity {
         if (this.status != ChatbotConversationStatus.PROCESSING) {
             throw new ChatbotConversationNotProcessingException();
         }
+    }
+
+    public void prepareResume() {
+        boolean hasAiMessage = this.aiMessage != null && !this.aiMessage.isBlank();
+        boolean resumableDisconnected = this.status == ChatbotConversationStatus.DISCONNECTED;
+        boolean resumableProcessing =
+                this.status == ChatbotConversationStatus.PROCESSING && !hasAiMessage;
+
+        if (!resumableDisconnected && !resumableProcessing) {
+            throw new ChatbotConversationNotResumableException();
+        }
+        this.status = ChatbotConversationStatus.PROCESSING;
     }
 }

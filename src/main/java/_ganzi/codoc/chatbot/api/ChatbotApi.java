@@ -60,6 +60,48 @@ public interface ChatbotApi {
             user = {UserErrorCode.USER_NOT_FOUND})
     Flux<ServerSentEvent<String>> sendAndStream(AuthUser authUser, ChatbotMessageSendRequest request);
 
+    @Operation(summary = "Resume and stream chatbot message by conversationId")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "400",
+                description = "INVALID_INPUT, SESSION_REQUIRED"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "401",
+                description = "AUTH_REQUIRED, UNAUTHORIZED"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "403",
+                description = "FORBIDDEN, CHATBOT_CONVERSATION_NO_PERMISSION"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "404",
+                description = "CHATBOT_CONVERSATION_NOT_FOUND"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "409",
+                description = "CHATBOT_CONVERSATION_NOT_RESUMABLE"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "429",
+                description = "CHATBOT_STREAM_RATE_LIMIT_EXCEEDED"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "500",
+                description = "INTERNAL_SERVER_ERROR")
+    })
+    @ErrorCodes(
+            global = {
+                GlobalErrorCode.INVALID_INPUT,
+                GlobalErrorCode.AUTH_REQUIRED,
+                GlobalErrorCode.UNAUTHORIZED,
+                GlobalErrorCode.FORBIDDEN,
+                GlobalErrorCode.INTERNAL_SERVER_ERROR
+            },
+            chatbot = {
+                ChatbotErrorCode.CHATBOT_CONVERSATION_NOT_FOUND,
+                ChatbotErrorCode.CHATBOT_CONVERSATION_NO_PERMISSION,
+                ChatbotErrorCode.CHATBOT_CONVERSATION_NOT_RESUMABLE,
+                ChatbotErrorCode.CHATBOT_STREAM_RATE_LIMIT_EXCEEDED,
+                ChatbotErrorCode.CHATBOT_STREAM_EVENT_FAILED
+            },
+            submission = {SubmissionErrorCode.SESSION_REQUIRED})
+    Flux<ServerSentEvent<String>> resumeAndStream(AuthUser authUser, Long conversationId);
+
     @Operation(summary = "Stop chatbot stream by conversationId")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(

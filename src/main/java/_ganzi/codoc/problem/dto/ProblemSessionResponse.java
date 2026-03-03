@@ -12,6 +12,7 @@ public record ProblemSessionResponse(
         Long sessionId,
         Long problemId,
         Instant expiresAt,
+        Instant chatbotCompletedAt,
         List<SummaryCardResponse> summaryCards,
         List<QuizResponse> quizzes) {
 
@@ -21,6 +22,7 @@ public record ProblemSessionResponse(
                 .sessionId(session.getId())
                 .problemId(session.getProblem().getId())
                 .expiresAt(session.getExpiresAt())
+                .chatbotCompletedAt(session.getChatbotCompletedAt())
                 .summaryCards(summaryCards.stream().map(SummaryCardResponse::from).toList())
                 .quizzes(quizzes.stream().map(QuizResponse::from).toList())
                 .build();

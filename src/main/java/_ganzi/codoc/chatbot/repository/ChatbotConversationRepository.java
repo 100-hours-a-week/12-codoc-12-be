@@ -34,8 +34,8 @@ public interface ChatbotConversationRepository extends JpaRepository<ChatbotConv
             SELECT c
             FROM ChatbotConversation c
             WHERE c.problemSession.id = :sessionId
-              AND c.id > :cursor
-            ORDER BY c.id ASC
+              AND (:cursor = 0 OR c.id < :cursor)
+            ORDER BY c.id DESC
             """)
     List<ChatbotConversation> findConversationListBySessionId(
             @Param("sessionId") Long sessionId,

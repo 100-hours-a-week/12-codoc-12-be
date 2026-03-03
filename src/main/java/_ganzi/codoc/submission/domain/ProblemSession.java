@@ -1,6 +1,7 @@
 package _ganzi.codoc.submission.domain;
 
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
+import _ganzi.codoc.chatbot.exception.ChatbotSessionAlreadyCompletedException;
 import _ganzi.codoc.global.domain.BaseTimeEntity;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.submission.enums.ProblemSessionStatus;
@@ -49,16 +50,21 @@ public class ProblemSession extends BaseTimeEntity {
     @Column(name = "chatbot_paragraph_type", nullable = false, length = 20)
     private ChatbotParagraphType chatbotParagraphType;
 
+    @Column(name = "chatbot_completed_at")
+    private Instant chatbotCompletedAt;
+
     private ProblemSession(
             User user,
             Problem problem,
             ProblemSessionStatus status,
             ChatbotParagraphType chatbotParagraphType,
+            Instant chatbotCompletedAt,
             Instant expiresAt) {
         this.user = user;
         this.problem = problem;
         this.status = status;
         this.chatbotParagraphType = chatbotParagraphType;
+        this.chatbotCompletedAt = chatbotCompletedAt;
         this.expiresAt = expiresAt;
     }
 
@@ -68,6 +74,7 @@ public class ProblemSession extends BaseTimeEntity {
                 problem,
                 ProblemSessionStatus.ACTIVE,
                 ChatbotParagraphType.getInitialType(),
+                null,
                 expiresAt);
     }
 
@@ -90,7 +97,20 @@ public class ProblemSession extends BaseTimeEntity {
         this.closedAt = closedAt;
     }
 
-    public void advanceToNextParagraph() {
+    public void validateChatbotNotCompleted() {
+        if (chatbotCompletedAt != null) {
+            throw new ChatbotSessionAlreadyCompletedException();
+        }
+    }
+
+    public void advanceChatbotProgressOnCorrectAnswer(Instant now) {
+        if (chatbotParagraphType.isFinalParagraphType()) {
+            if (chatbotCompletedAt == null) {
+                chatbotCompletedAt = now;
+            }
+            return;
+        }
+
         this.chatbotParagraphType = this.chatbotParagraphType.next();
     }
 }

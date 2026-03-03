@@ -37,6 +37,9 @@ public interface ChatbotApi {
                 responseCode = "404",
                 description = "PROBLEM_NOT_FOUND, USER_NOT_FOUND"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "409",
+                description = "CHATBOT_SESSION_ALREADY_COMPLETED"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "429",
                 description = "CHATBOT_STREAM_RATE_LIMIT_EXCEEDED"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -52,6 +55,7 @@ public interface ChatbotApi {
                 GlobalErrorCode.INTERNAL_SERVER_ERROR
             },
             chatbot = {
+                ChatbotErrorCode.CHATBOT_SESSION_ALREADY_COMPLETED,
                 ChatbotErrorCode.CHATBOT_STREAM_RATE_LIMIT_EXCEEDED,
                 ChatbotErrorCode.CHATBOT_STREAM_EVENT_FAILED
             },
@@ -76,7 +80,7 @@ public interface ChatbotApi {
                 description = "CHATBOT_CONVERSATION_NOT_FOUND"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "409",
-                description = "CHATBOT_CONVERSATION_NOT_RESUMABLE"),
+                description = "CHATBOT_CONVERSATION_NOT_RESUMABLE, CHATBOT_SESSION_ALREADY_COMPLETED"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "429",
                 description = "CHATBOT_STREAM_RATE_LIMIT_EXCEEDED"),
@@ -96,6 +100,7 @@ public interface ChatbotApi {
                 ChatbotErrorCode.CHATBOT_CONVERSATION_NOT_FOUND,
                 ChatbotErrorCode.CHATBOT_CONVERSATION_NO_PERMISSION,
                 ChatbotErrorCode.CHATBOT_CONVERSATION_NOT_RESUMABLE,
+                ChatbotErrorCode.CHATBOT_SESSION_ALREADY_COMPLETED,
                 ChatbotErrorCode.CHATBOT_STREAM_RATE_LIMIT_EXCEEDED,
                 ChatbotErrorCode.CHATBOT_STREAM_EVENT_FAILED
             },

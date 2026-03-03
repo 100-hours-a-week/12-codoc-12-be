@@ -8,28 +8,25 @@ import _ganzi.codoc.ai.dto.AiServerChatbotSendRequest;
 import _ganzi.codoc.ai.enums.ChatbotStatus;
 import _ganzi.codoc.ai.infra.ChatbotClient;
 import _ganzi.codoc.ai.util.AiServerResponseParser;
-import _ganzi.codoc.chatbot.domain.ChatbotAttempt;
 import _ganzi.codoc.chatbot.domain.ChatbotConversation;
 import _ganzi.codoc.chatbot.dto.ChatbotConversationListCondition;
 import _ganzi.codoc.chatbot.dto.ChatbotConversationListItem;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendRequest;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendResponse;
-import _ganzi.codoc.chatbot.enums.ChatbotAttemptStatus;
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNoPermissionException;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNotFoundException;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNotResumableException;
 import _ganzi.codoc.chatbot.exception.ChatbotStreamCancelFailedException;
 import _ganzi.codoc.chatbot.exception.ChatbotStreamEventException;
-import _ganzi.codoc.chatbot.repository.ChatbotAttemptRepository;
 import _ganzi.codoc.chatbot.repository.ChatbotConversationRepository;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
 import _ganzi.codoc.global.util.CursorPagingUtils;
-import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.submission.domain.ProblemSession;
 import _ganzi.codoc.submission.exception.SessionRequiredException;
+import _ganzi.codoc.submission.repository.ProblemSessionRepository;
 import _ganzi.codoc.submission.service.ProblemSessionService;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
@@ -59,7 +56,7 @@ public class ChatbotService {
     private final UserRepository userRepository;
     private final ProblemRepository problemRepository;
     private final ChatbotConversationRepository chatbotConversationRepository;
-    private final ChatbotAttemptRepository chatbotAttemptRepository;
+    private final ProblemSessionRepository problemSessionRepository;
     private final ChatbotConversationStatusService chatbotConversationStatusService;
     private final ProblemSessionService problemSessionService;
     private final AiServerProperties aiServerProperties;
@@ -71,8 +68,7 @@ public class ChatbotService {
             Long userId, ChatbotMessageSendRequest request) {
 
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
-        Problem problem =
-                problemRepository.findById(request.problemId()).orElseThrow(ProblemNotFoundException::new);
+        problemRepository.findById(request.problemId()).orElseThrow(ProblemNotFoundException::new);
 
         String userMessage = request.message();
 
@@ -81,11 +77,11 @@ public class ChatbotService {
             throw new SessionRequiredException();
         }
 
-        ChatbotAttempt attempt = resolveAttempt(user, problem, session);
+        ChatbotParagraphType currentParagraph = session.getChatbotParagraphType();
 
         ChatbotConversation chatbotConversation =
                 chatbotConversationRepository.save(
-                        ChatbotConversation.create(attempt, userMessage, attempt.getCurrentParagraphType()));
+                        ChatbotConversation.create(session, userMessage, currentParagraph));
 
         AiServerChatbotSendRequest aiServerRequest =
                 AiServerChatbotSendRequest.of(
@@ -94,7 +90,7 @@ public class ChatbotService {
                         chatbotConversation.getId(),
                         userMessage,
                         user.getInitLevel(),
-                        attempt.getCurrentParagraphType());
+                        currentParagraph);
 
         return startStream(chatbotConversation.getId(), aiServerRequest);
     }
@@ -102,29 +98,30 @@ public class ChatbotService {
     @Transactional
     public Flux<ServerSentEvent<String>> resumeAndStream(Long userId, Long conversationId) {
         ChatbotConversation conversation = validateConversationPermission(userId, conversationId);
-        ChatbotAttempt attempt = conversation.getAttempt();
+        ProblemSession conversationSession = conversation.getProblemSession();
 
         ProblemSession currentSession =
-                problemSessionService.requireActive(userId, attempt.getProblem().getId());
+                problemSessionService.requireActive(userId, conversationSession.getProblem().getId());
         if (currentSession == null) {
             throw new SessionRequiredException();
         }
 
-        if (attempt.getProblemSession() == null
-                || !currentSession.getId().equals(attempt.getProblemSession().getId())) {
+        if (!currentSession.getId().equals(conversationSession.getId())) {
             throw new ChatbotConversationNotResumableException();
         }
 
         conversation.prepareResume();
 
+        ChatbotParagraphType currentParagraph = conversationSession.getChatbotParagraphType();
+
         AiServerChatbotSendRequest aiServerRequest =
                 AiServerChatbotSendRequest.of(
                         userId,
-                        attempt.getProblem().getId(),
+                        conversationSession.getProblem().getId(),
                         conversation.getId(),
                         conversation.getUserMessage(),
-                        attempt.getUser().getInitLevel(),
-                        attempt.getCurrentParagraphType());
+                        conversationSession.getUser().getInitLevel(),
+                        currentParagraph);
 
         return startStream(conversation.getId(), aiServerRequest);
     }
@@ -136,20 +133,10 @@ public class ChatbotService {
             throw new SessionRequiredException();
         }
 
-        ChatbotAttempt attempt =
-                chatbotAttemptRepository
-                        .findFirstByProblemSessionIdAndStatusOrderByIdDesc(
-                                session.getId(), ChatbotAttemptStatus.ACTIVE)
-                        .orElse(null);
-
-        if (attempt == null) {
-            return new CursorPagingResponse<>(List.of(), null, false);
-        }
-
         Pageable pageable = CursorPagingUtils.createPageable(condition.limit());
         List<ChatbotConversationListItem> items =
                 chatbotConversationRepository
-                        .findConversationListByAttemptId(attempt.getId(), condition.cursor(), pageable)
+                        .findConversationListBySessionId(session.getId(), condition.cursor(), pageable)
                         .stream()
                         .map(ChatbotConversationListItem::from)
                         .toList();
@@ -189,22 +176,6 @@ public class ChatbotService {
                 .doOnNext(event -> handleStreamEvent(conversationId, event))
                 .doOnError(error -> markFailedIfProcessing(conversationId))
                 .doOnCancel(() -> markDisconnectedIfProcessing(conversationId));
-    }
-
-    private ChatbotAttempt resolveAttempt(User user, Problem problem, ProblemSession session) {
-        ChatbotAttempt attempt =
-                chatbotAttemptRepository
-                        .findFirstByProblemSessionIdAndStatusOrderByIdDesc(
-                                session.getId(), ChatbotAttemptStatus.ACTIVE)
-                        .orElse(null);
-
-        if (attempt != null) {
-            return attempt;
-        }
-
-        ChatbotAttempt newAttempt = ChatbotAttempt.create(user, problem, session);
-
-        return chatbotAttemptRepository.save(newAttempt);
     }
 
     private void handleStreamEvent(Long conversationId, ServerSentEvent<String> event) {
@@ -250,7 +221,7 @@ public class ChatbotService {
                         : null;
 
         ChatbotConversation conversation =
-                chatbotConversationRepository.findByIdWithAttempt(conversationId).orElse(null);
+                chatbotConversationRepository.findByIdWithSession(conversationId).orElse(null);
         if (conversation == null) {
             return;
         }
@@ -260,9 +231,9 @@ public class ChatbotService {
         }
 
         if (paragraphType != null) {
-            ChatbotAttempt attempt = conversation.getAttempt();
-            attempt.advanceToNextParagraph();
-            chatbotAttemptRepository.save(attempt);
+            ProblemSession session = conversation.getProblemSession();
+            session.advanceToNextParagraph();
+            problemSessionRepository.save(session);
         }
 
         chatbotConversationRepository.save(conversation);
@@ -312,10 +283,10 @@ public class ChatbotService {
     private ChatbotConversation validateConversationPermission(Long userId, Long conversationId) {
         ChatbotConversation conversation =
                 chatbotConversationRepository
-                        .findWithAttemptAndUserById(conversationId)
+                        .findWithSessionAndUserById(conversationId)
                         .orElseThrow(ChatbotConversationNotFoundException::new);
 
-        if (!conversation.getAttempt().getUser().getId().equals(userId)) {
+        if (!conversation.getProblemSession().getUser().getId().equals(userId)) {
             throw new ChatbotConversationNoPermissionException();
         }
 

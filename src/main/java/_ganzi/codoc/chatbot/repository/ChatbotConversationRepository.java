@@ -13,39 +13,42 @@ public interface ChatbotConversationRepository extends JpaRepository<ChatbotConv
 
     @Query(
             """
-            select conversation from ChatbotConversation conversation join fetch conversation.attempt
-             where conversation.id = :conversationId
+            SELECT c FROM ChatbotConversation c
+            JOIN FETCH c.problemSession
+            WHERE c.id = :conversationId
             """)
-    Optional<ChatbotConversation> findByIdWithAttempt(@Param("conversationId") Long conversationId);
+    Optional<ChatbotConversation> findByIdWithSession(
+            @Param("conversationId") Long conversationId);
 
     @Query(
             """
             SELECT c FROM ChatbotConversation c
-            JOIN FETCH c.attempt a
-            JOIN FETCH a.user
+            JOIN FETCH c.problemSession ps
+            JOIN FETCH ps.user
             WHERE c.id = :id
             """)
-    Optional<ChatbotConversation> findWithAttemptAndUserById(@Param("id") Long id);
+    Optional<ChatbotConversation> findWithSessionAndUserById(@Param("id") Long id);
 
     @Query(
             """
-            select c
-            from ChatbotConversation c
-            where c.attempt.id = :attemptId
-              and c.id > :cursor
-            order by c.id asc
+            SELECT c
+            FROM ChatbotConversation c
+            WHERE c.problemSession.id = :sessionId
+              AND c.id > :cursor
+            ORDER BY c.id ASC
             """)
-    List<ChatbotConversation> findConversationListByAttemptId(
-            @Param("attemptId") Long attemptId, @Param("cursor") Long cursor, Pageable pageable);
+    List<ChatbotConversation> findConversationListBySessionId(
+            @Param("sessionId") Long sessionId,
+            @Param("cursor") Long cursor,
+            Pageable pageable);
 
     @Query(
             """
-            select count(c)
-            from ChatbotConversation c
-            join c.attempt a
-            join a.problemSession ps
-            where ps.user.id = :userId
-              and c.createdAt between :startAt and :endAt
+            SELECT COUNT(c)
+            FROM ChatbotConversation c
+            JOIN c.problemSession ps
+            WHERE ps.user.id = :userId
+              AND c.createdAt BETWEEN :startAt AND :endAt
             """)
     long countByUserIdAndCreatedAtBetween(
             @Param("userId") Long userId,
@@ -54,16 +57,15 @@ public interface ChatbotConversationRepository extends JpaRepository<ChatbotConv
 
     @Query(
             """
-            select c
-            from ChatbotConversation c
-            join fetch c.attempt a
-            join fetch a.problem p
-            join a.problemSession ps
-            where ps.user.id = :userId
-              and c.createdAt between :startAt and :endAt
-            order by c.createdAt asc
+            SELECT c
+            FROM ChatbotConversation c
+            JOIN FETCH c.problemSession ps
+            JOIN FETCH ps.problem p
+            WHERE ps.user.id = :userId
+              AND c.createdAt BETWEEN :startAt AND :endAt
+            ORDER BY c.createdAt ASC
             """)
-    List<ChatbotConversation> findAllByUserIdAndCreatedAtBetweenWithAttempt(
+    List<ChatbotConversation> findAllByUserIdAndCreatedAtBetweenWithSession(
             @Param("userId") Long userId,
             @Param("startAt") Instant startAt,
             @Param("endAt") Instant endAt);

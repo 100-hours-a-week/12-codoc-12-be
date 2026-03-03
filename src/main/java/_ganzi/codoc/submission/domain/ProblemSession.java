@@ -1,5 +1,6 @@
 package _ganzi.codoc.submission.domain;
 
+import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
 import _ganzi.codoc.global.domain.BaseTimeEntity;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.submission.enums.ProblemSessionStatus;
@@ -44,16 +45,30 @@ public class ProblemSession extends BaseTimeEntity {
     @Column(name = "closed_at")
     private Instant closedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "chatbot_paragraph_type", nullable = false, length = 20)
+    private ChatbotParagraphType chatbotParagraphType;
+
     private ProblemSession(
-            User user, Problem problem, ProblemSessionStatus status, Instant expiresAt) {
+            User user,
+            Problem problem,
+            ProblemSessionStatus status,
+            ChatbotParagraphType chatbotParagraphType,
+            Instant expiresAt) {
         this.user = user;
         this.problem = problem;
         this.status = status;
+        this.chatbotParagraphType = chatbotParagraphType;
         this.expiresAt = expiresAt;
     }
 
     public static ProblemSession create(User user, Problem problem, Instant expiresAt) {
-        return new ProblemSession(user, problem, ProblemSessionStatus.ACTIVE, expiresAt);
+        return new ProblemSession(
+                user,
+                problem,
+                ProblemSessionStatus.ACTIVE,
+                ChatbotParagraphType.getInitialType(),
+                expiresAt);
     }
 
     public boolean isActive() {
@@ -73,5 +88,9 @@ public class ProblemSession extends BaseTimeEntity {
     public void close(Instant closedAt) {
         this.status = ProblemSessionStatus.CLOSED;
         this.closedAt = closedAt;
+    }
+
+    public void advanceToNextParagraph() {
+        this.chatbotParagraphType = this.chatbotParagraphType.next();
     }
 }

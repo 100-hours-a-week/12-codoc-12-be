@@ -110,7 +110,7 @@ public class AnalysisReportService {
 
     private AnalysisReportRequest buildRequest(User user, AnalysisWindow window) {
         List<ChatbotConversation> conversations =
-                chatbotConversationRepository.findAllByUserIdAndCreatedAtBetweenWithAttempt(
+                chatbotConversationRepository.findAllByUserIdAndCreatedAtBetweenWithSession(
                         user.getId(), window.startAt(), window.endAt());
 
         long totalChatbotRequests =
@@ -175,7 +175,7 @@ public class AnalysisReportService {
         return new AnalysisReportRequest.ChatbotMessageHistory(
                 conversation.getId(),
                 user.getId(),
-                conversation.getAttempt().getProblem().getId(),
+                conversation.getProblemSession().getProblem().getId(),
                 conversation.getAiMessage(),
                 conversation.getUserMessage(),
                 conversation.getParagraphType().name(),

@@ -31,13 +31,13 @@ import _ganzi.codoc.submission.service.ProblemSessionService;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
+import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.json.JsonMapper;
@@ -76,6 +76,7 @@ public class ChatbotService {
         if (session == null) {
             throw new SessionRequiredException();
         }
+        session.validateChatbotNotCompleted();
 
         ChatbotParagraphType currentParagraph = session.getChatbotParagraphType();
 
@@ -109,6 +110,7 @@ public class ChatbotService {
         if (!currentSession.getId().equals(conversationSession.getId())) {
             throw new ChatbotConversationNotResumableException();
         }
+        currentSession.validateChatbotNotCompleted();
 
         conversation.prepareResume();
 
@@ -215,10 +217,6 @@ public class ChatbotService {
         AiServerChatbotFinalResult result = finalEvent.result();
         String aiMessage = result.aiMessage();
         Boolean isCorrect = result.isCorrect();
-        ChatbotParagraphType paragraphType =
-                StringUtils.hasText(result.paragraphType())
-                        ? ChatbotParagraphType.valueOf(result.paragraphType())
-                        : null;
 
         ChatbotConversation conversation =
                 chatbotConversationRepository.findByIdWithSession(conversationId).orElse(null);
@@ -230,9 +228,9 @@ public class ChatbotService {
             conversation.recordAiResponse(aiMessage, Boolean.TRUE.equals(isCorrect));
         }
 
-        if (paragraphType != null) {
+        if (Boolean.TRUE.equals(isCorrect)) {
             ProblemSession session = conversation.getProblemSession();
-            session.advanceToNextParagraph();
+            session.advanceChatbotProgressOnCorrectAnswer(Instant.now());
             problemSessionRepository.save(session);
         }
 

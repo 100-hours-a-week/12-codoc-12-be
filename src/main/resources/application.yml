@@ -68,6 +68,18 @@ app:
       period: ${RATE_LIMIT_GLOBAL_PERIOD:10s}
       consume-token: ${RATE_LIMIT_GLOBAL_CONSUME:1}
 
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:local}
+  server-name: ${SENTRY_SERVER_NAME:unknown}
+  release: ${SENTRY_RELEASE:codoc-be@}
+  send-default-pii: ${SENTRY_SEND_DEFAULT_PII:false}
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.0}
+  profile-session-sample-rate: ${SENTRY_PROFILE_SESSION_SAMPLE_RATE:0.0}
+  profile-lifecycle: ${SENTRY_PROFILE_LIFECYCLE:MANUAL}
+  logs:
+    enabled: ${SENTRY_LOGS_ENABLED:false}
+
 management:
   endpoints:
       access:

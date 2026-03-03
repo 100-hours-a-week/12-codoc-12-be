@@ -5,6 +5,7 @@ import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNotProcessingException;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNotResumableException;
 import _ganzi.codoc.global.domain.BaseTimeEntity;
+import _ganzi.codoc.submission.domain.ProblemSession;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -21,8 +22,8 @@ public class ChatbotConversation extends BaseTimeEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "attempt_id", nullable = false)
-    private ChatbotAttempt attempt;
+    @JoinColumn(name = "problem_session_id", nullable = false)
+    private ProblemSession problemSession;
 
     @Column(name = "user_message", nullable = false, length = 500)
     private String userMessage;
@@ -43,13 +44,13 @@ public class ChatbotConversation extends BaseTimeEntity {
     private ChatbotConversationStatus status;
 
     private ChatbotConversation(
-            ChatbotAttempt attempt,
+            ProblemSession problemSession,
             String userMessage,
             String aiMessage,
             ChatbotParagraphType paragraphType,
             boolean isCorrect,
             ChatbotConversationStatus status) {
-        this.attempt = attempt;
+        this.problemSession = problemSession;
         this.userMessage = userMessage;
         this.aiMessage = aiMessage;
         this.paragraphType = paragraphType;
@@ -58,9 +59,14 @@ public class ChatbotConversation extends BaseTimeEntity {
     }
 
     public static ChatbotConversation create(
-            ChatbotAttempt attempt, String userMessage, ChatbotParagraphType paragraphType) {
+            ProblemSession problemSession, String userMessage, ChatbotParagraphType paragraphType) {
         return new ChatbotConversation(
-                attempt, userMessage, null, paragraphType, false, ChatbotConversationStatus.PROCESSING);
+                problemSession,
+                userMessage,
+                null,
+                paragraphType,
+                false,
+                ChatbotConversationStatus.PROCESSING);
     }
 
     public void recordAiResponse(String aiMessage, boolean isCorrect) {

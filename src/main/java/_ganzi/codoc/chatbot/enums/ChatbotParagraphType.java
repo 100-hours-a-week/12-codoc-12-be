@@ -17,6 +17,10 @@ public enum ChatbotParagraphType {
         return BACKGROUND;
     }
 
+    public boolean isFinalParagraphType() {
+        return this == INSIGHT;
+    }
+
     public ChatbotParagraphType next() {
         int nextOrder = this.order + 1;
 

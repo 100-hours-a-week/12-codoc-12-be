@@ -2,6 +2,7 @@ package _ganzi.codoc.user.api.validation;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+import java.text.Normalizer;
 import java.util.regex.Pattern;
 
 public class NicknameValidator implements ConstraintValidator<Nickname, String> {
@@ -13,7 +14,8 @@ public class NicknameValidator implements ConstraintValidator<Nickname, String> 
         if (value == null) {
             return true;
         }
-        if (!NICKNAME_PATTERN.matcher(value).matches()) {
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFKC);
+        if (!NICKNAME_PATTERN.matcher(normalized).matches()) {
             return false;
         }
         // TODO: Reject banned words once the banned-word list is defined.

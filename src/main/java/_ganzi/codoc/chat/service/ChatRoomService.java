@@ -161,43 +161,37 @@ public class ChatRoomService {
     public CursorPagingResponse<ChatRoomListItem, String> getAllChatRooms(
             String cursor, Integer limit) {
 
-        int resolvedLimit = PageLimitResolver.resolve(limit);
-        ChatRoomSearchCursorPayload cursorPayload =
-                CursorPayloadConverter.decodeAndValidate(
-                        cursorCodec,
-                        cursor,
-                        ChatRoomSearchCursorPayload.class,
-                        ChatRoomSearchCursorPayload::firstPage);
-
-        Pageable pageable = CursorPagingUtils.createPageable(resolvedLimit);
-        List<ChatRoom> fetchedRooms =
-                chatRoomRepository.findLatestChatRooms(
-                        cursorPayload.orderedAt(), cursorPayload.roomId(), pageable);
-
-        List<ChatRoomListItem> rooms =
-                fetchedRooms.stream()
-                        .map(chatRoom -> ChatRoomListItem.from(chatRoom, chatProperties.maxParticipants()))
-                        .toList();
-
-        return CursorPagingUtils.apply(
-                rooms, resolvedLimit, item -> cursorCodec.encode(ChatRoomSearchCursorPayload.from(item)));
+        return fetchAllChatRooms(
+                cursor,
+                limit,
+                (cursorPayload, pageable) ->
+                        chatRoomRepository.findLatestChatRooms(
+                                cursorPayload.orderedAt(), cursorPayload.roomId(), pageable));
     }
 
     public CursorPagingResponse<ChatRoomListItem, String> searchAllChatRooms(
             String keyword, String cursor, Integer limit) {
 
+        return fetchAllChatRooms(
+                cursor,
+                limit,
+                (cursorPayload, pageable) ->
+                        chatRoomRepository.searchChatRoomsByKeyword(
+                                keyword, cursorPayload.orderedAt(), cursorPayload.roomId(), pageable));
+    }
+
+    private CursorPagingResponse<ChatRoomListItem, String> fetchAllChatRooms(
+            String cursor,
+            Integer limit,
+            BiFunction<ChatRoomCursorPayload, Pageable, List<ChatRoom>> queryFunction) {
+
         int resolvedLimit = PageLimitResolver.resolve(limit);
-        ChatRoomSearchCursorPayload cursorPayload =
+        ChatRoomCursorPayload cursorPayload =
                 CursorPayloadConverter.decodeAndValidate(
-                        cursorCodec,
-                        cursor,
-                        ChatRoomSearchCursorPayload.class,
-                        ChatRoomSearchCursorPayload::firstPage);
+                        cursorCodec, cursor, ChatRoomCursorPayload.class, ChatRoomCursorPayload::firstPage);
 
         Pageable pageable = CursorPagingUtils.createPageable(resolvedLimit);
-        List<ChatRoom> fetchedRooms =
-                chatRoomRepository.searchChatRoomsByKeyword(
-                        keyword, cursorPayload.orderedAt(), cursorPayload.roomId(), pageable);
+        List<ChatRoom> fetchedRooms = queryFunction.apply(cursorPayload, pageable);
 
         List<ChatRoomListItem> rooms =
                 fetchedRooms.stream()
@@ -205,7 +199,7 @@ public class ChatRoomService {
                         .toList();
 
         return CursorPagingUtils.apply(
-                rooms, resolvedLimit, item -> cursorCodec.encode(ChatRoomSearchCursorPayload.from(item)));
+                rooms, resolvedLimit, item -> cursorCodec.encode(ChatRoomCursorPayload.from(item)));
     }
 
     private CursorPagingResponse<UserChatRoomListItem, String> fetchUserChatRooms(

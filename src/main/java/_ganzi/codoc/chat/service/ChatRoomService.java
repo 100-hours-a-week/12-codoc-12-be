@@ -14,11 +14,8 @@ import _ganzi.codoc.chat.exception.NoChatRoomParticipantException;
 import _ganzi.codoc.chat.repository.ChatMessageRepository;
 import _ganzi.codoc.chat.repository.ChatRoomParticipantRepository;
 import _ganzi.codoc.chat.repository.ChatRoomRepository;
-import _ganzi.codoc.global.cursor.CursorCodec;
-import _ganzi.codoc.global.cursor.CursorPayloadConverter;
+import _ganzi.codoc.global.cursor.CursorPageFetcher;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
-import _ganzi.codoc.global.util.CursorPagingUtils;
-import _ganzi.codoc.global.util.PageLimitResolver;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
@@ -47,7 +44,7 @@ public class ChatRoomService {
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final PasswordEncoder passwordEncoder;
     private final SimpMessagingTemplate messagingTemplate;
-    private final CursorCodec cursorCodec;
+    private final CursorPageFetcher cursorPageFetcher;
     private final ChatProperties chatProperties;
 
     @Transactional
@@ -185,21 +182,17 @@ public class ChatRoomService {
             Integer limit,
             BiFunction<ChatRoomCursorPayload, Pageable, List<ChatRoom>> queryFunction) {
 
-        int resolvedLimit = PageLimitResolver.resolve(limit);
-        ChatRoomCursorPayload cursorPayload =
-                CursorPayloadConverter.decodeAndValidate(
-                        cursorCodec, cursor, ChatRoomCursorPayload.class, ChatRoomCursorPayload::firstPage);
-
-        Pageable pageable = CursorPagingUtils.createPageable(resolvedLimit);
-        List<ChatRoom> fetchedRooms = queryFunction.apply(cursorPayload, pageable);
-
-        List<ChatRoomListItem> rooms =
-                fetchedRooms.stream()
-                        .map(chatRoom -> ChatRoomListItem.from(chatRoom, chatProperties.maxParticipants()))
-                        .toList();
-
-        return CursorPagingUtils.apply(
-                rooms, resolvedLimit, item -> cursorCodec.encode(ChatRoomCursorPayload.from(item)));
+        return cursorPageFetcher.fetch(
+                cursor,
+                limit,
+                ChatRoomCursorPayload.class,
+                ChatRoomCursorPayload::firstPage,
+                queryFunction,
+                fetchedRooms ->
+                        fetchedRooms.stream()
+                                .map(chatRoom -> ChatRoomListItem.from(chatRoom, chatProperties.maxParticipants()))
+                                .toList(),
+                ChatRoomCursorPayload::from);
     }
 
     private CursorPagingResponse<UserChatRoomListItem, String> fetchUserChatRooms(
@@ -207,30 +200,24 @@ public class ChatRoomService {
             Integer limit,
             BiFunction<UserChatRoomCursorPayload, Pageable, List<ChatRoomParticipant>> queryFunction) {
 
-        int resolvedLimit = PageLimitResolver.resolve(limit);
-        UserChatRoomCursorPayload cursorPayload =
-                CursorPayloadConverter.decodeAndValidate(
-                        cursorCodec,
-                        cursor,
-                        UserChatRoomCursorPayload.class,
-                        UserChatRoomCursorPayload::firstPage);
+        return cursorPageFetcher.fetch(
+                cursor,
+                limit,
+                UserChatRoomCursorPayload.class,
+                UserChatRoomCursorPayload::firstPage,
+                queryFunction,
+                participants -> {
+                    Map<Long, Long> unreadCountByParticipantId = getUnreadCountByParticipantId(participants);
 
-        Pageable pageable = CursorPagingUtils.createPageable(resolvedLimit);
-        List<ChatRoomParticipant> participants = queryFunction.apply(cursorPayload, pageable);
-
-        Map<Long, Long> unreadCountByParticipantId = getUnreadCountByParticipantId(participants);
-
-        List<UserChatRoomListItem> rooms =
-                participants.stream()
-                        .map(
-                                participant ->
-                                        UserChatRoomListItem.from(
-                                                participant,
-                                                unreadCountByParticipantId.getOrDefault(participant.getId(), 0L)))
-                        .toList();
-
-        return CursorPagingUtils.apply(
-                rooms, resolvedLimit, item -> cursorCodec.encode(UserChatRoomCursorPayload.from(item)));
+                    return participants.stream()
+                            .map(
+                                    participant ->
+                                            UserChatRoomListItem.from(
+                                                    participant,
+                                                    unreadCountByParticipantId.getOrDefault(participant.getId(), 0L)))
+                            .toList();
+                },
+                UserChatRoomCursorPayload::from);
     }
 
     private Map<Long, Long> getUnreadCountByParticipantId(List<ChatRoomParticipant> participants) {

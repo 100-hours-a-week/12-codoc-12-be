@@ -8,18 +8,15 @@ import _ganzi.codoc.chat.dto.*;
 import _ganzi.codoc.chat.exception.NoChatRoomParticipantException;
 import _ganzi.codoc.chat.repository.ChatMessageRepository;
 import _ganzi.codoc.chat.repository.ChatRoomParticipantRepository;
-import _ganzi.codoc.global.cursor.CursorCodec;
-import _ganzi.codoc.global.cursor.CursorPayloadConverter;
+import _ganzi.codoc.global.cursor.CursorPageFetcher;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
-import _ganzi.codoc.global.util.CursorPagingUtils;
-import _ganzi.codoc.global.util.PageLimitResolver;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +30,7 @@ public class ChatMessageService {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final ChatRoomSubscriptionRegistry chatRoomSubscriptionRegistry;
-    private final CursorCodec cursorCodec;
+    private final CursorPageFetcher cursorPageFetcher;
     private final SimpMessagingTemplate messagingTemplate;
 
     public CursorPagingResponse<ChatMessageListItem, String> getMessages(
@@ -44,21 +41,16 @@ public class ChatMessageService {
                         .findJoinedParticipant(userId, roomId)
                         .orElseThrow(NoChatRoomParticipantException::new);
 
-        int resolvedLimit = PageLimitResolver.resolve(limit);
-        ChatMessageCursorPayload cursorPayload =
-                CursorPayloadConverter.decodeAndValidate(
-                        cursorCodec,
-                        cursor,
-                        ChatMessageCursorPayload.class,
-                        ChatMessageCursorPayload::firstPage);
-
-        Pageable pageable = CursorPagingUtils.createPageable(resolvedLimit);
-        List<ChatMessageListItem> items =
-                chatMessageRepository.findVisibleMessages(
-                        roomId, participant.getJoinedMessageId(), cursorPayload.messageId(), pageable);
-
-        return CursorPagingUtils.apply(
-                items, resolvedLimit, item -> cursorCodec.encode(ChatMessageCursorPayload.from(item)));
+        return cursorPageFetcher.fetch(
+                cursor,
+                limit,
+                ChatMessageCursorPayload.class,
+                ChatMessageCursorPayload::firstPage,
+                (cursorPayload, pageable) ->
+                        chatMessageRepository.findVisibleMessages(
+                                roomId, participant.getJoinedMessageId(), cursorPayload.messageId(), pageable),
+                Function.identity(),
+                ChatMessageCursorPayload::from);
     }
 
     @Transactional

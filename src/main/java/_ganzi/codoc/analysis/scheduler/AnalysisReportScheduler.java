@@ -11,7 +11,7 @@ public class AnalysisReportScheduler {
 
     private final AnalysisReportService analysisReportService;
 
-    @Scheduled(cron = "0 0 5 * * MON", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 */1 * * * *", zone = "Asia/Seoul")
     public void issueWeeklyReports() {
         analysisReportService.issueWeeklyReports();
     }

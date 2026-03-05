@@ -11,6 +11,7 @@ public record AiServerChatbotSendRequest(
         Long runId,
         String userMessage,
         InitLevel userLevel,
+        String sessionId,
         ChatbotParagraphType paragraphType) {
 
     public static AiServerChatbotSendRequest of(
@@ -19,6 +20,7 @@ public record AiServerChatbotSendRequest(
             Long runId,
             String userMessage,
             InitLevel userLevel,
+            String sessionId,
             ChatbotParagraphType paragraphType) {
 
         return AiServerChatbotSendRequest.builder()
@@ -27,6 +29,7 @@ public record AiServerChatbotSendRequest(
                 .runId(runId)
                 .userMessage(userMessage)
                 .userLevel(userLevel)
+                .sessionId(sessionId)
                 .paragraphType(paragraphType)
                 .build();
     }

@@ -1,10 +1,7 @@
 package _ganzi.codoc.chat.api;
 
 import _ganzi.codoc.auth.domain.AuthUser;
-import _ganzi.codoc.chat.dto.ChatRoomCreateRequest;
-import _ganzi.codoc.chat.dto.ChatRoomCreateResponse;
-import _ganzi.codoc.chat.dto.ChatRoomJoinRequest;
-import _ganzi.codoc.chat.dto.ChatRoomListItem;
+import _ganzi.codoc.chat.dto.*;
 import _ganzi.codoc.chat.service.ChatRoomService;
 import _ganzi.codoc.global.dto.ApiResponse;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
@@ -61,6 +58,15 @@ public class ChatRoomController {
                     @RequestParam(required = false) Integer limit) {
         CursorPagingResponse<ChatRoomListItem, String> response =
                 chatRoomService.searchAllChatRooms(keyword, cursor, limit);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<CursorPagingResponse<ChatRoomListItem, String>>> getChatRooms(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) Integer limit) {
+        CursorPagingResponse<ChatRoomListItem, String> response =
+                chatRoomService.getAllChatRooms(cursor, limit);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

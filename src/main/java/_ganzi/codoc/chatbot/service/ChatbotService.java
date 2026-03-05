@@ -91,6 +91,7 @@ public class ChatbotService {
                         chatbotConversation.getId(),
                         userMessage,
                         user.getInitLevel(),
+                        session.getId().toString(),
                         currentParagraph);
 
         return startStream(chatbotConversation.getId(), aiServerRequest);
@@ -123,6 +124,7 @@ public class ChatbotService {
                         conversation.getId(),
                         conversation.getUserMessage(),
                         conversationSession.getUser().getInitLevel(),
+                        currentSession.getId().toString(),
                         currentParagraph);
 
         return startStream(conversation.getId(), aiServerRequest);

@@ -25,6 +25,23 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
             select r
             from ChatRoom r
             where r.isDeleted = false
+              and (
+                    :cursorOrderedAt is null
+                    or r.lastMessageAt < :cursorOrderedAt
+                    or (r.lastMessageAt = :cursorOrderedAt and r.id < :cursorRoomId)
+              )
+            order by r.lastMessageAt desc, r.id desc
+            """)
+    List<ChatRoom> findLatestChatRooms(
+            @Param("cursorOrderedAt") Instant cursorOrderedAt,
+            @Param("cursorRoomId") Long cursorRoomId,
+            Pageable pageable);
+
+    @Query(
+            """
+            select r
+            from ChatRoom r
+            where r.isDeleted = false
               and lower(r.title) like lower(concat('%', :keyword, '%'))
               and (
                     :cursorOrderedAt is null

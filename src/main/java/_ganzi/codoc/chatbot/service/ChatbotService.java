@@ -20,8 +20,8 @@ import _ganzi.codoc.chatbot.exception.ChatbotConversationNotResumableException;
 import _ganzi.codoc.chatbot.exception.ChatbotStreamCancelFailedException;
 import _ganzi.codoc.chatbot.exception.ChatbotStreamEventException;
 import _ganzi.codoc.chatbot.repository.ChatbotConversationRepository;
+import _ganzi.codoc.global.cursor.CursorPageFetcher;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
-import _ganzi.codoc.global.util.CursorPagingUtils;
 import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.submission.domain.ProblemSession;
@@ -32,9 +32,7 @@ import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
 import java.time.Instant;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,6 +59,7 @@ public class ChatbotService {
     private final ProblemSessionService problemSessionService;
     private final AiServerProperties aiServerProperties;
     private final AiServerResponseParser responseParser;
+    private final CursorPageFetcher cursorPageFetcher;
     private final JsonMapper jsonMapper;
 
     @Transactional
@@ -137,16 +136,13 @@ public class ChatbotService {
             throw new SessionRequiredException();
         }
 
-        Pageable pageable = CursorPagingUtils.createPageable(condition.limit());
-        List<ChatbotConversationListItem> items =
-                chatbotConversationRepository
-                        .findConversationListBySessionId(session.getId(), condition.cursor(), pageable)
-                        .stream()
-                        .map(ChatbotConversationListItem::from)
-                        .toList();
-
-        return CursorPagingUtils.apply(
-                items, condition.limit(), ChatbotConversationListItem::conversationId);
+        return cursorPageFetcher.fetchPlain(
+                condition.limit(),
+                pageable ->
+                        chatbotConversationRepository.findConversationListBySessionId(
+                                session.getId(), condition.cursor(), pageable),
+                conversations -> conversations.stream().map(ChatbotConversationListItem::from).toList(),
+                ChatbotConversationListItem::conversationId);
     }
 
     @Transactional

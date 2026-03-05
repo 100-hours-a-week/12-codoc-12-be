@@ -36,10 +36,9 @@ public class ChatMessageService {
     public CursorPagingResponse<ChatMessageListItem, String> getMessages(
             Long userId, Long roomId, String cursor, Integer limit) {
 
-        ChatRoomParticipant participant =
-                chatRoomParticipantRepository
-                        .findJoinedParticipant(userId, roomId)
-                        .orElseThrow(NoChatRoomParticipantException::new);
+        chatRoomParticipantRepository
+                .findJoinedParticipant(userId, roomId)
+                .orElseThrow(NoChatRoomParticipantException::new);
 
         return cursorPageFetcher.fetch(
                 cursor,
@@ -47,8 +46,7 @@ public class ChatMessageService {
                 ChatMessageCursorPayload.class,
                 ChatMessageCursorPayload::firstPage,
                 (cursorPayload, pageable) ->
-                        chatMessageRepository.findVisibleMessages(
-                                roomId, participant.getJoinedMessageId(), cursorPayload.messageId(), pageable),
+                        chatMessageRepository.findVisibleMessages(roomId, cursorPayload.messageId(), pageable),
                 Function.identity(),
                 ChatMessageCursorPayload::from);
     }

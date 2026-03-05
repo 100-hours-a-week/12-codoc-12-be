@@ -17,4 +17,10 @@ public interface CursorPageFetcher {
             BiFunction<P, Pageable, List<T>> queryFunction,
             Function<List<T>, List<R>> itemMapper,
             Function<R, P> nextCursorPayloadMapper);
+
+    <T, R, C> CursorPagingResponse<R, C> fetchPlain(
+            Integer limit,
+            Function<Pageable, List<T>> queryFunction,
+            Function<List<T>, List<R>> itemMapper,
+            Function<R, C> nextCursorExtractor);
 }

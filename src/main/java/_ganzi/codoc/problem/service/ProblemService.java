@@ -1,8 +1,8 @@
 package _ganzi.codoc.problem.service;
 
+import _ganzi.codoc.global.cursor.CursorPageFetcher;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
 import _ganzi.codoc.global.exception.ResourceNotFoundException;
-import _ganzi.codoc.global.util.CursorPagingUtils;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.domain.Quiz;
 import _ganzi.codoc.problem.domain.RecommendedProblem;
@@ -42,24 +42,30 @@ public class ProblemService {
     private final UserProblemResultRepository userProblemResultRepository;
     private final BookmarkRepository bookmarkRepository;
     private final RecommendedProblemRepository recommendedProblemRepository;
+    private final CursorPageFetcher cursorPageFetcher;
 
     public CursorPagingResponse<ProblemListItem, Long> getProblemList(
             Long userId, ProblemListCondition condition) {
 
-        ProblemSearchParam param = createProblemSearchParam(userId, condition);
-
-        List<ProblemListItem> items = problemRepository.findProblemList(param);
-
-        return CursorPagingUtils.apply(items, condition.limit(), ProblemListItem::problemId);
+        return cursorPageFetcher.fetchPlain(
+                condition.limit(),
+                pageable ->
+                        problemRepository.findProblemList(
+                                createProblemSearchParam(userId, condition, pageable)),
+                items -> items,
+                ProblemListItem::problemId);
     }
 
     public CursorPagingResponse<ProblemListItem, Long> searchProblems(
             Long userId, ProblemListCondition condition) {
-        ProblemSearchParam param = createProblemSearchParam(userId, condition);
 
-        List<ProblemListItem> items = problemRepository.searchProblemList(param);
-
-        return CursorPagingUtils.apply(items, condition.limit(), ProblemListItem::problemId);
+        return cursorPageFetcher.fetchPlain(
+                condition.limit(),
+                pageable ->
+                        problemRepository.searchProblemList(
+                                createProblemSearchParam(userId, condition, pageable)),
+                items -> items,
+                ProblemListItem::problemId);
     }
 
     public ProblemResponse getProblemDetail(Long userId, Long problemId) {
@@ -131,9 +137,8 @@ public class ProblemService {
         return RecommendedProblemResponse.of(recommendedProblem, status, bookmarked);
     }
 
-    private ProblemSearchParam createProblemSearchParam(Long userId, ProblemListCondition condition) {
-        Pageable pageable = CursorPagingUtils.createPageable(condition.limit());
-
+    private ProblemSearchParam createProblemSearchParam(
+            Long userId, ProblemListCondition condition, Pageable pageable) {
         return new ProblemSearchParam(
                 userId,
                 condition.cursor(),

@@ -39,4 +39,19 @@ public class DefaultCursorPageFetcher implements CursorPageFetcher {
         return CursorPagingUtils.apply(
                 items, resolvedLimit, item -> cursorCodec.encode(nextCursorPayloadMapper.apply(item)));
     }
+
+    @Override
+    public <T, R, C> CursorPagingResponse<R, C> fetchPlain(
+            Integer limit,
+            Function<Pageable, List<T>> queryFunction,
+            Function<List<T>, List<R>> itemMapper,
+            Function<R, C> nextCursorExtractor) {
+
+        int resolvedLimit = PageLimitResolver.resolve(limit);
+        Pageable pageable = CursorPagingUtils.createPageable(resolvedLimit);
+        List<T> fetchedItems = queryFunction.apply(pageable);
+        List<R> items = itemMapper.apply(fetchedItems);
+
+        return CursorPagingUtils.apply(items, resolvedLimit, nextCursorExtractor);
+    }
 }

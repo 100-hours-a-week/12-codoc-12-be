@@ -30,7 +30,7 @@ public class Quiz extends BaseTimeEntity {
     @Column(name = "question", nullable = false, length = 255)
     private String question;
 
-    @Column(name = "explanation", nullable = false, length = 500)
+    @Column(name = "explanation", nullable = false, length = 2000)
     private String explanation;
 
     @Convert(converter = StringListConverter.class)

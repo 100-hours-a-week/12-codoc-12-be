@@ -27,14 +27,12 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
               on u.id = m.senderId
             left join u.avatar a
             where m.chatRoom.id = :roomId
-              and m.id >= :joinedMessageId
               and m.type != _ganzi.codoc.chat.enums.ChatMessageType.INIT
               and (:cursorMessageId is null or m.id < :cursorMessageId)
             order by m.id desc
             """)
     List<ChatMessageListItem> findVisibleMessages(
             @Param("roomId") Long roomId,
-            @Param("joinedMessageId") long joinedMessageId,
             @Param("cursorMessageId") Long cursorMessageId,
             Pageable pageable);
 }

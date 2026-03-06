@@ -5,7 +5,6 @@ import _ganzi.codoc.chat.domain.ChatRoom;
 import _ganzi.codoc.chat.dto.ChatMessageBroadcast;
 import _ganzi.codoc.chat.repository.ChatMessageRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 @RequiredArgsConstructor
@@ -13,7 +12,7 @@ import org.springframework.stereotype.Component;
 public class ChatSystemMessagePublisher {
 
     private final ChatMessageRepository chatMessageRepository;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final ChatBroadcaster chatBroadcaster;
 
     public ChatMessage publishJoin(ChatRoom chatRoom, String nickname) {
         return publish(chatRoom, nickname + "님이 입장했습니다.");
@@ -28,8 +27,8 @@ public class ChatSystemMessagePublisher {
                 chatMessageRepository.save(ChatMessage.createSystem(chatRoom, content));
 
         if (!chatRoom.isDeleted()) {
-            messagingTemplate.convertAndSend(
-                    "/sub/chat/rooms/" + chatRoom.getId(),
+            chatBroadcaster.broadcastMessage(
+                    chatRoom.getId(),
                     ChatMessageBroadcast.from(systemMessage, null, null, chatRoom.getParticipantCount()));
         }
 

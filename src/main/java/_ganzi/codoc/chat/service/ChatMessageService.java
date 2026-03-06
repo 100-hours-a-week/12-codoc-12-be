@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +30,7 @@ public class ChatMessageService {
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final ChatRoomSubscriptionRegistry chatRoomSubscriptionRegistry;
     private final CursorPageFetcher cursorPageFetcher;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final ChatBroadcaster chatBroadcaster;
 
     public CursorPagingResponse<ChatMessageListItem, String> getMessages(
             Long userId, Long roomId, String cursor, Integer limit) {
@@ -70,8 +69,8 @@ public class ChatMessageService {
             chatRoomParticipantRepository.updateLastReadMessageId(roomId, onlineUserIds, message.getId());
         }
 
-        messagingTemplate.convertAndSend(
-                "/sub/chat/rooms/" + roomId,
+        chatBroadcaster.broadcastMessage(
+                roomId,
                 ChatMessageBroadcast.from(
                         message,
                         sender.getNickname(),
@@ -87,8 +86,7 @@ public class ChatMessageService {
 
         for (Long participantUserId : allParticipantUserIds) {
             if (!onlineUserIds.contains(participantUserId)) {
-                messagingTemplate.convertAndSend(
-                        "/sub/users/" + participantUserId + "/chat-rooms", roomUpdate);
+                chatBroadcaster.broadcastRoomUpdate(participantUserId, roomUpdate);
             }
         }
     }

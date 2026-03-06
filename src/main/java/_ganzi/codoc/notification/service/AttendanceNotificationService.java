@@ -17,6 +17,7 @@ public class AttendanceNotificationService {
 
     private final UserRepository userRepository;
     private final NotificationSendService notificationSendService;
+    private final PushNotificationSendService pushNotificationSendService;
 
     public void sendDailyReminder(LocalDate targetDate) {
         List<Long> targetUserIds = userRepository.findActiveUserIdsWithoutSolvedCountOn(targetDate);
@@ -26,6 +27,7 @@ public class AttendanceNotificationService {
 
         for (Long userId : targetUserIds) {
             notificationSendService.send(userId, messageItem);
+            pushNotificationSendService.send(userId, messageItem);
         }
     }
 }

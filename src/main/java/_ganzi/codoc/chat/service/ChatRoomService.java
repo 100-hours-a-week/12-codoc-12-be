@@ -105,6 +105,29 @@ public class ChatRoomService {
     }
 
     @Transactional
+    public void leaveAllChatRooms(Long userId, String nickname) {
+        List<ChatRoomParticipant> participants =
+                chatRoomParticipantRepository.findAllJoinedByUserId(userId);
+
+        for (ChatRoomParticipant participant : participants) {
+            participant.leave();
+
+            ChatRoom chatRoom = participant.getChatRoom();
+
+            ChatMessage systemMessage =
+                    chatMessageRepository.save(ChatMessage.createSystem(chatRoom, nickname + "님이 퇴장했습니다."));
+
+            chatRoom.decrementParticipantCount();
+
+            if (!chatRoom.isDeleted()) {
+                messagingTemplate.convertAndSend(
+                        "/sub/chat/rooms/" + chatRoom.getId(),
+                        ChatMessageBroadcast.from(systemMessage, null, null, chatRoom.getParticipantCount()));
+            }
+        }
+    }
+
+    @Transactional
     public void leaveChatRoom(Long userId, Long roomId) {
         ChatRoomParticipant participant =
                 chatRoomParticipantRepository

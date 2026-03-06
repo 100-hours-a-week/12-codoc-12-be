@@ -8,6 +8,7 @@ import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
@@ -17,7 +18,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.RequestMatcher;
-import org.springframework.core.env.Environment;
 
 @Configuration
 @EnableWebSecurity
@@ -63,10 +63,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(
                         authorize -> {
                             authorize
-                                    .requestMatchers(
-                                            "/api/swagger-ui/index.html",
-                                            "/swagger-ui.html",
-                                            "/v3/api-docs")
+                                    .requestMatchers("/api/swagger-ui/index.html", "/swagger-ui.html", "/v3/api-docs")
                                     .permitAll()
                                     .requestMatchers(swaggerMatchers)
                                     .permitAll()
@@ -79,11 +76,9 @@ public class SecurityConfig {
 
                             if (restrictActuator) {
                                 authorize.requestMatchers(actuatorMatcher).permitAll();
-                                authorize.requestMatchers("/api/actuator/**", "/actuator/**")
-                                        .denyAll();
+                                authorize.requestMatchers("/api/actuator/**", "/actuator/**").denyAll();
                             } else {
-                                authorize.requestMatchers("/api/actuator/**", "/actuator/**")
-                                        .permitAll();
+                                authorize.requestMatchers("/api/actuator/**", "/actuator/**").permitAll();
                             }
 
                             authorize

@@ -147,18 +147,15 @@ public class RecommendedProblemService {
 
     @Transactional
     public void markProblemSolved(Long userId, Long problemId) {
-        int updated =
-                recommendedProblemRepository.markDoneByUserIdAndProblemId(userId, problemId, Instant.now());
-        if (updated > 0) {
-            try {
-                replenishIfNeeded(userId);
-            } catch (Exception exception) {
-                log.warn(
-                        "Recommend replenish failed after solve. userId={}, problemId={}",
-                        userId,
-                        problemId,
-                        exception);
-            }
+        recommendedProblemRepository.markDoneByUserIdAndProblemId(userId, problemId, Instant.now());
+        try {
+            replenishIfNeeded(userId);
+        } catch (Exception exception) {
+            log.warn(
+                    "Recommend replenish failed after solve. userId={}, problemId={}",
+                    userId,
+                    problemId,
+                    exception);
         }
     }
 

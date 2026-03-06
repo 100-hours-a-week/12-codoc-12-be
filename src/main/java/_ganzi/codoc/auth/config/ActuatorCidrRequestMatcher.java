@@ -22,6 +22,10 @@ public class ActuatorCidrRequestMatcher implements RequestMatcher {
 
     @Override
     public boolean matches(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        if (!isActuatorPath(path)) {
+            return false;
+        }
         String clientIp = extractClientIp(request);
         for (IpAddressMatcher matcher : cidrMatchers) {
             if (matcher.matches(clientIp)) {
@@ -38,5 +42,12 @@ public class ActuatorCidrRequestMatcher implements RequestMatcher {
             return (comma > 0) ? xff.substring(0, comma).trim() : xff.trim();
         }
         return request.getRemoteAddr();
+    }
+
+    private boolean isActuatorPath(String path) {
+        return path.equals("/actuator")
+                || path.startsWith("/actuator/")
+                || path.equals("/api/actuator")
+                || path.startsWith("/api/actuator/");
     }
 }

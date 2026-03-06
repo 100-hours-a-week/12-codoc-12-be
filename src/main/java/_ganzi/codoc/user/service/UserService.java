@@ -5,6 +5,7 @@ import _ganzi.codoc.auth.enums.SocialProvider;
 import _ganzi.codoc.auth.repository.RefreshTokenRepository;
 import _ganzi.codoc.auth.repository.SocialLoginRepository;
 import _ganzi.codoc.auth.service.KakaoOAuthClient;
+import _ganzi.codoc.chat.service.ChatRoomService;
 import _ganzi.codoc.leaderboard.domain.League;
 import _ganzi.codoc.leaderboard.repository.LeagueRepository;
 import _ganzi.codoc.problem.service.RecommendationScenario;
@@ -46,6 +47,7 @@ public class UserService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final QuestBatchService questBatchService;
     private final KakaoOAuthClient kakaoOAuthClient;
+    private final ChatRoomService chatRoomService;
     private final RecommendedProblemService recommendedProblemService;
     private final LeagueRepository leagueRepository;
 
@@ -163,6 +165,7 @@ public class UserService {
         User user = getUser(id);
         List<SocialLogin> socialLogins = socialLoginRepository.findAllByUser(user);
         unlinkKakaoIfNeeded(socialLogins);
+        chatRoomService.leaveAllChatRooms(user.getId(), user.getNickname());
         if (user.getStatus() == UserStatus.ONBOARDING) {
             refreshTokenRepository.deleteByUser(user);
             socialLoginRepository.deleteByUser(user);

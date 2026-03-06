@@ -1,6 +1,7 @@
 package _ganzi.codoc.chat.service;
 
 import _ganzi.codoc.chat.config.ChatRoomSubscriptionRegistry;
+import _ganzi.codoc.chat.config.WebSocketSessionRegistry;
 import _ganzi.codoc.chat.domain.ChatMessage;
 import _ganzi.codoc.chat.domain.ChatRoom;
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
@@ -10,10 +11,14 @@ import _ganzi.codoc.chat.repository.ChatMessageRepository;
 import _ganzi.codoc.chat.repository.ChatRoomParticipantRepository;
 import _ganzi.codoc.global.cursor.CursorPageFetcher;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
+import _ganzi.codoc.notification.dto.NotificationMessageItem;
+import _ganzi.codoc.notification.enums.NotificationType;
+import _ganzi.codoc.notification.service.PushNotificationSendService;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +34,10 @@ public class ChatMessageService {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final ChatRoomSubscriptionRegistry chatRoomSubscriptionRegistry;
+    private final WebSocketSessionRegistry webSocketSessionRegistry;
     private final CursorPageFetcher cursorPageFetcher;
     private final ChatBroadcaster chatBroadcaster;
+    private final PushNotificationSendService pushNotificationSendService;
 
     public CursorPagingResponse<ChatMessageListItem, String> getMessages(
             Long userId, Long roomId, String cursor, Integer limit) {
@@ -85,9 +92,22 @@ public class ChatMessageService {
                         roomId, chatRoom.getLastMessagePreview(), chatRoom.getLastMessageAt());
 
         for (Long participantUserId : allParticipantUserIds) {
-            if (!onlineUserIds.contains(participantUserId)) {
-                chatBroadcaster.broadcastRoomUpdate(participantUserId, roomUpdate);
+            if (onlineUserIds.contains(participantUserId)) {
+                continue;
             }
+
+            if (webSocketSessionRegistry.isConnected(participantUserId)) {
+                chatBroadcaster.broadcastRoomUpdate(participantUserId, roomUpdate);
+                continue;
+            }
+
+            pushNotificationSendService.send(
+                    participantUserId,
+                    new NotificationMessageItem(
+                            NotificationType.CHAT,
+                            sender.getNickname(),
+                            chatRoom.getLastMessagePreview(),
+                            Map.of("roomId", String.valueOf(roomId))));
         }
     }
 }

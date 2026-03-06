@@ -21,6 +21,18 @@ public interface ProblemSessionRepository extends JpaRepository<ProblemSession, 
             """
             select ps
             from ProblemSession ps
+            join fetch ps.user
+            join fetch ps.problem
+            where (ps.status <> _ganzi.codoc.submission.enums.ProblemSessionStatus.ACTIVE
+                   or ps.expiresAt < :now)
+              and ps.aiSessionNotified = false
+            """)
+    List<ProblemSession> findUnnotifiedFinishedSessions(@Param("now") Instant now);
+
+    @Query(
+            """
+            select ps
+            from ProblemSession ps
             where ps.user.id = :userId
               and ps.createdAt <= :endAt
               and coalesce(ps.closedAt, ps.expiresAt) >= :startAt

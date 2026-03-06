@@ -26,7 +26,6 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +42,7 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final PasswordEncoder passwordEncoder;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final ChatSystemMessagePublisher systemMessagePublisher;
     private final CursorPageFetcher cursorPageFetcher;
     private final ChatProperties chatProperties;
 
@@ -90,18 +89,12 @@ public class ChatRoomService {
 
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
-        ChatMessage systemMessage =
-                chatMessageRepository.save(
-                        ChatMessage.createSystem(chatRoom, user.getNickname() + "님이 입장했습니다."));
+        chatRoom.incrementParticipantCount();
+
+        ChatMessage systemMessage = systemMessagePublisher.publishJoin(chatRoom, user.getNickname());
 
         chatRoomParticipantRepository.save(
                 ChatRoomParticipant.createOrRejoin(existing, userId, chatRoom, systemMessage.getId()));
-
-        chatRoom.incrementParticipantCount();
-
-        messagingTemplate.convertAndSend(
-                "/sub/chat/rooms/" + roomId,
-                ChatMessageBroadcast.from(systemMessage, null, null, chatRoom.getParticipantCount()));
     }
 
     @Transactional
@@ -113,17 +106,9 @@ public class ChatRoomService {
             participant.leave();
 
             ChatRoom chatRoom = participant.getChatRoom();
-
-            ChatMessage systemMessage =
-                    chatMessageRepository.save(ChatMessage.createSystem(chatRoom, nickname + "님이 퇴장했습니다."));
-
             chatRoom.decrementParticipantCount();
 
-            if (!chatRoom.isDeleted()) {
-                messagingTemplate.convertAndSend(
-                        "/sub/chat/rooms/" + chatRoom.getId(),
-                        ChatMessageBroadcast.from(systemMessage, null, null, chatRoom.getParticipantCount()));
-            }
+            systemMessagePublisher.publishLeave(chatRoom, nickname);
         }
     }
 
@@ -139,15 +124,9 @@ public class ChatRoomService {
         ChatRoom chatRoom = participant.getChatRoom();
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
-        ChatMessage systemMessage =
-                chatMessageRepository.save(
-                        ChatMessage.createSystem(chatRoom, user.getNickname() + "님이 퇴장했습니다."));
-
         chatRoom.decrementParticipantCount();
 
-        messagingTemplate.convertAndSend(
-                "/sub/chat/rooms/" + roomId,
-                ChatMessageBroadcast.from(systemMessage, null, null, chatRoom.getParticipantCount()));
+        systemMessagePublisher.publishLeave(chatRoom, user.getNickname());
     }
 
     public CursorPagingResponse<UserChatRoomListItem, String> getUserChatRooms(

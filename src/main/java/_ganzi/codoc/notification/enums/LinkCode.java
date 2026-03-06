@@ -4,5 +4,5 @@ public enum LinkCode {
     HOME,
     MY,
     LEADERBOARD,
-    ;
+    CHAT;
 }

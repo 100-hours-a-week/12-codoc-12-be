@@ -53,6 +53,9 @@ public class ProblemSession extends BaseTimeEntity {
     @Column(name = "chatbot_completed_at")
     private Instant chatbotCompletedAt;
 
+    @Column(name = "ai_session_notified", nullable = false)
+    private boolean aiSessionNotified;
+
     private ProblemSession(
             User user,
             Problem problem,
@@ -101,6 +104,10 @@ public class ProblemSession extends BaseTimeEntity {
         if (chatbotCompletedAt != null) {
             throw new ChatbotSessionAlreadyCompletedException();
         }
+    }
+
+    public void markAiSessionNotified() {
+        this.aiSessionNotified = true;
     }
 
     public void advanceChatbotProgressOnCorrectAnswer(Instant now) {

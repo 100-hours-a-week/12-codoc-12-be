@@ -66,8 +66,12 @@ app:
 
 management:
   endpoints:
-      access:
-        default: none
+    web:
+      exposure:
+        include: prometheus,health,metrics,threaddump
+      base-path: /api/actuator
+    access:
+      default: none
 
 springdoc:
   swagger-ui:

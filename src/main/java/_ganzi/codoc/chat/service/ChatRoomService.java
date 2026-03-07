@@ -157,6 +157,14 @@ public class ChatRoomService {
         return new UserChatUnreadStatusResponse(hasUnread);
     }
 
+    public UserChatRoomDetailResponse getUserChatRoom(Long userId, Long roomId) {
+        ChatRoomParticipant participant =
+                chatRoomParticipantRepository
+                        .findJoinedParticipant(userId, roomId)
+                        .orElseThrow(NoChatRoomParticipantException::new);
+        return UserChatRoomDetailResponse.from(participant);
+    }
+
     public CursorPagingResponse<ChatRoomListItem, String> getAllChatRooms(
             String cursor, Integer limit) {
 

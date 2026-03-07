@@ -1,6 +1,7 @@
 package _ganzi.codoc.chat.api;
 
 import _ganzi.codoc.auth.domain.AuthUser;
+import _ganzi.codoc.chat.dto.UserChatRoomDetailResponse;
 import _ganzi.codoc.chat.dto.UserChatRoomListItem;
 import _ganzi.codoc.chat.dto.UserChatUnreadStatusResponse;
 import _ganzi.codoc.chat.service.ChatRoomService;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,6 +23,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserChatRoomController {
 
     private final ChatRoomService chatRoomService;
+
+    @GetMapping("/{roomId}")
+    public ResponseEntity<ApiResponse<UserChatRoomDetailResponse>> getUserChatRoom(
+            @AuthenticationPrincipal AuthUser authUser, @PathVariable Long roomId) {
+        UserChatRoomDetailResponse response =
+                chatRoomService.getUserChatRoom(authUser.userId(), roomId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<CursorPagingResponse<UserChatRoomListItem, String>>>

@@ -37,11 +37,8 @@ public class FcmPushNotificationSender implements PushNotificationSender {
         Message.Builder messageBuilder =
                 Message.builder()
                         .setToken(pushToken)
-                        .setNotification(
-                                com.google.firebase.messaging.Notification.builder()
-                                        .setTitle(messageItem.title())
-                                        .setBody(messageItem.body())
-                                        .build())
+                        .putData("title", messageItem.title())
+                        .putData("body", messageItem.body())
                         .putData("type", messageItem.type().name());
 
         if (messageItem.type().getLinkCode() != null) {

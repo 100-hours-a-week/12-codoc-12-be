@@ -35,6 +35,9 @@ kakao:
   scope: ${KAKAO_SCOPE:}
 
 app:
+  cache:
+    caffeine:
+      default-spec: ${APP_CACHE_CAFFEINE_DEFAULT_SPEC:maximumSize=2000,expireAfterWrite=6h,recordStats}
   frontend:
     base-url: ${APP_FRONTEND_BASE_URL:http://localhost:5173}
   ai-server:

@@ -13,13 +13,10 @@ import _ganzi.codoc.problem.dto.ProblemResponse;
 import _ganzi.codoc.problem.dto.ProblemSearchParam;
 import _ganzi.codoc.problem.dto.ProblemSessionResponse;
 import _ganzi.codoc.problem.dto.RecommendedProblemResponse;
-import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.exception.RecommendNotAvailableException;
 import _ganzi.codoc.problem.repository.BookmarkRepository;
 import _ganzi.codoc.problem.repository.ProblemRepository;
-import _ganzi.codoc.problem.repository.QuizRepository;
 import _ganzi.codoc.problem.repository.RecommendedProblemRepository;
-import _ganzi.codoc.problem.repository.SummaryCardRepository;
 import _ganzi.codoc.submission.domain.UserProblemResult;
 import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
 import _ganzi.codoc.submission.repository.UserProblemResultRepository;
@@ -36,12 +33,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProblemService {
 
     private final ProblemRepository problemRepository;
-    private final QuizRepository quizRepository;
-    private final SummaryCardRepository summaryCardRepository;
     private final ProblemSessionService problemSessionService;
     private final UserProblemResultRepository userProblemResultRepository;
     private final BookmarkRepository bookmarkRepository;
     private final RecommendedProblemRepository recommendedProblemRepository;
+    private final ProblemContentCacheService problemContentCacheService;
     private final CursorPageFetcher cursorPageFetcher;
 
     public CursorPagingResponse<ProblemListItem, Long> getProblemList(
@@ -69,8 +65,7 @@ public class ProblemService {
     }
 
     public ProblemResponse getProblemDetail(Long userId, Long problemId) {
-        Problem problem =
-                problemRepository.findById(problemId).orElseThrow(ProblemNotFoundException::new);
+        Problem problem = problemContentCacheService.getProblem(problemId);
 
         ProblemSolvingStatus status =
                 userProblemResultRepository
@@ -87,12 +82,9 @@ public class ProblemService {
     public ProblemSessionResponse startProblemSession(Long userId, Long problemId) {
         var session = problemSessionService.resolveOrCreate(userId, problemId);
         Long sessionProblemId = session.getProblem().getId();
-        Problem problem =
-                problemRepository.findById(sessionProblemId).orElseThrow(ProblemNotFoundException::new);
 
-        List<SummaryCard> summaryCards =
-                summaryCardRepository.findByProblemIdOrderByParagraphOrderAsc(problem.getId());
-        List<Quiz> quizzes = quizRepository.findByProblemIdOrderBySequenceAsc(problem.getId());
+        List<SummaryCard> summaryCards = problemContentCacheService.getSummaryCards(sessionProblemId);
+        List<Quiz> quizzes = problemContentCacheService.getQuizzes(sessionProblemId);
 
         return ProblemSessionResponse.of(session, summaryCards, quizzes);
     }
@@ -104,12 +96,9 @@ public class ProblemService {
         }
 
         Long sessionProblemId = session.getProblem().getId();
-        Problem problem =
-                problemRepository.findById(sessionProblemId).orElseThrow(ProblemNotFoundException::new);
 
-        List<SummaryCard> summaryCards =
-                summaryCardRepository.findByProblemIdOrderByParagraphOrderAsc(problem.getId());
-        List<Quiz> quizzes = quizRepository.findByProblemIdOrderBySequenceAsc(problem.getId());
+        List<SummaryCard> summaryCards = problemContentCacheService.getSummaryCards(sessionProblemId);
+        List<Quiz> quizzes = problemContentCacheService.getQuizzes(sessionProblemId);
 
         return ProblemSessionResponse.of(session, summaryCards, quizzes);
     }

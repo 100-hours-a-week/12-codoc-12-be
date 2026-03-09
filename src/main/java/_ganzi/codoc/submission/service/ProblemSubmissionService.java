@@ -19,6 +19,7 @@ import _ganzi.codoc.submission.repository.UserQuizAttemptRepository;
 import _ganzi.codoc.submission.repository.UserQuizResultRepository;
 import _ganzi.codoc.user.service.QuestService;
 import _ganzi.codoc.user.service.UserStatsService;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -75,7 +76,7 @@ public class ProblemSubmissionService {
         ProblemSolvingStatus nextStatus = userProblemResult.getStatus();
 
         if (correctCount == totalQuizCount) {
-            closeSessionIfNeeded(attempt);
+            session.close(Instant.now());
             if (!userProblemResult.isSolved()) {
                 userProblemResult.markSolved();
                 userStatsService.applyProblemSolved(userId, PROBLEM_SOLVED_XP);
@@ -87,15 +88,8 @@ public class ProblemSubmissionService {
             }
         }
 
-        return ProblemSubmissionResponse.of(correctCount, nextStatus, xpGranted);
-    }
-
-    private void closeSessionIfNeeded(UserQuizAttempt attempt) {
-        ProblemSession session = attempt.getProblemSession();
-        if (session == null || !session.isActive()) {
-            return;
-        }
-        session.close(java.time.Instant.now());
+        return ProblemSubmissionResponse.of(
+                correctCount, nextStatus, xpGranted, session.getCreatedAt(), session.getClosedAt());
     }
 
     private UserQuizAttempt findLatestAttempt(Long sessionId) {

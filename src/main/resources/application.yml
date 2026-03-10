@@ -38,6 +38,7 @@ app:
   cache:
     caffeine:
       default-spec: ${APP_CACHE_CAFFEINE_DEFAULT_SPEC:maximumSize=2000,expireAfterWrite=6h,recordStats}
+      default-negative-spec: ${APP_CACHE_CAFFEINE_DEFAULT_NEGATIVE_SPEC:maximumSize=2000,expireAfterWrite=1h,recordStats}
   frontend:
     base-url: ${APP_FRONTEND_BASE_URL:http://localhost:5173}
   ai-server:

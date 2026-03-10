@@ -49,8 +49,6 @@ dependencies {
 	implementation 'io.sentry:sentry-spring-boot-4-starter'
 	implementation 'io.sentry:sentry-async-profiler'
 
-	developmentOnly 'org.springframework.boot:spring-boot-devtools'
-
 	implementation "com.bucket4j:bucket4j_jdk17-core:${bucket4jVersion}"
 
     implementation 'io.micrometer:micrometer-registry-prometheus'

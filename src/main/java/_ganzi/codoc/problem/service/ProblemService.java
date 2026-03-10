@@ -13,6 +13,7 @@ import _ganzi.codoc.problem.dto.ProblemResponse;
 import _ganzi.codoc.problem.dto.ProblemSearchParam;
 import _ganzi.codoc.problem.dto.ProblemSessionResponse;
 import _ganzi.codoc.problem.dto.RecommendedProblemResponse;
+import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.exception.RecommendNotAvailableException;
 import _ganzi.codoc.problem.repository.BookmarkRepository;
 import _ganzi.codoc.problem.repository.ProblemRepository;
@@ -65,7 +66,16 @@ public class ProblemService {
     }
 
     public ProblemResponse getProblemDetail(Long userId, Long problemId) {
-        Problem problem = problemContentCacheService.getProblem(problemId);
+        if (problemContentCacheService.isNegativeProblem(problemId)) {
+            throw new ProblemNotFoundException();
+        }
+        Problem problem;
+        try {
+            problem = problemContentCacheService.getProblem(problemId);
+        } catch (ProblemNotFoundException exception) {
+            problemContentCacheService.cacheNegativeProblem(problemId);
+            throw exception;
+        }
 
         ProblemSolvingStatus status =
                 userProblemResultRepository

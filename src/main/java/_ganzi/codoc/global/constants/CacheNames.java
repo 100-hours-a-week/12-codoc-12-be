@@ -9,6 +9,7 @@ public final class CacheNames {
     public static final String PROBLEM_DETAIL = "problem";
     public static final String PROBLEM_SUMMARY_CARDS = "summary-cards";
     public static final String PROBLEM_QUIZZES = "quizzes";
+    public static final String PROBLEM_NEGATIVE = "problem-negative";
 
     private CacheNames() {}
 }

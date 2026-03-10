@@ -10,6 +10,7 @@ import _ganzi.codoc.problem.repository.QuizRepository;
 import _ganzi.codoc.problem.repository.SummaryCardRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,23 @@ public class ProblemContentCacheService {
             key = "#problemId")
     public Problem getProblem(Long problemId) {
         return problemRepository.findById(problemId).orElseThrow(ProblemNotFoundException::new);
+    }
+
+    @Cacheable(
+            cacheManager = CacheNames.CAFFEINE_CACHE_MANAGER,
+            cacheNames = CacheNames.PROBLEM_NEGATIVE,
+            key = "#problemId",
+            unless = "#result == false")
+    public boolean isNegativeProblem(Long problemId) {
+        return false;
+    }
+
+    @CachePut(
+            cacheManager = CacheNames.CAFFEINE_CACHE_MANAGER,
+            cacheNames = CacheNames.PROBLEM_NEGATIVE,
+            key = "#problemId")
+    public boolean cacheNegativeProblem(Long problemId) {
+        return true;
     }
 
     @Cacheable(

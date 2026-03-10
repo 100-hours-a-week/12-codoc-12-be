@@ -7,7 +7,8 @@ import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties(prefix = "app.cache.caffeine")
-public record AppCacheProperties(@NotBlank String defaultSpec, Map<String, String> specs) {
+public record AppCacheProperties(
+        @NotBlank String defaultSpec, @NotBlank String defaultNegativeSpec, Map<String, String> specs) {
 
     public AppCacheProperties {
         specs = specs == null ? Map.of() : Map.copyOf(specs);
@@ -15,5 +16,9 @@ public record AppCacheProperties(@NotBlank String defaultSpec, Map<String, Strin
 
     public String resolveSpec(String cacheName) {
         return specs.getOrDefault(cacheName, defaultSpec);
+    }
+
+    public String resolveNegativeSpec(String cacheName) {
+        return specs.getOrDefault(cacheName, defaultNegativeSpec);
     }
 }

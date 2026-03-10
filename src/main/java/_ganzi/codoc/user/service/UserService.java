@@ -155,8 +155,7 @@ public class UserService {
         if (user.getStatus() == UserStatus.ACTIVE) {
             ensureDefaultLeague(user);
             questBatchService.issueDailyQuestsForUser(user.getId(), LocalDate.now(SEOUL));
-            recommendedProblemService.issueRecommendationsForUser(
-                    user.getId(), RecommendationScenario.DAILY);
+            recommendedProblemService.replenishIfNeeded(user.getId());
         }
     }
 

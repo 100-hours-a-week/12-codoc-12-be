@@ -84,6 +84,7 @@ app:
     redis:
       write-enabled: ${APP_LEADERBOARD_REDIS_WRITE_ENABLED:false}
       read-enabled: ${APP_LEADERBOARD_REDIS_READ_ENABLED:false}
+      rebuild-batch-size: ${APP_LEADERBOARD_REDIS_REBUILD_BATCH_SIZE:500}
 
   fcm:
     enabled: ${APP_FCM_ENABLED:false}

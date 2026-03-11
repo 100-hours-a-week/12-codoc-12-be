@@ -94,7 +94,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         RateLimitResult result = rateLimitService.tryConsume(key, policy);
         applyHeaders(response, policy, result);
 
-        if (!result.probe().isConsumed()) {
+        if (!result.consumed()) {
             throw exceptionSupplier.get();
         }
     }
@@ -102,10 +102,10 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private void applyHeaders(
             HttpServletResponse response, RateLimitPolicy policy, RateLimitResult result) {
         response.setHeader("RateLimit-Limit", String.valueOf(policy.limit()));
-        response.setHeader("RateLimit-Remaining", String.valueOf(result.probe().getRemainingTokens()));
+        response.setHeader("RateLimit-Remaining", String.valueOf(result.remainingTokens()));
         response.setHeader("RateLimit-Reset", String.valueOf(toCeilSeconds(result.resetNanos())));
 
-        if (!result.probe().isConsumed()) {
+        if (!result.consumed()) {
             response.setHeader("Retry-After", String.valueOf(toCeilSeconds(result.retryAfterNanos())));
         }
     }

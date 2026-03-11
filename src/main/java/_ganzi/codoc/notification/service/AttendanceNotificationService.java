@@ -16,8 +16,7 @@ public class AttendanceNotificationService {
     private static final String body = "문제 하나만 풀면 연속 학습을 유지할 수 있어요.";
 
     private final UserRepository userRepository;
-    private final NotificationSendService notificationSendService;
-    private final PushNotificationSendService pushNotificationSendService;
+    private final NotificationDispatchService notificationDispatchService;
 
     public void sendDailyReminder(LocalDate targetDate) {
         List<Long> targetUserIds = userRepository.findActiveUserIdsWithoutSolvedCountOn(targetDate);
@@ -26,8 +25,7 @@ public class AttendanceNotificationService {
                 new NotificationMessageItem(NotificationType.ATTENDANCE, title, body, null);
 
         for (Long userId : targetUserIds) {
-            notificationSendService.send(userId, messageItem);
-            pushNotificationSendService.send(userId, messageItem);
+            notificationDispatchService.dispatch(userId, messageItem);
         }
     }
 }

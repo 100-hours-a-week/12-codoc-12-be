@@ -20,6 +20,10 @@ spring:
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
     virtual-host: ${RABBITMQ_VHOST:/}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
 
   jpa:
     hibernate:
@@ -71,7 +75,13 @@ app:
       enabled: ${APP_NOTIFICATION_MQ_ENABLED:false}
       exchange: ${APP_NOTIFICATION_MQ_EXCHANGE:notification.event}
       in-app-queue: ${APP_NOTIFICATION_MQ_INAPP_QUEUE:notification.inapp.q}
+      in-app-dlq: ${APP_NOTIFICATION_MQ_INAPP_DLQ:notification.inapp.dlq.q}
       push-queue: ${APP_NOTIFICATION_MQ_PUSH_QUEUE:notification.push.q}
+      push-dlq: ${APP_NOTIFICATION_MQ_PUSH_DLQ:notification.push.dlq.q}
+      retry-max-attempts: ${APP_NOTIFICATION_MQ_RETRY_MAX_ATTEMPTS:3}
+      retry-initial-interval-millis: ${APP_NOTIFICATION_MQ_RETRY_INITIAL_INTERVAL_MILLIS:1000}
+      retry-multiplier: ${APP_NOTIFICATION_MQ_RETRY_MULTIPLIER:2.0}
+      retry-max-interval-millis: ${APP_NOTIFICATION_MQ_RETRY_MAX_INTERVAL_MILLIS:5000}
 
   rate-limit:
     chatbot-stream:

@@ -1,5 +1,8 @@
 package _ganzi.codoc.problem.service;
 
+import _ganzi.codoc.notification.dto.NotificationMessageItem;
+import _ganzi.codoc.notification.enums.NotificationType;
+import _ganzi.codoc.notification.service.NotificationDispatchService;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.domain.RecommendedProblem;
 import _ganzi.codoc.problem.repository.ProblemRepository;
@@ -37,6 +40,8 @@ public class RecommendedProblemService {
     private static final int BATCH_SIZE = 5;
     private static final int LOCK_TIMEOUT_SECONDS = 2;
     private static final long RATE_LIMIT_BACKOFF_MILLIS = 500;
+    private static final String RECOMMEND_ISSUED_TITLE = "AI 추천 문제가 발급됐어요";
+    private static final String RECOMMEND_ISSUED_BODY = "새 추천 문제를 확인해보세요.";
 
     private final RecommendedProblemRepository recommendedProblemRepository;
     private final UserRepository userRepository;
@@ -44,6 +49,7 @@ public class RecommendedProblemService {
     private final UserProblemResultRepository userProblemResultRepository;
     private final EntityManager entityManager;
     private final RecommendClient recommendClient;
+    private final NotificationDispatchService notificationDispatchService;
 
     @Transactional
     public void issueDailyRecommendations() {
@@ -139,6 +145,15 @@ public class RecommendedProblemService {
             }
             if (!toSave.isEmpty()) {
                 recommendedProblemRepository.saveAll(toSave);
+                notificationDispatchService.dispatchAfterCommit(
+                        userId,
+                        new NotificationMessageItem(
+                                NotificationType.AI_RECOMMENDED_PROBLEM_ISSUED,
+                                RECOMMEND_ISSUED_TITLE,
+                                RECOMMEND_ISSUED_BODY,
+                                java.util.Map.of(
+                                        "scenario", scenario.name(),
+                                        "count", String.valueOf(toSave.size()))));
             }
         } finally {
             releaseUserLock(userId);

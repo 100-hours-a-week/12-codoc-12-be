@@ -15,6 +15,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findAllByStatus(UserStatus status);
 
+    @Query("select u.id from User u where u.status = _ganzi.codoc.user.enums.UserStatus.ACTIVE")
+    List<Long> findAllActiveUserIds();
+
     List<User> findAllByStatusAndLeagueId(UserStatus status, Integer leagueId);
 
     List<User> findAllByStatusAndLastAccessBefore(UserStatus status, Instant lastAccess);

@@ -80,6 +80,10 @@ app:
       relay-channel: ${APP_CHAT_WS_RELAY_CHANNEL:chat.ws.relay}
       server-id: ${APP_CHAT_WS_SERVER_ID:${HOSTNAME:local}}
 
+  leaderboard:
+    redis:
+      write-enabled: ${APP_LEADERBOARD_REDIS_WRITE_ENABLED:false}
+
   fcm:
     enabled: ${APP_FCM_ENABLED:false}
     project-id: ${FCM_PROJECT_ID:}

@@ -10,6 +10,9 @@ import _ganzi.codoc.analysis.service.dto.AnalysisReportDetailResponse;
 import _ganzi.codoc.chatbot.domain.ChatbotConversation;
 import _ganzi.codoc.chatbot.repository.ChatbotConversationRepository;
 import _ganzi.codoc.global.exception.ResourceNotFoundException;
+import _ganzi.codoc.notification.dto.NotificationMessageItem;
+import _ganzi.codoc.notification.enums.NotificationType;
+import _ganzi.codoc.notification.service.NotificationDispatchService;
 import _ganzi.codoc.problem.enums.ParagraphType;
 import _ganzi.codoc.problem.enums.QuizType;
 import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
@@ -45,6 +48,8 @@ public class AnalysisReportService {
     private static final String CODE_SUCCESS = "SUCCESS";
     private static final String CODE_DEPENDENCY_NOT_READY = "DEPENDENCY_NOT_READY";
     private static final String CODE_UNAUTHORIZED_INTERNAL = "UNAUTHORIZED_INTERNAL";
+    private static final String REPORT_CREATED_TITLE = "AI 분석 리포트가 도착했어요";
+    private static final String REPORT_CREATED_BODY = "이번 주 학습 리포트를 확인해보세요.";
 
     private final AnalysisReportClient analysisReportClient;
     private final AnalysisReportRepository analysisReportRepository;
@@ -54,6 +59,7 @@ public class AnalysisReportService {
     private final UserQuizResultRepository userQuizResultRepository;
     private final UserProblemResultRepository userProblemResultRepository;
     private final ProblemSessionService problemSessionService;
+    private final NotificationDispatchService notificationDispatchService;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -131,6 +137,15 @@ public class AnalysisReportService {
                 AnalysisReport.create(
                         user, window.periodStart(), window.periodEnd(), reportJson, Instant.now());
         analysisReportRepository.save(report);
+        notificationDispatchService.dispatchAfterCommit(
+                user.getId(),
+                new NotificationMessageItem(
+                        NotificationType.AI_ANALYSIS_REPORT_CREATED,
+                        REPORT_CREATED_TITLE,
+                        REPORT_CREATED_BODY,
+                        Map.of(
+                                "periodStart", window.periodStart().toString(),
+                                "periodEnd", window.periodEnd().toString())));
         return IssueResult.SUCCESS;
     }
 

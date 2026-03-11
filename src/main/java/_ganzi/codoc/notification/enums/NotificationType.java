@@ -10,6 +10,7 @@ public enum NotificationType {
     AI_RECOMMENDED_PROBLEM_ISSUED(true, LinkCode.HOME),
     AI_ANALYSIS_REPORT_CREATED(true, LinkCode.MY),
     LEADERBOARD_CLOSED(true, LinkCode.LEADERBOARD),
+    LEADERBOARD_STARTED(true, LinkCode.LEADERBOARD),
     CHAT(false, LinkCode.CHAT);
 
     private final boolean inboxVisible;

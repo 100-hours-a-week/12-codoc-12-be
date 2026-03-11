@@ -13,7 +13,7 @@ import _ganzi.codoc.global.cursor.CursorPageFetcher;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
 import _ganzi.codoc.notification.dto.NotificationMessageItem;
 import _ganzi.codoc.notification.enums.NotificationType;
-import _ganzi.codoc.notification.service.PushNotificationSendService;
+import _ganzi.codoc.notification.service.NotificationDispatchService;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
@@ -37,7 +37,7 @@ public class ChatMessageService {
     private final WebSocketSessionRegistry webSocketSessionRegistry;
     private final CursorPageFetcher cursorPageFetcher;
     private final ChatBroadcaster chatBroadcaster;
-    private final PushNotificationSendService pushNotificationSendService;
+    private final NotificationDispatchService notificationDispatchService;
 
     public CursorPagingResponse<ChatMessageListItem, String> getMessages(
             Long userId, Long roomId, String cursor, Integer limit) {
@@ -101,7 +101,7 @@ public class ChatMessageService {
                 continue;
             }
 
-            pushNotificationSendService.send(
+            notificationDispatchService.dispatchAfterCommit(
                     participantUserId,
                     new NotificationMessageItem(
                             NotificationType.CHAT,

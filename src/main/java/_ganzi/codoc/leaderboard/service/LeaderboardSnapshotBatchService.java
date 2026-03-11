@@ -9,6 +9,10 @@ import _ganzi.codoc.leaderboard.repository.LeaderboardScoreRepository;
 import _ganzi.codoc.leaderboard.repository.LeaderboardSeasonRepository;
 import _ganzi.codoc.leaderboard.repository.LeaderboardSnapshotBatchRepository;
 import _ganzi.codoc.leaderboard.repository.LeaderboardSnapshotRepository;
+import _ganzi.codoc.notification.dto.NotificationMessageItem;
+import _ganzi.codoc.notification.enums.NotificationType;
+import _ganzi.codoc.notification.service.NotificationDispatchService;
+import _ganzi.codoc.user.repository.UserRepository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -24,10 +28,18 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class LeaderboardSnapshotBatchService {
 
+    private static final int NOTIFICATION_DISPATCH_BATCH_SIZE = 500;
+    private static final String SEASON_START_TITLE = "리더보드 새 시즌이 시작됐어요";
+    private static final String SEASON_START_BODY = "이번 시즌 랭킹을 확인하고 도전해보세요.";
+    private static final String SEASON_END_TITLE = "리더보드 시즌이 종료됐어요";
+    private static final String SEASON_END_BODY = "최종 결과를 확인해보세요.";
+
     private final LeaderboardSeasonRepository seasonRepository;
     private final LeaderboardScoreRepository scoreRepository;
     private final LeaderboardSnapshotBatchRepository snapshotBatchRepository;
     private final LeaderboardSnapshotRepository snapshotRepository;
+    private final UserRepository userRepository;
+    private final NotificationDispatchService notificationDispatchService;
 
     @Transactional
     public void createHourlySnapshot() {
@@ -45,6 +57,11 @@ public class LeaderboardSnapshotBatchService {
             return;
         }
         createSnapshotForSeason(season);
+        notifyActiveUsers(
+                NotificationType.LEADERBOARD_STARTED,
+                SEASON_START_TITLE,
+                SEASON_START_BODY,
+                Map.of("seasonId", String.valueOf(season.getSeasonId())));
     }
 
     @Transactional
@@ -54,6 +71,20 @@ public class LeaderboardSnapshotBatchService {
             return;
         }
         createSnapshotForSeason(season);
+        notifyActiveUsers(
+                NotificationType.LEADERBOARD_CLOSED,
+                SEASON_END_TITLE,
+                SEASON_END_BODY,
+                Map.of("seasonId", String.valueOf(season.getSeasonId())));
+    }
+
+    private void notifyActiveUsers(
+            NotificationType type, String title, String body, Map<String, String> linkParams) {
+        List<Long> userIds = userRepository.findAllActiveUserIds();
+        NotificationMessageItem messageItem =
+                new NotificationMessageItem(type, title, body, linkParams);
+        notificationDispatchService.dispatchBatchAfterCommit(
+                userIds, messageItem, NOTIFICATION_DISPATCH_BATCH_SIZE);
     }
 
     private void createSnapshotForSeason(LeaderboardSeason season) {

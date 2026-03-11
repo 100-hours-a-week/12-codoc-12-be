@@ -14,6 +14,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   redis:
     image: redis:7-alpine
@@ -26,6 +28,25 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: codoc-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   mysql:
     image: mysql:8.0
@@ -71,4 +92,6 @@ services:
 
 volumes:
   mysql_data:
+  redis_data:
+  rabbitmq_data:
   grafana-storage:

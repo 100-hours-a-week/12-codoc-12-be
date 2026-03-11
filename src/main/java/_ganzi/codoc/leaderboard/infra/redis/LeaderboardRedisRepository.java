@@ -27,6 +27,17 @@ public class LeaderboardRedisRepository {
         return redisTemplate.opsForZSet().score(key, String.valueOf(userId));
     }
 
+    public Boolean hasKey(String key) {
+        return redisTemplate.hasKey(key);
+    }
+
+    public void deleteKeys(List<String> keys) {
+        if (keys == null || keys.isEmpty()) {
+            return;
+        }
+        redisTemplate.delete(keys);
+    }
+
     public List<ZSetOperations.TypedTuple<String>> top(String key, long start, long end) {
         Set<ZSetOperations.TypedTuple<String>> tuples =
                 redisTemplate.opsForZSet().reverseRangeWithScores(key, start, end);

@@ -83,6 +83,7 @@ app:
   leaderboard:
     redis:
       write-enabled: ${APP_LEADERBOARD_REDIS_WRITE_ENABLED:false}
+      read-enabled: ${APP_LEADERBOARD_REDIS_READ_ENABLED:false}
 
   fcm:
     enabled: ${APP_FCM_ENABLED:false}

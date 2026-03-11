@@ -20,7 +20,7 @@ public class LeaderboardRedisRebuildScheduler {
         if (!properties.writeEnabled()) {
             return;
         }
-        boolean rebuilt = rebuildService.rebuildCurrentSeasonIfMissing();
+        boolean rebuilt = rebuildService.rebuildReadableSeasonIfMissing();
         if (rebuilt) {
             log.info("leaderboard redis rebuild triggered by key-missing detection");
         }

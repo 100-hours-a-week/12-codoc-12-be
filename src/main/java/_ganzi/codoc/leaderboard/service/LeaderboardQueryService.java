@@ -77,7 +77,13 @@ public class LeaderboardQueryService {
                         .map(LeaderboardSnapshotBatch::getId)
                         .orElse(null);
         Long groupId = null;
-        if (seasonId != null) {
+        if (snapshotId != null) {
+            groupId =
+                    snapshotRepository
+                            .findScopeIdBySnapshotAndUser(snapshotId, LeaderboardScopeType.GROUP, userId)
+                            .orElse(null);
+        }
+        if (groupId == null && seasonId != null) {
             groupId =
                     groupMemberRepository
                             .findFirstBySeasonIdAndUserId(seasonId, userId)
@@ -138,11 +144,22 @@ public class LeaderboardQueryService {
             }
             return getUserGlobalRankFromScore(userId, currentSeason.get());
         }
+        if (leaderboardRedisProperties.readEnabled()) {
+            try {
+                Optional<UserGlobalRankResponse> redisResponse =
+                        getUserGlobalRankFromEndedSeasonRedis(userId);
+                if (redisResponse.isPresent()) {
+                    return redisResponse.get();
+                }
+            } catch (Exception exception) {
+                log.warn("leaderboard redis read failed. scope=GLOBAL, userId={}", userId, exception);
+            }
+        }
         return getUserGlobalRankFromSnapshot(userId);
     }
 
     private UserGlobalRankResponse getUserGlobalRankFromSnapshot(Long userId) {
-        ParticipantContext context = resolveParticipant(userId);
+        SnapshotParticipantContext context = resolveSnapshotParticipant(userId);
         LeaderboardSnapshot snapshot =
                 snapshotRepository
                         .findGlobalSnapshotByUser(context.snapshotId(), LeaderboardScopeType.GLOBAL, userId)
@@ -169,11 +186,22 @@ public class LeaderboardQueryService {
             }
             return getUserLeagueRankFromScore(userId, currentSeason.get());
         }
+        if (leaderboardRedisProperties.readEnabled()) {
+            try {
+                Optional<UserLeagueRankResponse> redisResponse =
+                        getUserLeagueRankFromEndedSeasonRedis(userId);
+                if (redisResponse.isPresent()) {
+                    return redisResponse.get();
+                }
+            } catch (Exception exception) {
+                log.warn("leaderboard redis read failed. scope=LEAGUE, userId={}", userId, exception);
+            }
+        }
         return getUserLeagueRankFromSnapshot(userId);
     }
 
     private UserLeagueRankResponse getUserLeagueRankFromSnapshot(Long userId) {
-        ParticipantContext context = resolveParticipant(userId);
+        SnapshotParticipantContext context = resolveSnapshotParticipant(userId);
         LeaderboardSnapshot snapshot =
                 snapshotRepository
                         .findScopedSnapshotByUser(
@@ -201,11 +229,22 @@ public class LeaderboardQueryService {
             }
             return getUserGroupRankFromScore(userId, currentSeason.get());
         }
+        if (leaderboardRedisProperties.readEnabled()) {
+            try {
+                Optional<UserGroupRankResponse> redisResponse =
+                        getUserGroupRankFromEndedSeasonRedis(userId);
+                if (redisResponse.isPresent()) {
+                    return redisResponse.get();
+                }
+            } catch (Exception exception) {
+                log.warn("leaderboard redis read failed. scope=GROUP, userId={}", userId, exception);
+            }
+        }
         return getUserGroupRankFromSnapshot(userId);
     }
 
     private UserGroupRankResponse getUserGroupRankFromSnapshot(Long userId) {
-        ParticipantContext context = resolveParticipant(userId);
+        SnapshotParticipantContext context = resolveSnapshotParticipant(userId);
         LeaderboardSnapshot snapshot =
                 snapshotRepository
                         .findScopedSnapshotByUser(
@@ -240,12 +279,28 @@ public class LeaderboardQueryService {
             }
             return getGlobalLeaderboardFromScore(userId, startRank, limit, currentSeason.get());
         }
+        if (leaderboardRedisProperties.readEnabled()) {
+            try {
+                Optional<LeaderboardRankPageResponse> redisResponse =
+                        getGlobalLeaderboardFromEndedSeasonRedis(userId, startRank, limit);
+                if (redisResponse.isPresent()) {
+                    return redisResponse.get();
+                }
+            } catch (Exception exception) {
+                log.warn(
+                        "leaderboard redis read failed." + " scope=GLOBAL, userId={}, startRank={}, limit={}",
+                        userId,
+                        startRank,
+                        limit,
+                        exception);
+            }
+        }
         return getGlobalLeaderboardFromSnapshot(userId, startRank, limit);
     }
 
     private LeaderboardRankPageResponse getGlobalLeaderboardFromSnapshot(
             Long userId, int startRank, int limit) {
-        ParticipantContext context = resolveParticipant(userId);
+        SnapshotParticipantContext context = resolveSnapshotParticipant(userId);
         validateRange(startRank, limit);
         int endRank = startRank + limit - 1;
         List<LeaderboardSnapshot> snapshots =
@@ -275,12 +330,28 @@ public class LeaderboardQueryService {
             }
             return getLeagueLeaderboardFromScore(userId, startRank, limit, currentSeason.get());
         }
+        if (leaderboardRedisProperties.readEnabled()) {
+            try {
+                Optional<LeaderboardRankPageResponse> redisResponse =
+                        getLeagueLeaderboardFromEndedSeasonRedis(userId, startRank, limit);
+                if (redisResponse.isPresent()) {
+                    return redisResponse.get();
+                }
+            } catch (Exception exception) {
+                log.warn(
+                        "leaderboard redis read failed." + " scope=LEAGUE, userId={}, startRank={}, limit={}",
+                        userId,
+                        startRank,
+                        limit,
+                        exception);
+            }
+        }
         return getLeagueLeaderboardFromSnapshot(userId, startRank, limit);
     }
 
     private LeaderboardRankPageResponse getLeagueLeaderboardFromSnapshot(
             Long userId, int startRank, int limit) {
-        ParticipantContext context = resolveParticipant(userId);
+        SnapshotParticipantContext context = resolveSnapshotParticipant(userId);
         validateRange(startRank, limit);
         int endRank = startRank + limit - 1;
         List<LeaderboardSnapshot> snapshots =
@@ -314,12 +385,28 @@ public class LeaderboardQueryService {
             }
             return getGroupLeaderboardFromScore(userId, startRank, limit, currentSeason.get());
         }
+        if (leaderboardRedisProperties.readEnabled()) {
+            try {
+                Optional<LeaderboardGroupPageResponse> redisResponse =
+                        getGroupLeaderboardFromEndedSeasonRedis(userId, startRank, limit);
+                if (redisResponse.isPresent()) {
+                    return redisResponse.get();
+                }
+            } catch (Exception exception) {
+                log.warn(
+                        "leaderboard redis read failed." + " scope=GROUP, userId={}, startRank={}, limit={}",
+                        userId,
+                        startRank,
+                        limit,
+                        exception);
+            }
+        }
         return getGroupLeaderboardFromSnapshot(userId, startRank, limit);
     }
 
     private LeaderboardGroupPageResponse getGroupLeaderboardFromSnapshot(
             Long userId, int startRank, int limit) {
-        ParticipantContext context = resolveParticipant(userId);
+        SnapshotParticipantContext context = resolveSnapshotParticipant(userId);
         validateRange(startRank, limit);
         int endRank = startRank + limit - 1;
         List<LeaderboardSnapshot> snapshots =
@@ -444,29 +531,28 @@ public class LeaderboardQueryService {
                 season.getSeasonId(), user.getLeague().getId(), member.getGroup().getId(), user);
     }
 
-    private ParticipantContext resolveParticipant(Long userId) {
+    private SnapshotParticipantContext resolveSnapshotParticipant(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
         LeaderboardSeason season =
                 findSeasonForRead().orElseThrow(NotLeaderboardParticipantException::new);
         LeaderboardSnapshotBatch snapshotBatch =
                 findLatestSnapshotBatch(season).orElseThrow(NotLeaderboardParticipantException::new);
-        Integer leagueId = resolveLeagueIdFromSnapshot(userId, snapshotBatch.getId());
-        League league = leagueId == null ? null : leagueRepository.findById(leagueId).orElse(null);
-        if (league == null) {
-            league = user.getLeague();
-        }
-        if (league == null) {
+        Long leagueId =
+                snapshotRepository
+                        .findScopeIdBySnapshotAndUser(
+                                snapshotBatch.getId(), LeaderboardScopeType.LEAGUE, userId)
+                        .orElseGet(
+                                () -> user.getLeague() == null ? null : user.getLeague().getId().longValue());
+        Long groupId =
+                snapshotRepository
+                        .findScopeIdBySnapshotAndUser(snapshotBatch.getId(), LeaderboardScopeType.GROUP, userId)
+                        .orElse(null);
+        if (leagueId == null || groupId == null) {
             throw new NotLeaderboardParticipantException();
         }
-        LeaderboardGroupMember member =
-                groupMemberRepository
-                        .findFirstBySeasonIdAndUserId(season.getSeasonId(), userId)
-                        .orElseThrow(NotLeaderboardParticipantException::new);
-        return new ParticipantContext(
-                season.getSeasonId(),
-                snapshotBatch.getId(),
-                league.getId().longValue(),
-                member.getGroup().getId());
+
+        return new SnapshotParticipantContext(
+                season.getSeasonId(), snapshotBatch.getId(), leagueId, groupId, user);
     }
 
     private Optional<UserGlobalRankResponse> getUserGlobalRankFromRedis(Long userId) {
@@ -603,6 +689,104 @@ public class LeaderboardQueryService {
                         page.ranks()));
     }
 
+    private Optional<UserGlobalRankResponse> getUserGlobalRankFromEndedSeasonRedis(Long userId) {
+        SnapshotParticipantContext context = resolveSnapshotParticipant(userId);
+        String key = leaderboardRedisKeyFactory.globalKey(context.seasonId());
+        Long rank = leaderboardRedisRepository.reverseRank(key, userId);
+        Double score = leaderboardRedisRepository.score(key, userId);
+        if (rank == null || score == null) {
+            return Optional.empty();
+        }
+        return Optional.of(
+                new UserGlobalRankResponse(
+                        rank.intValue() + 1,
+                        leaderboardRedisScoreCodec.decodeWeeklyXp(score),
+                        context.user().getNickname(),
+                        context.user().getAvatar().getImageUrl()));
+    }
+
+    private Optional<UserLeagueRankResponse> getUserLeagueRankFromEndedSeasonRedis(Long userId) {
+        SnapshotParticipantContext context = resolveSnapshotParticipant(userId);
+        String key =
+                leaderboardRedisKeyFactory.leagueKey(context.seasonId(), context.leagueId().intValue());
+        Long rank = leaderboardRedisRepository.reverseRank(key, userId);
+        Double score = leaderboardRedisRepository.score(key, userId);
+        if (rank == null || score == null) {
+            return Optional.empty();
+        }
+        return Optional.of(
+                new UserLeagueRankResponse(
+                        rank.intValue() + 1,
+                        leaderboardRedisScoreCodec.decodeWeeklyXp(score),
+                        context.user().getNickname(),
+                        context.user().getAvatar().getImageUrl()));
+    }
+
+    private Optional<UserGroupRankResponse> getUserGroupRankFromEndedSeasonRedis(Long userId) {
+        SnapshotParticipantContext context = resolveSnapshotParticipant(userId);
+        String key = leaderboardRedisKeyFactory.groupKey(context.seasonId(), context.groupId());
+        Long rank = leaderboardRedisRepository.reverseRank(key, userId);
+        Double score = leaderboardRedisRepository.score(key, userId);
+        if (rank == null || score == null) {
+            return Optional.empty();
+        }
+        return Optional.of(
+                new UserGroupRankResponse(
+                        context.groupId(),
+                        rank.intValue() + 1,
+                        leaderboardRedisScoreCodec.decodeWeeklyXp(score),
+                        context.user().getNickname(),
+                        context.user().getAvatar().getImageUrl()));
+    }
+
+    private Optional<LeaderboardRankPageResponse> getGlobalLeaderboardFromEndedSeasonRedis(
+            Long userId, int startRank, int limit) {
+        validateRange(startRank, limit);
+        SnapshotParticipantContext context = resolveSnapshotParticipant(userId);
+        String key = leaderboardRedisKeyFactory.globalKey(context.seasonId());
+        LeaderboardRankPageResponse page = readRankPageFromRedis(key, key, startRank, limit);
+        if (startRank == 1 && page.ranks().isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(page);
+    }
+
+    private Optional<LeaderboardRankPageResponse> getLeagueLeaderboardFromEndedSeasonRedis(
+            Long userId, int startRank, int limit) {
+        validateRange(startRank, limit);
+        SnapshotParticipantContext context = resolveSnapshotParticipant(userId);
+        String globalKey = leaderboardRedisKeyFactory.globalKey(context.seasonId());
+        String leagueKey =
+                leaderboardRedisKeyFactory.leagueKey(context.seasonId(), context.leagueId().intValue());
+        LeaderboardRankPageResponse page =
+                readRankPageFromRedis(leagueKey, globalKey, startRank, limit);
+        if (startRank == 1 && page.ranks().isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(page);
+    }
+
+    private Optional<LeaderboardGroupPageResponse> getGroupLeaderboardFromEndedSeasonRedis(
+            Long userId, int startRank, int limit) {
+        validateRange(startRank, limit);
+        SnapshotParticipantContext context = resolveSnapshotParticipant(userId);
+        String globalKey = leaderboardRedisKeyFactory.globalKey(context.seasonId());
+        String groupKey = leaderboardRedisKeyFactory.groupKey(context.seasonId(), context.groupId());
+        LeaderboardRankPageResponse page = readRankPageFromRedis(groupKey, globalKey, startRank, limit);
+        if (startRank == 1 && page.ranks().isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(
+                new LeaderboardGroupPageResponse(
+                        context.seasonId(),
+                        context.groupId(),
+                        context.snapshotId(),
+                        page.startRank(),
+                        page.endRank(),
+                        page.hasMore(),
+                        page.ranks()));
+    }
+
     private LeaderboardRankPageResponse readRankPageFromRedis(
             String scoreKey, String globalKey, int startRank, int limit) {
         long start = startRank - 1L;
@@ -707,16 +891,6 @@ public class LeaderboardQueryService {
         }
     }
 
-    private Integer resolveLeagueIdFromSnapshot(Long userId, Long snapshotId) {
-        if (snapshotId == null) {
-            return null;
-        }
-        return snapshotRepository
-                .findScopeIdBySnapshotAndUser(snapshotId, LeaderboardScopeType.LEAGUE, userId)
-                .map(Long::intValue)
-                .orElse(null);
-    }
-
     private LeaderboardRankPageResponse toRankPageResponse(
             int startRank, int limit, List<LeaderboardSnapshot> snapshots) {
         List<LeaderboardRankItem> ranks = new ArrayList<>();
@@ -777,8 +951,8 @@ public class LeaderboardQueryService {
         return instant.atZone(SEOUL).toLocalDate();
     }
 
-    private record ParticipantContext(
-            Integer seasonId, Long snapshotId, Long leagueId, Long groupId) {}
+    private record SnapshotParticipantContext(
+            Integer seasonId, Long snapshotId, Long leagueId, Long groupId, User user) {}
 
     private record InSeasonParticipantContext(
             Integer seasonId, Integer leagueId, Long groupId, User user) {}

@@ -52,6 +52,8 @@ dependencies {
 	implementation 'io.sentry:sentry-async-profiler'
 
 	implementation "com.bucket4j:bucket4j_jdk17-core:${bucket4jVersion}"
+	implementation "com.bucket4j:bucket4j_jdk17-redis-common:${bucket4jVersion}"
+	implementation "com.bucket4j:bucket4j_jdk17-lettuce:${bucket4jVersion}"
 
     implementation 'io.micrometer:micrometer-registry-prometheus'
 

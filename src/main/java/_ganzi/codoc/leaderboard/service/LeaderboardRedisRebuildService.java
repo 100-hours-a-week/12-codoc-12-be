@@ -32,12 +32,12 @@ public class LeaderboardRedisRebuildService {
     private final LeaderboardRedisRepository redisRepository;
     private final LeaderboardRedisScoreCodec scoreCodec;
 
-    public boolean rebuildCurrentSeasonIfMissing() {
-        Optional<LeaderboardSeason> currentSeason = findCurrentSeason();
-        if (currentSeason.isEmpty()) {
+    public boolean rebuildReadableSeasonIfMissing() {
+        Optional<LeaderboardSeason> seasonForRead = findSeasonForRead();
+        if (seasonForRead.isEmpty()) {
             return false;
         }
-        Integer seasonId = currentSeason.get().getSeasonId();
+        Integer seasonId = seasonForRead.get().getSeasonId();
         String globalKey = keyFactory.globalKey(seasonId);
         if (Boolean.TRUE.equals(redisRepository.hasKey(globalKey))) {
             return false;
@@ -125,9 +125,14 @@ public class LeaderboardRedisRebuildService {
         return properties.rebuildBatchSize() <= 0 ? 500 : properties.rebuildBatchSize();
     }
 
-    private Optional<LeaderboardSeason> findCurrentSeason() {
+    private Optional<LeaderboardSeason> findSeasonForRead() {
         Instant now = Instant.now();
-        return seasonRepository.findFirstByStartsAtLessThanEqualAndEndsAtAfterOrderByStartsAtDesc(
-                now, now);
+        Optional<LeaderboardSeason> currentSeason =
+                seasonRepository.findFirstByStartsAtLessThanEqualAndEndsAtAfterOrderByStartsAtDesc(
+                        now, now);
+        if (currentSeason.isPresent()) {
+            return currentSeason;
+        }
+        return seasonRepository.findFirstByEndsAtLessThanEqualOrderByEndsAtDesc(now);
     }
 }

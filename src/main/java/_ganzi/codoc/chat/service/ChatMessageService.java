@@ -33,7 +33,7 @@ public class ChatMessageService {
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final SharedWebSocketStateService sharedWebSocketStateService;
     private final CursorPageFetcher cursorPageFetcher;
-    private final ChatBroadcaster chatBroadcaster;
+    private final ChatRelayService chatRelayService;
     private final NotificationDispatchService notificationDispatchService;
 
     public CursorPagingResponse<ChatMessageListItem, String> getMessages(
@@ -73,7 +73,7 @@ public class ChatMessageService {
             chatRoomParticipantRepository.updateLastReadMessageId(roomId, onlineUserIds, message.getId());
         }
 
-        chatBroadcaster.broadcastMessage(
+        chatRelayService.relayRoomMessage(
                 roomId,
                 ChatMessageBroadcast.from(
                         message,
@@ -94,7 +94,7 @@ public class ChatMessageService {
             }
 
             if (sharedWebSocketStateService.isConnected(participantUserId)) {
-                chatBroadcaster.broadcastRoomUpdate(participantUserId, roomUpdate);
+                chatRelayService.relayRoomUpdate(participantUserId, roomUpdate);
                 continue;
             }
 

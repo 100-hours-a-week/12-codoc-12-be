@@ -1,7 +1,5 @@
 package _ganzi.codoc.chat.service;
 
-import _ganzi.codoc.chat.config.ChatRoomSubscriptionRegistry;
-import _ganzi.codoc.chat.config.WebSocketSessionRegistry;
 import _ganzi.codoc.chat.domain.ChatMessage;
 import _ganzi.codoc.chat.domain.ChatRoom;
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
@@ -33,8 +31,7 @@ public class ChatMessageService {
     private final UserRepository userRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
-    private final ChatRoomSubscriptionRegistry chatRoomSubscriptionRegistry;
-    private final WebSocketSessionRegistry webSocketSessionRegistry;
+    private final SharedWebSocketStateService sharedWebSocketStateService;
     private final CursorPageFetcher cursorPageFetcher;
     private final ChatBroadcaster chatBroadcaster;
     private final NotificationDispatchService notificationDispatchService;
@@ -70,7 +67,7 @@ public class ChatMessageService {
         chatMessageRepository.save(message);
         chatRoom.applyLastMessage(message);
 
-        Set<Long> onlineUserIds = chatRoomSubscriptionRegistry.getSubscriberUserIds(roomId);
+        Set<Long> onlineUserIds = sharedWebSocketStateService.getActiveSubscriberUserIds(roomId);
 
         if (!onlineUserIds.isEmpty()) {
             chatRoomParticipantRepository.updateLastReadMessageId(roomId, onlineUserIds, message.getId());
@@ -96,7 +93,7 @@ public class ChatMessageService {
                 continue;
             }
 
-            if (webSocketSessionRegistry.isConnected(participantUserId)) {
+            if (sharedWebSocketStateService.isConnected(participantUserId)) {
                 chatBroadcaster.broadcastRoomUpdate(participantUserId, roomUpdate);
                 continue;
             }

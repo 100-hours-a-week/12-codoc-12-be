@@ -1,7 +1,6 @@
 package _ganzi.codoc.global.ratelimit.impl;
 
 import _ganzi.codoc.global.ratelimit.RateLimitPolicy;
-import _ganzi.codoc.global.ratelimit.RateLimitProperties;
 import _ganzi.codoc.global.ratelimit.RateLimitResult;
 import _ganzi.codoc.global.ratelimit.RateLimitStore;
 import io.github.bucket4j.Bandwidth;
@@ -24,9 +23,7 @@ public class RedisRateLimitStore implements RateLimitStore {
     @Override
     public RateLimitResult tryConsume(String key, RateLimitPolicy policy) {
         Bucket bucket =
-                proxyManager
-                        .builder()
-                        .build(namespacedKey(key), () -> createConfiguration(policy));
+                proxyManager.builder().build(namespacedKey(key), () -> createConfiguration(policy));
 
         ConsumptionProbe probe =
                 bucket.tryConsumeAndReturnRemaining(

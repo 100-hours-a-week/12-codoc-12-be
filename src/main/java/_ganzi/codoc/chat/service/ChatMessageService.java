@@ -66,10 +66,6 @@ public class ChatMessageService {
 
         Set<Long> onlineUserIds = sharedWebSocketStateService.getActiveSubscriberUserIds(roomId);
 
-        if (!onlineUserIds.isEmpty()) {
-            chatRoomParticipantRepository.updateLastReadMessageId(roomId, onlineUserIds, message.getId());
-        }
-
         ChatMessageBroadcast roomMessage =
                 ChatMessageBroadcast.from(
                         message,
@@ -92,5 +88,10 @@ public class ChatMessageService {
                         onlineUserIds,
                         allParticipantUserIds,
                         sender.getNickname()));
+    }
+
+    @Transactional
+    public void ackReadMessage(Long userId, Long roomId, ChatMessageReadAckRequest request) {
+        chatRoomParticipantRepository.ackLastReadMessageId(roomId, userId, request.lastReadMessageId());
     }
 }

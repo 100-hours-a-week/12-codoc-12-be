@@ -1,8 +1,10 @@
 package _ganzi.codoc.chat.api;
 
 import _ganzi.codoc.auth.domain.AuthUser;
+import _ganzi.codoc.chat.dto.ChatMessageReadAckRequest;
 import _ganzi.codoc.chat.dto.ChatMessageSendRequest;
 import _ganzi.codoc.chat.service.ChatMessageService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -22,5 +24,13 @@ public class ChatStompController {
             AuthUser authUser) {
 
         chatMessageService.sendMessage(authUser.userId(), roomId, request);
+    }
+
+    @MessageMapping("/chat/messages/{roomId}/read-ack")
+    public void ackReadMessage(
+            @DestinationVariable Long roomId,
+            @Valid @Payload ChatMessageReadAckRequest request,
+            AuthUser authUser) {
+        chatMessageService.ackReadMessage(authUser.userId(), roomId, request);
     }
 }

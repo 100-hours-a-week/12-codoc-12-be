@@ -4,22 +4,20 @@ import _ganzi.codoc.chat.domain.ChatMessage;
 import _ganzi.codoc.chat.domain.ChatRoom;
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
 import _ganzi.codoc.chat.dto.*;
+import _ganzi.codoc.chat.event.ChatMessageCommittedEvent;
 import _ganzi.codoc.chat.exception.NoChatRoomParticipantException;
 import _ganzi.codoc.chat.repository.ChatMessageRepository;
 import _ganzi.codoc.chat.repository.ChatRoomParticipantRepository;
 import _ganzi.codoc.global.cursor.CursorPageFetcher;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
-import _ganzi.codoc.notification.dto.NotificationMessageItem;
-import _ganzi.codoc.notification.enums.NotificationType;
-import _ganzi.codoc.notification.service.NotificationDispatchService;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,8 +31,7 @@ public class ChatMessageService {
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final SharedWebSocketStateService sharedWebSocketStateService;
     private final CursorPageFetcher cursorPageFetcher;
-    private final ChatRelayService chatRelayService;
-    private final NotificationDispatchService notificationDispatchService;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public CursorPagingResponse<ChatMessageListItem, String> getMessages(
             Long userId, Long roomId, String cursor, Integer limit) {
@@ -73,13 +70,12 @@ public class ChatMessageService {
             chatRoomParticipantRepository.updateLastReadMessageId(roomId, onlineUserIds, message.getId());
         }
 
-        chatRelayService.relayRoomMessage(
-                roomId,
+        ChatMessageBroadcast roomMessage =
                 ChatMessageBroadcast.from(
                         message,
                         sender.getNickname(),
                         sender.getAvatar().getImageUrl(),
-                        chatRoom.getParticipantCount()));
+                        chatRoom.getParticipantCount());
 
         List<Long> allParticipantUserIds =
                 chatRoomParticipantRepository.findJoinedUserIdsByRoomId(roomId);
@@ -88,23 +84,13 @@ public class ChatMessageService {
                 new ChatRoomUpdateBroadcast(
                         roomId, chatRoom.getLastMessagePreview(), chatRoom.getLastMessageAt());
 
-        for (Long participantUserId : allParticipantUserIds) {
-            if (onlineUserIds.contains(participantUserId)) {
-                continue;
-            }
-
-            if (sharedWebSocketStateService.isConnected(participantUserId)) {
-                chatRelayService.relayRoomUpdate(participantUserId, roomUpdate);
-                continue;
-            }
-
-            notificationDispatchService.dispatchAfterCommit(
-                    participantUserId,
-                    new NotificationMessageItem(
-                            NotificationType.CHAT,
-                            sender.getNickname(),
-                            chatRoom.getLastMessagePreview(),
-                            Map.of("roomId", String.valueOf(roomId))));
-        }
+        applicationEventPublisher.publishEvent(
+                new ChatMessageCommittedEvent(
+                        roomId,
+                        roomMessage,
+                        roomUpdate,
+                        onlineUserIds,
+                        allParticipantUserIds,
+                        sender.getNickname()));
     }
 }

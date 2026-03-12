@@ -1,0 +1,42 @@
+package _ganzi.codoc.chat.relay;
+
+import _ganzi.codoc.chat.config.ChatWebSocketProperties;
+import _ganzi.codoc.chat.dto.ChatMessageBroadcast;
+import _ganzi.codoc.chat.dto.ChatRoomUpdateBroadcast;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
+
+@RequiredArgsConstructor
+@ConditionalOnProperty(
+        prefix = "app.chat.ws",
+        name = "relay-enabled",
+        havingValue = "true",
+        matchIfMissing = true)
+@Component
+public class RedisChatRelayPublisher {
+
+    private final StringRedisTemplate stringRedisTemplate;
+    private final ObjectMapper objectMapper;
+    private final ChatWebSocketProperties properties;
+
+    public void publishRoomMessage(Long roomId, ChatMessageBroadcast broadcast) {
+        publish(ChatRelayEvent.roomMessage(properties.serverId(), roomId, broadcast));
+    }
+
+    public void publishRoomUpdate(Long userId, ChatRoomUpdateBroadcast broadcast) {
+        publish(ChatRelayEvent.roomListUpdate(properties.serverId(), userId, broadcast));
+    }
+
+    private void publish(ChatRelayEvent event) {
+        try {
+            String payload = objectMapper.writeValueAsString(event);
+            stringRedisTemplate.convertAndSend(properties.relayChannel(), payload);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("채팅 릴레이 이벤트 직렬화에 실패했습니다.", exception);
+        }
+    }
+}

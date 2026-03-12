@@ -76,6 +76,8 @@ app:
       presence-ttl: ${APP_CHAT_WS_PRESENCE_TTL:120s}
       heartbeat-interval: ${APP_CHAT_WS_HEARTBEAT_INTERVAL:20s}
       heartbeat-enabled: ${APP_CHAT_WS_HEARTBEAT_ENABLED:true}
+      relay-enabled: ${APP_CHAT_WS_RELAY_ENABLED:true}
+      relay-channel: ${APP_CHAT_WS_RELAY_CHANNEL:chat.ws.relay}
       server-id: ${APP_CHAT_WS_SERVER_ID:${HOSTNAME:local}}
 
   fcm:

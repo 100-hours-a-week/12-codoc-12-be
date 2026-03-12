@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 public class ChatSystemMessagePublisher {
 
     private final ChatMessageRepository chatMessageRepository;
-    private final ChatBroadcaster chatBroadcaster;
+    private final ChatRelayService chatRelayService;
 
     public ChatMessage publishJoin(ChatRoom chatRoom, String nickname) {
         return publish(chatRoom, nickname + "님이 입장했습니다.");
@@ -27,7 +27,7 @@ public class ChatSystemMessagePublisher {
                 chatMessageRepository.save(ChatMessage.createSystem(chatRoom, content));
 
         if (!chatRoom.isDeleted()) {
-            chatBroadcaster.broadcastMessage(
+            chatRelayService.relayRoomMessage(
                     chatRoom.getId(),
                     ChatMessageBroadcast.from(systemMessage, null, null, chatRoom.getParticipantCount()));
         }

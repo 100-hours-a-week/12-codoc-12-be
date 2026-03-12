@@ -13,4 +13,6 @@ public record ChatWebSocketProperties(
         @NotNull Duration presenceTtl,
         @NotNull Duration heartbeatInterval,
         @NotNull Boolean heartbeatEnabled,
+        @NotNull Boolean relayEnabled,
+        @NotBlank String relayChannel,
         @NotBlank String serverId) {}

@@ -2,6 +2,7 @@ package _ganzi.codoc.chat.config;
 
 import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.chat.service.ChatRoomSubscriptionService;
+import _ganzi.codoc.chat.service.SharedWebSocketStateService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +24,9 @@ public class ChatRoomSubscriptionInterceptor implements ChannelInterceptor {
     private static final Pattern ROOM_DESTINATION_PATTERN =
             Pattern.compile("^/sub/chat/rooms/(\\d+)$");
 
-    private final ChatRoomSubscriptionRegistry registry;
+    private final LocalWebSocketRoomSubscriptionRegistry localWebSocketRoomSubscriptionRegistry;
     private final ChatRoomSubscriptionService chatRoomSubscriptionService;
+    private final SharedWebSocketStateService sharedWebSocketStateService;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -63,7 +65,8 @@ public class ChatRoomSubscriptionInterceptor implements ChannelInterceptor {
             return false;
         }
 
-        registry.addSubscription(sessionId, userId, roomId);
+        localWebSocketRoomSubscriptionRegistry.addSubscription(sessionId, userId, roomId);
+        sharedWebSocketStateService.addRoomSubscription(sessionId, roomId);
         return true;
     }
 
@@ -78,7 +81,8 @@ public class ChatRoomSubscriptionInterceptor implements ChannelInterceptor {
             return;
         }
 
-        registry.removeSubscription(sessionId, roomId);
+        localWebSocketRoomSubscriptionRegistry.removeSubscription(sessionId, roomId);
+        sharedWebSocketStateService.removeRoomSubscription(sessionId, roomId);
     }
 
     private Long extractRoomId(String destination) {

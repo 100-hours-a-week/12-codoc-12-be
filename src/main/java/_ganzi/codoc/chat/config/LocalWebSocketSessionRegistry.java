@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
 
 @Component
-public class WebSocketSessionRegistry {
+public class LocalWebSocketSessionRegistry {
 
     private final Map<String, Long> sessionUserIds = new ConcurrentHashMap<>();
     private final Map<Long, Set<String>> userSessions = new ConcurrentHashMap<>();
@@ -29,6 +29,14 @@ public class WebSocketSessionRegistry {
                 userSessions.remove(userId);
             }
         }
+    }
+
+    public Long findUserId(String sessionId) {
+        return sessionUserIds.get(sessionId);
+    }
+
+    public Map<String, Long> snapshotSessionUsers() {
+        return Map.copyOf(sessionUserIds);
     }
 
     public boolean isConnected(Long userId) {

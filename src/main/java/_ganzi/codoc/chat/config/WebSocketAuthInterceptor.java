@@ -2,6 +2,7 @@ package _ganzi.codoc.chat.config;
 
 import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.auth.jwt.JwtTokenProvider;
+import _ganzi.codoc.chat.service.SharedWebSocketStateService;
 import java.security.Principal;
 import java.time.Instant;
 import java.util.Map;
@@ -25,6 +26,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
     private static final String TOKEN_EXPIRES_AT = "tokenExpiresAt";
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final SharedWebSocketStateService sharedWebSocketStateService;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -40,6 +42,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
             handleConnect(accessor);
         } else if (StompCommand.SEND.equals(command) || StompCommand.SUBSCRIBE.equals(command)) {
             validateTokenExpiry(accessor);
+            touchSharedSession(accessor);
         }
 
         return message;
@@ -73,6 +76,23 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         if (expiresAt != null && Instant.now().isAfter(expiresAt)) {
             throw new MessageDeliveryException("인증 토큰이 만료되었습니다. 재연결이 필요합니다.");
         }
+    }
+
+    private void touchSharedSession(StompHeaderAccessor accessor) {
+        String sessionId = accessor.getSessionId();
+        Long userId = extractUserId(accessor);
+        if (sessionId == null || userId == null) {
+            return;
+        }
+        sharedWebSocketStateService.touchSession(sessionId, userId);
+    }
+
+    private Long extractUserId(StompHeaderAccessor accessor) {
+        if (accessor.getUser() instanceof UsernamePasswordAuthenticationToken auth
+                && auth.getPrincipal() instanceof AuthUser authUser) {
+            return authUser.userId();
+        }
+        return null;
     }
 
     private String resolveToken(StompHeaderAccessor accessor) {

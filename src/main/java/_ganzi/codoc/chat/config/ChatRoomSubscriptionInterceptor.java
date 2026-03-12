@@ -60,7 +60,7 @@ public class ChatRoomSubscriptionInterceptor implements ChannelInterceptor {
             return true;
         }
 
-        if (!chatRoomSubscriptionService.markLastReadOnSubscribe(userId, roomId)) {
+        if (!chatRoomSubscriptionService.canSubscribe(userId, roomId)) {
             log.warn("채팅방 구독 거부: userId={}, roomId={}", userId, roomId);
             return false;
         }

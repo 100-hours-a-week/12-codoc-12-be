@@ -19,8 +19,7 @@ public class RedisConfig {
     }
 
     @Bean(destroyMethod = "close")
-    public StatefulRedisConnection<String, byte[]> binaryRedisConnection(
-            RedisClient redisClient) {
+    public StatefulRedisConnection<String, byte[]> binaryRedisConnection(RedisClient redisClient) {
         RedisCodec<String, byte[]> codec = RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE);
         return redisClient.connect(codec);
     }

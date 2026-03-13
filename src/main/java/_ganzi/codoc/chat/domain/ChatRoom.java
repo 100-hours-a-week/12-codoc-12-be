@@ -53,7 +53,7 @@ public class ChatRoom extends BaseTimeEntity {
         this.password = password;
         this.participantCount = 1;
         this.lastMessageId = 0;
-        this.lastMessagePreview = toPreview(lastMessage);
+        this.lastMessagePreview = toListPreview(lastMessage);
         this.lastMessageAt = lastMessageAt;
         this.isDeleted = false;
     }
@@ -77,7 +77,7 @@ public class ChatRoom extends BaseTimeEntity {
 
         this.lastMessageId = message.getId();
         this.lastMessageAt = message.getCreatedAt();
-        this.lastMessagePreview = toPreview(message.getContent());
+        this.lastMessagePreview = toListPreview(message.getContent());
     }
 
     public boolean hasPassword() {
@@ -99,7 +99,7 @@ public class ChatRoom extends BaseTimeEntity {
         }
     }
 
-    private String toPreview(String originalContent) {
+    public static String toListPreview(String originalContent) {
         int codePointCount = originalContent.codePointCount(0, originalContent.length());
         if (codePointCount <= LAST_MESSAGE_PREVIEW_MAX_LENGTH) {
             return originalContent;

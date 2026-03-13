@@ -2,9 +2,10 @@ package _ganzi.codoc.chat.repository;
 
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
 import _ganzi.codoc.chat.dto.ParticipantUnreadMessageCount;
-import java.time.Instant;
+import _ganzi.codoc.chat.dto.UserChatRoomListQueryResult;
 import java.util.List;
 import java.util.Optional;
+import java.time.Instant;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -15,20 +16,42 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
 
     @Query(
             """
-            select p
+            select new _ganzi.codoc.chat.dto.UserChatRoomListQueryResult(
+                p.id,
+                r.id,
+                r.title,
+                r.participantCount,
+                lm.content,
+                lm.createdAt
+            )
             from ChatRoomParticipant p
-            join fetch p.chatRoom r
+            join p.chatRoom r
+            join ChatMessage lm on lm.chatRoom = r
             where p.userId = :userId
               and p.isJoined = true
               and r.isDeleted = false
+              and lm.id = coalesce(
+                    (
+                        select max(tm.id)
+                        from ChatMessage tm
+                        where tm.chatRoom = r
+                          and tm.type = _ganzi.codoc.chat.enums.ChatMessageType.TEXT
+                    ),
+                    (
+                        select max(im.id)
+                        from ChatMessage im
+                        where im.chatRoom = r
+                          and im.type = _ganzi.codoc.chat.enums.ChatMessageType.INIT
+                    )
+              )
               and (
                     :cursorOrderedAt is null
-                    or r.lastMessageAt < :cursorOrderedAt
-                    or (r.lastMessageAt = :cursorOrderedAt and r.id < :cursorRoomId)
+                    or lm.createdAt < :cursorOrderedAt
+                    or (lm.createdAt = :cursorOrderedAt and r.id < :cursorRoomId)
               )
-            order by r.lastMessageAt desc, r.id desc
+            order by lm.createdAt desc, r.id desc
             """)
-    List<ChatRoomParticipant> findLatestJoinedChatRoomsByUserId(
+    List<UserChatRoomListQueryResult> findLatestJoinedChatRoomsByUserId(
             @Param("userId") Long userId,
             @Param("cursorOrderedAt") Instant cursorOrderedAt,
             @Param("cursorRoomId") Long cursorRoomId,
@@ -36,21 +59,43 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
 
     @Query(
             """
-            select p
+            select new _ganzi.codoc.chat.dto.UserChatRoomListQueryResult(
+                p.id,
+                r.id,
+                r.title,
+                r.participantCount,
+                lm.content,
+                lm.createdAt
+            )
             from ChatRoomParticipant p
-            join fetch p.chatRoom r
+            join p.chatRoom r
+            join ChatMessage lm on lm.chatRoom = r
             where p.userId = :userId
               and p.isJoined = true
               and r.isDeleted = false
               and lower(r.title) like lower(concat('%', :keyword, '%'))
+              and lm.id = coalesce(
+                    (
+                        select max(tm.id)
+                        from ChatMessage tm
+                        where tm.chatRoom = r
+                          and tm.type = _ganzi.codoc.chat.enums.ChatMessageType.TEXT
+                    ),
+                    (
+                        select max(im.id)
+                        from ChatMessage im
+                        where im.chatRoom = r
+                          and im.type = _ganzi.codoc.chat.enums.ChatMessageType.INIT
+                    )
+              )
               and (
                     :cursorOrderedAt is null
-                    or r.lastMessageAt < :cursorOrderedAt
-                    or (r.lastMessageAt = :cursorOrderedAt and r.id < :cursorRoomId)
+                    or lm.createdAt < :cursorOrderedAt
+                    or (lm.createdAt = :cursorOrderedAt and r.id < :cursorRoomId)
               )
-            order by r.lastMessageAt desc, r.id desc
+            order by lm.createdAt desc, r.id desc
             """)
-    List<ChatRoomParticipant> searchJoinedChatRoomsByKeyword(
+    List<UserChatRoomListQueryResult> searchJoinedChatRoomsByKeyword(
             @Param("userId") Long userId,
             @Param("keyword") String keyword,
             @Param("cursorOrderedAt") Instant cursorOrderedAt,

@@ -15,7 +15,7 @@ public record ChatRoomListItem(
                 view.roomId(),
                 view.title(),
                 view.hasPassword(),
-                view.participantCount(),
+                Math.toIntExact(view.participantCount()),
                 maxParticipants,
                 view.lastMessageAt());
     }

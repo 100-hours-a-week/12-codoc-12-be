@@ -1,11 +1,11 @@
 package _ganzi.codoc.chat.repository;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
 import _ganzi.codoc.chat.dto.ParticipantUnreadMessageCount;
 import _ganzi.codoc.chat.dto.UserChatRoomListQueryResult;
-import java.util.List;
-import java.util.Optional;
-import java.time.Instant;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -20,13 +20,16 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
                 p.id,
                 r.id,
                 r.title,
-                r.participantCount,
+                count(joinedParticipant.id),
                 lm.content,
                 lm.createdAt
             )
             from ChatRoomParticipant p
             join p.chatRoom r
             join ChatMessage lm on lm.chatRoom = r
+            left join ChatRoomParticipant joinedParticipant
+              on joinedParticipant.chatRoom = r
+             and joinedParticipant.isJoined = true
             where p.userId = :userId
               and p.isJoined = true
               and r.isDeleted = false
@@ -49,6 +52,7 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
                     or lm.createdAt < :cursorOrderedAt
                     or (lm.createdAt = :cursorOrderedAt and r.id < :cursorRoomId)
               )
+            group by p.id, r.id, r.title, lm.content, lm.createdAt
             order by lm.createdAt desc, r.id desc
             """)
     List<UserChatRoomListQueryResult> findLatestJoinedChatRoomsByUserId(
@@ -63,13 +67,16 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
                 p.id,
                 r.id,
                 r.title,
-                r.participantCount,
+                count(joinedParticipant.id),
                 lm.content,
                 lm.createdAt
             )
             from ChatRoomParticipant p
             join p.chatRoom r
             join ChatMessage lm on lm.chatRoom = r
+            left join ChatRoomParticipant joinedParticipant
+              on joinedParticipant.chatRoom = r
+             and joinedParticipant.isJoined = true
             where p.userId = :userId
               and p.isJoined = true
               and r.isDeleted = false
@@ -93,6 +100,7 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
                     or lm.createdAt < :cursorOrderedAt
                     or (lm.createdAt = :cursorOrderedAt and r.id < :cursorRoomId)
               )
+            group by p.id, r.id, r.title, lm.content, lm.createdAt
             order by lm.createdAt desc, r.id desc
             """)
     List<UserChatRoomListQueryResult> searchJoinedChatRoomsByKeyword(
@@ -112,6 +120,15 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
             """)
     boolean existsJoinedParticipant(
             @Param("userId") Long userId, @Param("roomId") Long roomId);
+
+    @Query(
+            """
+            select count(p.id)
+            from ChatRoomParticipant p
+            where p.chatRoom.id = :roomId
+              and p.isJoined = true
+            """)
+    long countJoinedParticipantsByRoomId(@Param("roomId") Long roomId);
 
     @Query(
             """

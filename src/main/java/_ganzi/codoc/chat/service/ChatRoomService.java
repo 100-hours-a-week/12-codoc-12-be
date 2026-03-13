@@ -50,11 +50,7 @@ public class ChatRoomService {
     public ChatRoomCreateResponse createChatRoom(Long userId, ChatRoomCreateRequest request) {
         ChatRoom chatRoom =
                 chatRoomRepository.save(
-                        ChatRoom.create(
-                                request.title(),
-                                passwordEncoder.encode(request.password()),
-                                ROOM_CREATED_INIT_MESSAGE,
-                                Instant.now()));
+                        ChatRoom.create(request.title(), passwordEncoder.encode(request.password())));
 
         ChatMessage initMessage =
                 chatMessageRepository.save(ChatMessage.createInit(chatRoom, ROOM_CREATED_INIT_MESSAGE));

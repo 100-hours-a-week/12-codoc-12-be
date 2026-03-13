@@ -22,4 +22,14 @@ public record UserChatRoomListItem(
                 room.getLastMessageAt(),
                 unreadCount);
     }
+
+    public static UserChatRoomListItem from(UserChatRoomListQueryResult view, long unreadCount) {
+        return new UserChatRoomListItem(
+                view.roomId(),
+                view.title(),
+                view.participantsCount(),
+                ChatRoom.toListPreview(view.lastMessagePreview()),
+                view.lastMessageAt(),
+                unreadCount);
+    }
 }

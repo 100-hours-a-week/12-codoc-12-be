@@ -190,7 +190,7 @@ public class ChatRoomService {
     private CursorPagingResponse<ChatRoomListItem, String> fetchAllChatRooms(
             String cursor,
             Integer limit,
-            BiFunction<ChatRoomCursorPayload, Pageable, List<ChatRoom>> queryFunction) {
+            BiFunction<ChatRoomCursorPayload, Pageable, List<ChatRoomListQueryResult>> queryFunction) {
 
         return cursorPageFetcher.fetch(
                 cursor,
@@ -208,7 +208,8 @@ public class ChatRoomService {
     private CursorPagingResponse<UserChatRoomListItem, String> fetchUserChatRooms(
             String cursor,
             Integer limit,
-            BiFunction<UserChatRoomCursorPayload, Pageable, List<ChatRoomParticipant>> queryFunction) {
+            BiFunction<UserChatRoomCursorPayload, Pageable, List<UserChatRoomListQueryResult>>
+                    queryFunction) {
 
         return cursorPageFetcher.fetch(
                 cursor,
@@ -224,18 +225,20 @@ public class ChatRoomService {
                                     participant ->
                                             UserChatRoomListItem.from(
                                                     participant,
-                                                    unreadCountByParticipantId.getOrDefault(participant.getId(), 0L)))
+                                                    unreadCountByParticipantId.getOrDefault(participant.participantId(), 0L)))
                             .toList();
                 },
                 UserChatRoomCursorPayload::from);
     }
 
-    private Map<Long, Long> getUnreadCountByParticipantId(List<ChatRoomParticipant> participants) {
+    private Map<Long, Long> getUnreadCountByParticipantId(
+            List<UserChatRoomListQueryResult> participants) {
         if (participants.isEmpty()) {
             return Map.of();
         }
 
-        List<Long> participantIds = participants.stream().map(ChatRoomParticipant::getId).toList();
+        List<Long> participantIds =
+                participants.stream().map(UserChatRoomListQueryResult::participantId).toList();
 
         return chatRoomParticipantRepository
                 .countUnreadMessagesByParticipantIds(participantIds)

@@ -30,37 +30,20 @@ public class ChatRoom extends BaseTimeEntity {
     @Column(name = "password", length = 100)
     private String password;
 
-    @Column(name = "participant_count", nullable = false)
-    private int participantCount;
-
-    @Column(name = "last_message_id", nullable = false)
-    private long lastMessageId;
-
-    @Column(name = "last_message_preview", nullable = false, length = 50)
-    private String lastMessagePreview;
-
-    @Column(name = "last_message_at", nullable = false)
-    private Instant lastMessageAt;
-
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted;
 
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
-    private ChatRoom(String title, String password, String lastMessage, Instant lastMessageAt) {
+    private ChatRoom(String title, String password) {
         this.title = title;
         this.password = password;
-        this.participantCount = 1;
-        this.lastMessageId = 0;
-        this.lastMessagePreview = toListPreview(lastMessage);
-        this.lastMessageAt = lastMessageAt;
         this.isDeleted = false;
     }
 
-    public static ChatRoom create(
-            String title, String password, String lastMessage, Instant lastMessageAt) {
-        return new ChatRoom(title, password, lastMessage, lastMessageAt);
+    public static ChatRoom create(String title, String password) {
+        return new ChatRoom(title, password);
     }
 
     public boolean hasPassword() {

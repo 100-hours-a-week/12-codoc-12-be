@@ -152,7 +152,6 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
               and p.userId = :userId
               and p.isJoined = true
               and p.lastReadMessageId < :messageId
-              and :messageId <= p.chatRoom.lastMessageId
             """)
     void ackLastReadMessageId(
             @Param("roomId") Long roomId,

@@ -13,6 +13,7 @@ import _ganzi.codoc.global.dto.CursorPagingResponse;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -62,7 +63,9 @@ public class ChatMessageService {
         User sender = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
         ChatMessage message = ChatMessage.createText(userId, chatRoom, request.content());
         chatMessageRepository.save(message);
-        chatRoom.applyLastMessage(message);
+
+        Instant lastMessageAt = message.getCreatedAt() != null ? message.getCreatedAt() : Instant.now();
+        String lastMessagePreview = ChatRoom.toListPreview(request.content());
 
         Set<Long> onlineUserIds = sharedWebSocketStateService.getActiveSubscriberUserIds(roomId);
 
@@ -77,8 +80,7 @@ public class ChatMessageService {
                 chatRoomParticipantRepository.findJoinedUserIdsByRoomId(roomId);
 
         ChatRoomUpdateBroadcast roomUpdate =
-                new ChatRoomUpdateBroadcast(
-                        roomId, chatRoom.getLastMessagePreview(), chatRoom.getLastMessageAt());
+                new ChatRoomUpdateBroadcast(roomId, lastMessagePreview, lastMessageAt);
 
         applicationEventPublisher.publishEvent(
                 new ChatMessageCommittedEvent(
@@ -92,6 +94,10 @@ public class ChatMessageService {
 
     @Transactional
     public void ackReadMessage(Long userId, Long roomId, ChatMessageReadAckRequest request) {
+        if (!chatMessageRepository.existsMessageInRoom(roomId, request.lastReadMessageId())) {
+            return;
+        }
+
         chatRoomParticipantRepository.ackLastReadMessageId(roomId, userId, request.lastReadMessageId());
     }
 }

@@ -59,8 +59,6 @@ public class ChatRoomService {
         ChatMessage initMessage =
                 chatMessageRepository.save(ChatMessage.createInit(chatRoom, ROOM_CREATED_INIT_MESSAGE));
 
-        chatRoom.applyLastMessage(initMessage);
-
         chatRoomParticipantRepository.save(
                 ChatRoomParticipant.create(userId, chatRoom, initMessage.getId()));
 

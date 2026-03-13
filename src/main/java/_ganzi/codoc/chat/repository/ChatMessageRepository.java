@@ -12,6 +12,16 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
     @Query(
             """
+            select count(m.id) > 0
+            from ChatMessage m
+            where m.chatRoom.id = :roomId
+              and m.id = :messageId
+            """)
+    boolean existsMessageInRoom(
+            @Param("roomId") Long roomId, @Param("messageId") Long messageId);
+
+    @Query(
+            """
             select new _ganzi.codoc.chat.dto.ChatMessageListItem(
                 m.id,
                 m.senderId,

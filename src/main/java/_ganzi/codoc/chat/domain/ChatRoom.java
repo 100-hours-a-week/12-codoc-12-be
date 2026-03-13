@@ -63,23 +63,6 @@ public class ChatRoom extends BaseTimeEntity {
         return new ChatRoom(title, password, lastMessage, lastMessageAt);
     }
 
-    public void applyLastMessage(ChatMessage message) {
-        if (!message.getType().isSenderIdRequired()) {
-            return;
-        }
-
-        if (message.getId() == null
-                || message.getCreatedAt() == null
-                || message.getContent() == null
-                || message.getContent().isBlank()) {
-            throw new IllegalArgumentException("Message has a invalid value");
-        }
-
-        this.lastMessageId = message.getId();
-        this.lastMessageAt = message.getCreatedAt();
-        this.lastMessagePreview = toListPreview(message.getContent());
-    }
-
     public boolean hasPassword() {
         return password != null;
     }

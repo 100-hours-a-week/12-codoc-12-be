@@ -6,6 +6,6 @@ public record UserChatRoomListQueryResult(
         Long participantId,
         Long roomId,
         String title,
-        int participantsCount,
+        long participantsCount,
         String lastMessagePreview,
         Instant lastMessageAt) {}

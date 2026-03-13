@@ -16,7 +16,6 @@ import _ganzi.codoc.user.repository.UserRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -48,7 +47,24 @@ public class ChatMessageService {
                 ChatMessageCursorPayload::firstPage,
                 (cursorPayload, pageable) ->
                         chatMessageRepository.findVisibleMessages(roomId, cursorPayload.messageId(), pageable),
-                Function.identity(),
+                messages -> {
+                    int participantCount =
+                            Math.toIntExact(
+                                    chatRoomParticipantRepository.countJoinedParticipantsByRoomId(roomId));
+                    return messages.stream()
+                            .map(
+                                    message ->
+                                            new ChatMessageListItem(
+                                                    message.messageId(),
+                                                    message.senderId(),
+                                                    message.senderNickname(),
+                                                    message.senderAvatarImageUrl(),
+                                                    message.type(),
+                                                    message.content(),
+                                                    participantCount,
+                                                    message.createdAt()))
+                            .toList();
+                },
                 ChatMessageCursorPayload::from);
     }
 
@@ -68,13 +84,12 @@ public class ChatMessageService {
         String lastMessagePreview = ChatRoom.toListPreview(request.content());
 
         Set<Long> onlineUserIds = sharedWebSocketStateService.getActiveSubscriberUserIds(roomId);
+        int participantCount =
+                Math.toIntExact(chatRoomParticipantRepository.countJoinedParticipantsByRoomId(roomId));
 
         ChatMessageBroadcast roomMessage =
                 ChatMessageBroadcast.from(
-                        message,
-                        sender.getNickname(),
-                        sender.getAvatar().getImageUrl(),
-                        chatRoom.getParticipantCount());
+                        message, sender.getNickname(), sender.getAvatar().getImageUrl(), participantCount);
 
         List<Long> allParticipantUserIds =
                 chatRoomParticipantRepository.findJoinedUserIdsByRoomId(roomId);

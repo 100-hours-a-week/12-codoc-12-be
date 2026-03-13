@@ -67,21 +67,6 @@ public class ChatRoom extends BaseTimeEntity {
         return password != null;
     }
 
-    public void incrementParticipantCount() {
-        this.participantCount++;
-    }
-
-    public void decrementParticipantCount() {
-        if (this.participantCount <= 0) {
-            throw new IllegalStateException("Participant count cannot be negative.");
-        }
-
-        if (--this.participantCount == 0) {
-            this.isDeleted = true;
-            this.deletedAt = Instant.now();
-        }
-    }
-
     public static String toListPreview(String originalContent) {
         int codePointCount = originalContent.codePointCount(0, originalContent.length());
         if (codePointCount <= LAST_MESSAGE_PREVIEW_MAX_LENGTH) {

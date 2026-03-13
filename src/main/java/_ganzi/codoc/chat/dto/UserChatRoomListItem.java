@@ -27,7 +27,7 @@ public record UserChatRoomListItem(
         return new UserChatRoomListItem(
                 view.roomId(),
                 view.title(),
-                view.participantsCount(),
+                Math.toIntExact(view.participantsCount()),
                 ChatRoom.toListPreview(view.lastMessagePreview()),
                 view.lastMessageAt(),
                 unreadCount);

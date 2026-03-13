@@ -68,7 +68,9 @@ public class ChatRoomService {
     @Transactional
     public void joinChatRoom(Long userId, Long roomId, ChatRoomJoinRequest request) {
         ChatRoom chatRoom =
-                chatRoomRepository.findActiveById(roomId).orElseThrow(ChatRoomNotFoundException::new);
+                chatRoomRepository
+                        .findActiveByIdForUpdate(roomId)
+                        .orElseThrow(ChatRoomNotFoundException::new);
 
         ChatRoomParticipant existing =
                 chatRoomParticipantRepository.findByUserIdAndRoomId(userId, roomId).orElse(null);
@@ -81,15 +83,16 @@ public class ChatRoomService {
             }
         }
 
-        if (chatRoom.getParticipantCount() >= chatProperties.maxParticipants()) {
+        long participantCount = chatRoomParticipantRepository.countJoinedParticipantsByRoomId(roomId);
+        if (participantCount >= chatProperties.maxParticipants()) {
             throw new ChatRoomFullException();
         }
 
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
-        chatRoom.incrementParticipantCount();
-
-        ChatMessage systemMessage = systemMessagePublisher.publishJoin(chatRoom, user.getNickname());
+        ChatMessage systemMessage =
+                systemMessagePublisher.publishJoin(
+                        chatRoom, user.getNickname(), Math.toIntExact(participantCount + 1));
 
         chatRoomParticipantRepository.save(
                 ChatRoomParticipant.createOrRejoin(existing, userId, chatRoom, systemMessage.getId()));
@@ -101,12 +104,19 @@ public class ChatRoomService {
                 chatRoomParticipantRepository.findAllJoinedByUserId(userId);
 
         for (ChatRoomParticipant participant : participants) {
-            participant.leave();
-
             ChatRoom chatRoom = participant.getChatRoom();
-            chatRoom.decrementParticipantCount();
+            chatRoomRepository
+                    .findActiveByIdForUpdate(chatRoom.getId())
+                    .orElseThrow(ChatRoomNotFoundException::new);
+            long participantCount =
+                    chatRoomParticipantRepository.countJoinedParticipantsByRoomId(chatRoom.getId());
+            participant.leave();
+            int afterLeaveCount = Math.max(0, Math.toIntExact(participantCount - 1));
+            if (afterLeaveCount == 0) {
+                chatRoomRepository.markDeletedIfEmpty(chatRoom.getId(), Instant.now());
+            }
 
-            systemMessagePublisher.publishLeave(chatRoom, nickname);
+            systemMessagePublisher.publishLeave(chatRoom, nickname, afterLeaveCount, afterLeaveCount > 0);
         }
     }
 
@@ -117,14 +127,21 @@ public class ChatRoomService {
                         .findJoinedParticipant(userId, roomId)
                         .orElseThrow(NoChatRoomParticipantException::new);
 
-        participant.leave();
-
         ChatRoom chatRoom = participant.getChatRoom();
+        chatRoomRepository
+                .findActiveByIdForUpdate(chatRoom.getId())
+                .orElseThrow(ChatRoomNotFoundException::new);
+        long participantCount =
+                chatRoomParticipantRepository.countJoinedParticipantsByRoomId(chatRoom.getId());
+        participant.leave();
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        int afterLeaveCount = Math.max(0, Math.toIntExact(participantCount - 1));
+        if (afterLeaveCount == 0) {
+            chatRoomRepository.markDeletedIfEmpty(chatRoom.getId(), Instant.now());
+        }
 
-        chatRoom.decrementParticipantCount();
-
-        systemMessagePublisher.publishLeave(chatRoom, user.getNickname());
+        systemMessagePublisher.publishLeave(
+                chatRoom, user.getNickname(), afterLeaveCount, afterLeaveCount > 0);
     }
 
     public CursorPagingResponse<UserChatRoomListItem, String> getUserChatRooms(
@@ -160,7 +177,9 @@ public class ChatRoomService {
                 chatRoomParticipantRepository
                         .findJoinedParticipant(userId, roomId)
                         .orElseThrow(NoChatRoomParticipantException::new);
-        return UserChatRoomDetailResponse.from(participant);
+        int participantCount =
+                Math.toIntExact(chatRoomParticipantRepository.countJoinedParticipantsByRoomId(roomId));
+        return UserChatRoomDetailResponse.from(participant, participantCount);
     }
 
     public CursorPagingResponse<ChatRoomListItem, String> getAllChatRooms(

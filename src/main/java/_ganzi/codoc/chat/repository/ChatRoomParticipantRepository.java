@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
+import _ganzi.codoc.chat.dto.ParticipantReadPosition;
 import _ganzi.codoc.chat.dto.ParticipantUnreadMessageCountRow;
 import _ganzi.codoc.chat.dto.RoomParticipantCount;
 import _ganzi.codoc.chat.dto.UserChatRoomListRow;
@@ -204,4 +205,13 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
               and r.isDeleted = false
             """)
     List<ChatRoomParticipant> findAllJoinedByUserId(@Param("userId") Long userId);
+
+    @Query(
+            """
+            select new _ganzi.codoc.chat.dto.ParticipantReadPosition(p.userId, p.lastReadMessageId)
+            from ChatRoomParticipant p
+            where p.chatRoom.id = :roomId
+              and p.isJoined = true
+            """)
+    List<ParticipantReadPosition> findJoinedParticipantReadPositions(@Param("roomId") Long roomId);
 }

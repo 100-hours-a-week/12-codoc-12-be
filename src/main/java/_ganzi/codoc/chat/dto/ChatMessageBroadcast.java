@@ -10,6 +10,7 @@ public record ChatMessageBroadcast(
         String senderNickname,
         String senderAvatarImageUrl,
         Integer participantCount,
+        Integer unreadCount,
         ChatMessageType type,
         String content,
         Instant createdAt) {
@@ -18,13 +19,15 @@ public record ChatMessageBroadcast(
             ChatMessage message,
             String senderNickname,
             String senderAvatarImageUrl,
-            Integer participantCount) {
+            Integer participantCount,
+            Integer unreadCount) {
         return new ChatMessageBroadcast(
                 message.getId(),
                 message.getSenderId(),
                 senderNickname,
                 senderAvatarImageUrl,
                 participantCount,
+                unreadCount,
                 message.getType(),
                 message.getContent(),
                 message.getCreatedAt());

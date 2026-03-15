@@ -34,7 +34,7 @@ public class ChatSystemMessagePublisher {
             applicationEventPublisher.publishEvent(
                     new ChatSystemMessageCommittedEvent(
                             chatRoom.getId(),
-                            ChatMessageBroadcast.from(systemMessage, null, null, participantCount)));
+                            ChatMessageBroadcast.from(systemMessage, null, null, participantCount, null)));
         }
 
         return systemMessage;

@@ -11,4 +11,5 @@ public record ChatMessageListItem(
         ChatMessageType type,
         String content,
         Integer participantCount,
+        Integer unreadCount,
         Instant createdAt) {}

@@ -1,6 +1,7 @@
 package _ganzi.codoc.chat.service;
 
 import _ganzi.codoc.chat.dto.ChatMessageBroadcast;
+import _ganzi.codoc.chat.dto.ChatReadAckBroadcast;
 import _ganzi.codoc.chat.dto.ChatRoomUpdateBroadcast;
 import _ganzi.codoc.chat.dto.ChatUnreadStatusBroadcast;
 import lombok.RequiredArgsConstructor;
@@ -23,5 +24,9 @@ public class ChatBroadcaster {
 
     public void broadcastUnreadStatusUpdate(Long userId, ChatUnreadStatusBroadcast broadcast) {
         messagingTemplate.convertAndSend("/sub/users/" + userId + "/chat-unread-status", broadcast);
+    }
+
+    public void broadcastReadAck(Long roomId, ChatReadAckBroadcast broadcast) {
+        messagingTemplate.convertAndSend("/sub/chat/rooms/" + roomId + "/read-acks", broadcast);
     }
 }

@@ -4,7 +4,9 @@ import _ganzi.codoc.chat.domain.ChatMessage;
 import _ganzi.codoc.chat.domain.ChatRoom;
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
 import _ganzi.codoc.chat.dto.*;
+import _ganzi.codoc.chat.enums.ChatMessageType;
 import _ganzi.codoc.chat.event.ChatMessageCommittedEvent;
+import _ganzi.codoc.chat.event.ChatReadAckCommittedEvent;
 import _ganzi.codoc.chat.event.ChatUnreadTotalAdjustedEvent;
 import _ganzi.codoc.chat.exception.NoChatRoomParticipantException;
 import _ganzi.codoc.chat.repository.ChatMessageRepository;
@@ -51,9 +53,9 @@ public class ChatMessageService {
                 (cursorPayload, pageable) ->
                         chatMessageRepository.findVisibleMessages(roomId, cursorPayload.messageId(), pageable),
                 messages -> {
-                    int participantCount =
-                            Math.toIntExact(
-                                    chatRoomParticipantRepository.countJoinedParticipantsByRoomId(roomId));
+                    List<ParticipantReadPosition> readPositions =
+                            chatRoomParticipantRepository.findJoinedParticipantReadPositions(roomId);
+                    int participantCount = readPositions.size();
                     return messages.stream()
                             .map(
                                     message ->
@@ -65,6 +67,7 @@ public class ChatMessageService {
                                                     message.type(),
                                                     message.content(),
                                                     participantCount,
+                                                    calculateUnreadCount(message, readPositions),
                                                     message.createdAt()))
                             .toList();
                 },
@@ -91,10 +94,15 @@ public class ChatMessageService {
         Set<Long> onlineUserIds = sharedWebSocketStateService.getActiveSubscriberUserIds(roomId);
         int participantCount =
                 Math.toIntExact(chatRoomParticipantRepository.countJoinedParticipantsByRoomId(roomId));
+        int unreadCount = Math.max(0, participantCount - 1);
 
         ChatMessageBroadcast roomMessage =
                 ChatMessageBroadcast.from(
-                        message, sender.getNickname(), sender.getAvatar().getImageUrl(), participantCount);
+                        message,
+                        sender.getNickname(),
+                        sender.getAvatar().getImageUrl(),
+                        participantCount,
+                        unreadCount);
 
         List<Long> allParticipantUserIds =
                 chatRoomParticipantRepository.findJoinedUserIdsByRoomId(roomId);
@@ -137,5 +145,22 @@ public class ChatMessageService {
             applicationEventPublisher.publishEvent(
                     new ChatUnreadTotalAdjustedEvent(userId, newlyReadTextCount));
         }
+
+        applicationEventPublisher.publishEvent(
+                new ChatReadAckCommittedEvent(
+                        roomId, userId, previousLastReadMessageId, request.lastReadMessageId()));
+    }
+
+    private Integer calculateUnreadCount(
+            ChatMessageListItem message, List<ParticipantReadPosition> readPositions) {
+        if (message.type() != ChatMessageType.TEXT) {
+            return null;
+        }
+
+        return (int)
+                readPositions.stream()
+                        .filter(p -> !p.userId().equals(message.senderId()))
+                        .filter(p -> p.lastReadMessageId() < message.messageId())
+                        .count();
     }
 }

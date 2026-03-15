@@ -1,6 +1,7 @@
 package _ganzi.codoc.chat.service;
 
 import _ganzi.codoc.chat.dto.ChatMessageBroadcast;
+import _ganzi.codoc.chat.dto.ChatReadAckBroadcast;
 import _ganzi.codoc.chat.dto.ChatRoomUpdateBroadcast;
 import _ganzi.codoc.chat.dto.ChatUnreadStatusBroadcast;
 import _ganzi.codoc.chat.relay.RedisChatRelayPublisher;
@@ -37,6 +38,13 @@ public class ChatRelayService {
                 publisher -> publisher.publishUnreadStatusUpdate(userId, broadcast),
                 () -> chatBroadcaster.broadcastUnreadStatusUpdate(userId, broadcast),
                 "userId=" + userId);
+    }
+
+    public void relayReadAck(Long roomId, ChatReadAckBroadcast broadcast) {
+        publishOrFallback(
+                publisher -> publisher.publishReadAck(roomId, broadcast),
+                () -> chatBroadcaster.broadcastReadAck(roomId, broadcast),
+                "roomId=" + roomId);
     }
 
     private void publishOrFallback(

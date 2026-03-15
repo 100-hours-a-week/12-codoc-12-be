@@ -2,6 +2,8 @@ package _ganzi.codoc.chat.repository;
 
 import _ganzi.codoc.chat.domain.ChatMessage;
 import _ganzi.codoc.chat.dto.ChatMessageListItem;
+import _ganzi.codoc.chat.dto.RoomMessageIdRow;
+import _ganzi.codoc.chat.dto.RoomMessageSummaryRow;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -45,4 +47,46 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             @Param("roomId") Long roomId,
             @Param("cursorMessageId") Long cursorMessageId,
             Pageable pageable);
+
+    @Query(
+            value =
+                    """
+            select
+                m.chat_room_id as roomId,
+                max(m.id) as messageId
+            from chat_message m
+            where m.chat_room_id in :roomIds
+              and m.type = 'TEXT'
+            group by m.chat_room_id
+            """,
+            nativeQuery = true)
+    List<RoomMessageIdRow> findLatestTextMessageIdsByRoomIds(@Param("roomIds") List<Long> roomIds);
+
+    @Query(
+            value =
+                    """
+            select
+                m.chat_room_id as roomId,
+                max(m.id) as messageId
+            from chat_message m
+            where m.chat_room_id in :roomIds
+              and m.type = 'INIT'
+            group by m.chat_room_id
+            """,
+            nativeQuery = true)
+    List<RoomMessageIdRow> findLatestInitMessageIdsByRoomIds(@Param("roomIds") List<Long> roomIds);
+
+    @Query(
+            value =
+                    """
+            select
+                m.id as messageId,
+                m.chat_room_id as roomId,
+                m.content as content,
+                m.created_at as createdAt
+            from chat_message m
+            where m.id in :messageIds
+            """,
+            nativeQuery = true)
+    List<RoomMessageSummaryRow> findMessageSummariesByIds(@Param("messageIds") List<Long> messageIds);
 }

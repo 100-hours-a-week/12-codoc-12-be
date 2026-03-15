@@ -8,6 +8,7 @@ import _ganzi.codoc.chat.domain.ChatRoomParticipant;
 import _ganzi.codoc.chat.dto.*;
 import _ganzi.codoc.chat.dto.ChatRoomCreateRequest;
 import _ganzi.codoc.chat.dto.ChatRoomCreateResponse;
+import _ganzi.codoc.chat.event.ChatUnreadTotalSyncRequestedEvent;
 import _ganzi.codoc.chat.exception.ChatRoomFullException;
 import _ganzi.codoc.chat.exception.ChatRoomInvalidPasswordException;
 import _ganzi.codoc.chat.exception.ChatRoomNotFoundException;
@@ -27,6 +28,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -44,10 +46,12 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomLatestMessageRepository chatRoomLatestMessageRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
+    private final ChatUnreadCountService chatUnreadCountService;
     private final PasswordEncoder passwordEncoder;
     private final ChatSystemMessagePublisher systemMessagePublisher;
     private final CursorPageFetcher cursorPageFetcher;
     private final ChatProperties chatProperties;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
     public ChatRoomCreateResponse createChatRoom(Long userId, ChatRoomCreateRequest request) {
@@ -123,6 +127,8 @@ public class ChatRoomService {
 
             systemMessagePublisher.publishLeave(chatRoom, nickname, afterLeaveCount, afterLeaveCount > 0);
         }
+
+        applicationEventPublisher.publishEvent(new ChatUnreadTotalSyncRequestedEvent(userId));
     }
 
     @Transactional
@@ -147,6 +153,8 @@ public class ChatRoomService {
 
         systemMessagePublisher.publishLeave(
                 chatRoom, user.getNickname(), afterLeaveCount, afterLeaveCount > 0);
+
+        applicationEventPublisher.publishEvent(new ChatUnreadTotalSyncRequestedEvent(userId));
     }
 
     public CursorPagingResponse<UserChatRoomListItem, String> getUserChatRooms(
@@ -172,9 +180,7 @@ public class ChatRoomService {
     }
 
     public UserChatUnreadStatusResponse getUserChatUnreadStatus(Long userId) {
-        boolean hasUnread =
-                chatRoomParticipantRepository.existsJoinedParticipantWithUnreadMessages(userId);
-        return new UserChatUnreadStatusResponse(hasUnread);
+        return UserChatUnreadStatusResponse.from(chatUnreadCountService.getTotalUnreadCount(userId));
     }
 
     public UserChatRoomDetailResponse getUserChatRoom(Long userId, Long roomId) {

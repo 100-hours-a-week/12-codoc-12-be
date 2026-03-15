@@ -3,6 +3,7 @@ package _ganzi.codoc.chat.relay;
 import _ganzi.codoc.chat.config.ChatWebSocketProperties;
 import _ganzi.codoc.chat.dto.ChatMessageBroadcast;
 import _ganzi.codoc.chat.dto.ChatRoomUpdateBroadcast;
+import _ganzi.codoc.chat.dto.ChatUnreadStatusBroadcast;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,10 @@ public class RedisChatRelayPublisher {
 
     public void publishRoomUpdate(Long userId, ChatRoomUpdateBroadcast broadcast) {
         publish(ChatRelayEvent.roomListUpdate(properties.serverId(), userId, broadcast));
+    }
+
+    public void publishUnreadStatusUpdate(Long userId, ChatUnreadStatusBroadcast broadcast) {
+        publish(ChatRelayEvent.unreadStatusUpdate(properties.serverId(), userId, broadcast));
     }
 
     private void publish(ChatRelayEvent event) {

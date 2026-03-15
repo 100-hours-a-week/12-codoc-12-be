@@ -162,6 +162,28 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
             @Param("participantIds") List<Long> participantIds);
 
     @Query(
+            value =
+                    """
+            select count(*)
+            from (
+                select 1
+                from chat_room_participant p
+                join chat_room r
+                  on r.id = p.chat_room_id
+                 and r.is_deleted = 0
+                join chat_message m
+                  on m.chat_room_id = p.chat_room_id
+                 and m.id > coalesce(p.last_read_message_id, 0)
+                 and m.type = 'TEXT'
+                where p.user_id = :userId
+                  and p.is_joined = 1
+                limit 1000
+            ) total_unread
+            """,
+            nativeQuery = true)
+    long countTotalUnreadMessagesByUserId(@Param("userId") Long userId);
+
+    @Query(
             """
             select new _ganzi.codoc.chat.dto.RoomParticipantCount(p.chatRoom.id, count(p.id))
             from ChatRoomParticipant p
@@ -182,21 +204,4 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
               and r.isDeleted = false
             """)
     List<ChatRoomParticipant> findAllJoinedByUserId(@Param("userId") Long userId);
-
-    @Query(
-            """
-            select count(p.id) > 0
-            from ChatRoomParticipant p
-            where p.userId = :userId
-              and p.isJoined = true
-              and p.chatRoom.isDeleted = false
-              and exists (
-                    select 1
-                    from ChatMessage m
-                    where m.chatRoom = p.chatRoom
-                      and m.id > coalesce(p.lastReadMessageId, 0)
-                      and m.type = _ganzi.codoc.chat.enums.ChatMessageType.TEXT
-              )
-            """)
-    boolean existsJoinedParticipantWithUnreadMessages(@Param("userId") Long userId);
 }

@@ -2,6 +2,7 @@ package _ganzi.codoc.chat.service;
 
 import _ganzi.codoc.chat.dto.ChatMessageBroadcast;
 import _ganzi.codoc.chat.dto.ChatRoomUpdateBroadcast;
+import _ganzi.codoc.chat.dto.ChatUnreadStatusBroadcast;
 import _ganzi.codoc.chat.relay.RedisChatRelayPublisher;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,13 @@ public class ChatRelayService {
         publishOrFallback(
                 publisher -> publisher.publishRoomUpdate(userId, broadcast),
                 () -> chatBroadcaster.broadcastRoomUpdate(userId, broadcast),
+                "userId=" + userId);
+    }
+
+    public void relayUnreadStatusUpdate(Long userId, ChatUnreadStatusBroadcast broadcast) {
+        publishOrFallback(
+                publisher -> publisher.publishUnreadStatusUpdate(userId, broadcast),
+                () -> chatBroadcaster.broadcastUnreadStatusUpdate(userId, broadcast),
                 "userId=" + userId);
     }
 

@@ -1,6 +1,8 @@
 package _ganzi.codoc.chat.event;
 
+import _ganzi.codoc.chat.dto.ChatUnreadStatusBroadcast;
 import _ganzi.codoc.chat.service.ChatRelayService;
+import _ganzi.codoc.chat.service.ChatUnreadCountService;
 import _ganzi.codoc.chat.service.SharedWebSocketStateService;
 import _ganzi.codoc.notification.dto.NotificationMessageItem;
 import _ganzi.codoc.notification.enums.NotificationType;
@@ -16,6 +18,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class ChatMessageCommitEventListener {
 
     private final ChatRelayService chatRelayService;
+    private final ChatUnreadCountService chatUnreadCountService;
     private final SharedWebSocketStateService sharedWebSocketStateService;
     private final NotificationDispatchService notificationDispatchService;
 
@@ -24,11 +27,19 @@ public class ChatMessageCommitEventListener {
         chatRelayService.relayRoomMessage(event.roomId(), event.roomMessage());
 
         for (Long participantUserId : event.participantUserIds()) {
+            boolean isConnected = sharedWebSocketStateService.isConnected(participantUserId);
+            long totalUnreadCount =
+                    chatUnreadCountService.increaseTotalUnreadCount(participantUserId, 1L, isConnected);
+            if (isConnected && totalUnreadCount >= 0) {
+                chatRelayService.relayUnreadStatusUpdate(
+                        participantUserId, ChatUnreadStatusBroadcast.of(totalUnreadCount));
+            }
+
             if (event.onlineSubscriberUserIds().contains(participantUserId)) {
                 continue;
             }
 
-            if (sharedWebSocketStateService.isConnected(participantUserId)) {
+            if (isConnected) {
                 chatRelayService.relayRoomUpdate(participantUserId, event.roomUpdate());
                 continue;
             }

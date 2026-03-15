@@ -6,7 +6,7 @@ import java.util.Optional;
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
 import _ganzi.codoc.chat.dto.ParticipantUnreadMessageCountRow;
 import _ganzi.codoc.chat.dto.RoomParticipantCount;
-import _ganzi.codoc.chat.dto.UserJoinedRoomRow;
+import _ganzi.codoc.chat.dto.UserChatRoomListRow;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -20,30 +20,58 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
             select
                 p.id as participantId,
                 r.id as roomId,
-                r.title as title
+                r.title as title,
+                lm.latestMessagePreview as lastMessagePreview,
+                lm.latestMessageAt as lastMessageAt
             from ChatRoomParticipant p
             join p.chatRoom r
+            join _ganzi.codoc.chat.domain.ChatRoomLatestMessage lm
+              on lm.chatRoom = r
             where p.userId = :userId
               and p.isJoined = true
               and r.isDeleted = false
+              and (
+                    :cursorOrderedAt is null
+                    or lm.latestMessageAt < :cursorOrderedAt
+                    or (lm.latestMessageAt = :cursorOrderedAt and r.id < :cursorRoomId)
+              )
+            order by lm.latestMessageAt desc, r.id desc
             """)
-    List<UserJoinedRoomRow> findJoinedRoomRowsByUserId(@Param("userId") Long userId);
+    List<UserChatRoomListRow> findLatestJoinedChatRoomsByUserId(
+            @Param("userId") Long userId,
+            @Param("cursorOrderedAt") Instant cursorOrderedAt,
+            @Param("cursorRoomId") Long cursorRoomId,
+            Pageable pageable);
 
     @Query(
             """
             select
                 p.id as participantId,
                 r.id as roomId,
-                r.title as title
+                r.title as title,
+                lm.latestMessagePreview as lastMessagePreview,
+                lm.latestMessageAt as lastMessageAt
             from ChatRoomParticipant p
             join p.chatRoom r
+            join _ganzi.codoc.chat.domain.ChatRoomLatestMessage lm
+              on lm.chatRoom = r
             where p.userId = :userId
               and p.isJoined = true
               and r.isDeleted = false
               and r.title like concat('%', :keyword, '%')
+              and (
+                    :cursorOrderedAt is null
+                    or lm.latestMessageAt < :cursorOrderedAt
+                    or (lm.latestMessageAt = :cursorOrderedAt and r.id < :cursorRoomId)
+              )
+            order by lm.latestMessageAt desc, r.id desc
             """)
-    List<UserJoinedRoomRow> searchJoinedRoomRowsByKeyword(
-            @Param("userId") Long userId, @Param("keyword") String keyword);
+    List<UserChatRoomListRow> searchJoinedChatRoomsByKeyword(
+            @Param("userId") Long userId,
+            @Param("keyword") String keyword,
+            @Param("cursorOrderedAt") Instant cursorOrderedAt,
+            @Param("cursorRoomId") Long cursorRoomId,
+            Pageable pageable);
 
     @Query(
             """

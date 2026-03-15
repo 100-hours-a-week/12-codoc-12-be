@@ -32,35 +32,22 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
                 r.title,
                 case when r.password is not null then true else false end,
                 count(joinedParticipant.id),
-                lm.createdAt
+                lm.latestMessageAt
             )
             from ChatRoom r
-            join ChatMessage lm on lm.chatRoom = r
+            join _ganzi.codoc.chat.domain.ChatRoomLatestMessage lm
+              on lm.chatRoom = r
             left join ChatRoomParticipant joinedParticipant
               on joinedParticipant.chatRoom = r
              and joinedParticipant.isJoined = true
             where r.isDeleted = false
-              and lm.id = coalesce(
-                    (
-                        select max(tm.id)
-                        from ChatMessage tm
-                        where tm.chatRoom = r
-                          and tm.type = _ganzi.codoc.chat.enums.ChatMessageType.TEXT
-                    ),
-                    (
-                        select max(im.id)
-                        from ChatMessage im
-                        where im.chatRoom = r
-                          and im.type = _ganzi.codoc.chat.enums.ChatMessageType.INIT
-                    )
-              )
               and (
                     :cursorOrderedAt is null
-                    or lm.createdAt < :cursorOrderedAt
-                    or (lm.createdAt = :cursorOrderedAt and r.id < :cursorRoomId)
+                    or lm.latestMessageAt < :cursorOrderedAt
+                    or (lm.latestMessageAt = :cursorOrderedAt and r.id < :cursorRoomId)
               )
-            group by r.id, r.title, r.password, lm.createdAt
-            order by lm.createdAt desc, r.id desc
+            group by r.id, r.title, r.password, lm.latestMessageAt
+            order by lm.latestMessageAt desc, r.id desc
             """)
     List<ChatRoomListQueryResult> findLatestChatRooms(
             @Param("cursorOrderedAt") Instant cursorOrderedAt,
@@ -74,36 +61,23 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
                 r.title,
                 case when r.password is not null then true else false end,
                 count(joinedParticipant.id),
-                lm.createdAt
+                lm.latestMessageAt
             )
             from ChatRoom r
-            join ChatMessage lm on lm.chatRoom = r
+            join _ganzi.codoc.chat.domain.ChatRoomLatestMessage lm
+              on lm.chatRoom = r
             left join ChatRoomParticipant joinedParticipant
               on joinedParticipant.chatRoom = r
              and joinedParticipant.isJoined = true
             where r.isDeleted = false
-              and lower(r.title) like lower(concat('%', :keyword, '%'))
-              and lm.id = coalesce(
-                    (
-                        select max(tm.id)
-                        from ChatMessage tm
-                        where tm.chatRoom = r
-                          and tm.type = _ganzi.codoc.chat.enums.ChatMessageType.TEXT
-                    ),
-                    (
-                        select max(im.id)
-                        from ChatMessage im
-                        where im.chatRoom = r
-                          and im.type = _ganzi.codoc.chat.enums.ChatMessageType.INIT
-                    )
-              )
+              and r.title like concat('%', :keyword, '%')
               and (
                     :cursorOrderedAt is null
-                    or lm.createdAt < :cursorOrderedAt
-                    or (lm.createdAt = :cursorOrderedAt and r.id < :cursorRoomId)
+                    or lm.latestMessageAt < :cursorOrderedAt
+                    or (lm.latestMessageAt = :cursorOrderedAt and r.id < :cursorRoomId)
               )
-            group by r.id, r.title, r.password, lm.createdAt
-            order by lm.createdAt desc, r.id desc
+            group by r.id, r.title, r.password, lm.latestMessageAt
+            order by lm.latestMessageAt desc, r.id desc
             """)
     List<ChatRoomListQueryResult> searchChatRoomsByKeyword(
             @Param("keyword") String keyword,

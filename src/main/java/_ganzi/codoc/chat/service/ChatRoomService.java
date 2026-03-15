@@ -3,6 +3,7 @@ package _ganzi.codoc.chat.service;
 import _ganzi.codoc.chat.config.ChatProperties;
 import _ganzi.codoc.chat.domain.ChatMessage;
 import _ganzi.codoc.chat.domain.ChatRoom;
+import _ganzi.codoc.chat.domain.ChatRoomLatestMessage;
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
 import _ganzi.codoc.chat.dto.*;
 import _ganzi.codoc.chat.dto.ChatRoomCreateRequest;
@@ -12,6 +13,7 @@ import _ganzi.codoc.chat.exception.ChatRoomInvalidPasswordException;
 import _ganzi.codoc.chat.exception.ChatRoomNotFoundException;
 import _ganzi.codoc.chat.exception.NoChatRoomParticipantException;
 import _ganzi.codoc.chat.repository.ChatMessageRepository;
+import _ganzi.codoc.chat.repository.ChatRoomLatestMessageRepository;
 import _ganzi.codoc.chat.repository.ChatRoomParticipantRepository;
 import _ganzi.codoc.chat.repository.ChatRoomRepository;
 import _ganzi.codoc.global.cursor.CursorPageFetcher;
@@ -40,6 +42,7 @@ public class ChatRoomService {
     private final UserRepository userRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomRepository chatRoomRepository;
+    private final ChatRoomLatestMessageRepository chatRoomLatestMessageRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final PasswordEncoder passwordEncoder;
     private final ChatSystemMessagePublisher systemMessagePublisher;
@@ -54,6 +57,12 @@ public class ChatRoomService {
 
         ChatMessage initMessage =
                 chatMessageRepository.save(ChatMessage.createInit(chatRoom, ROOM_CREATED_INIT_MESSAGE));
+
+        chatRoomLatestMessageRepository.save(
+                ChatRoomLatestMessage.createInit(
+                        chatRoom,
+                        ChatRoom.toListPreview(initMessage.getContent()),
+                        initMessage.getCreatedAt()));
 
         chatRoomParticipantRepository.save(
                 ChatRoomParticipant.create(userId, chatRoom, initMessage.getId()));
@@ -221,8 +230,7 @@ public class ChatRoomService {
     private CursorPagingResponse<UserChatRoomListItem, String> fetchUserChatRooms(
             String cursor,
             Integer limit,
-            BiFunction<UserChatRoomCursorPayload, Pageable, List<UserChatRoomListQueryResult>>
-                    queryFunction) {
+            BiFunction<UserChatRoomCursorPayload, Pageable, List<UserChatRoomListRow>> queryFunction) {
 
         return cursorPageFetcher.fetch(
                 cursor,
@@ -230,35 +238,56 @@ public class ChatRoomService {
                 UserChatRoomCursorPayload.class,
                 UserChatRoomCursorPayload::firstPage,
                 queryFunction,
-                participants -> {
-                    Map<Long, Long> unreadCountByParticipantId = getUnreadCountByParticipantId(participants);
-
-                    return participants.stream()
-                            .map(
-                                    participant ->
-                                            UserChatRoomListItem.from(
-                                                    participant,
-                                                    unreadCountByParticipantId.getOrDefault(participant.participantId(), 0L)))
-                            .toList();
-                },
+                this::buildUserChatRoomItems,
                 UserChatRoomCursorPayload::from);
     }
 
-    private Map<Long, Long> getUnreadCountByParticipantId(
-            List<UserChatRoomListQueryResult> participants) {
-        if (participants.isEmpty()) {
-            return Map.of();
+    private List<UserChatRoomListItem> buildUserChatRoomItems(List<UserChatRoomListRow> rows) {
+        if (rows.isEmpty()) {
+            return List.of();
         }
 
-        List<Long> participantIds =
-                participants.stream().map(UserChatRoomListQueryResult::participantId).toList();
+        List<Long> pagedParticipantIds =
+                rows.stream().map(UserChatRoomListRow::getParticipantId).toList();
+        List<Long> pagedRoomIds = rows.stream().map(UserChatRoomListRow::getRoomId).distinct().toList();
+        Map<Long, Long> unreadCountByParticipantId = getUnreadCountByParticipantId(pagedParticipantIds);
+        Map<Long, Long> participantCountByRoomId = getParticipantCountByRoomId(pagedRoomIds);
+
+        return rows.stream()
+                .map(
+                        row ->
+                                new UserChatRoomListItem(
+                                        row.getRoomId(),
+                                        row.getTitle(),
+                                        Math.toIntExact(participantCountByRoomId.getOrDefault(row.getRoomId(), 0L)),
+                                        row.getLastMessagePreview(),
+                                        row.getLastMessageAt(),
+                                        unreadCountByParticipantId.getOrDefault(row.getParticipantId(), 0L)))
+                .toList();
+    }
+
+    private Map<Long, Long> getUnreadCountByParticipantId(List<Long> participantIds) {
+        if (participantIds.isEmpty()) {
+            return Map.of();
+        }
 
         return chatRoomParticipantRepository
                 .countUnreadMessagesByParticipantIds(participantIds)
                 .stream()
                 .collect(
                         Collectors.toMap(
-                                ParticipantUnreadMessageCount::participantId,
-                                ParticipantUnreadMessageCount::unreadCount));
+                                ParticipantUnreadMessageCountRow::getParticipantId,
+                                ParticipantUnreadMessageCountRow::getUnreadCount));
+    }
+
+    private Map<Long, Long> getParticipantCountByRoomId(List<Long> roomIds) {
+        if (roomIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return chatRoomParticipantRepository.countJoinedParticipantsByRoomIds(roomIds).stream()
+                .collect(
+                        Collectors.toMap(
+                                RoomParticipantCount::roomId, RoomParticipantCount::participantsCount));
     }
 }

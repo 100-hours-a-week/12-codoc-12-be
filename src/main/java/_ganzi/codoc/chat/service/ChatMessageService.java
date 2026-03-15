@@ -7,6 +7,7 @@ import _ganzi.codoc.chat.dto.*;
 import _ganzi.codoc.chat.event.ChatMessageCommittedEvent;
 import _ganzi.codoc.chat.exception.NoChatRoomParticipantException;
 import _ganzi.codoc.chat.repository.ChatMessageRepository;
+import _ganzi.codoc.chat.repository.ChatRoomLatestMessageRepository;
 import _ganzi.codoc.chat.repository.ChatRoomParticipantRepository;
 import _ganzi.codoc.global.cursor.CursorPageFetcher;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
@@ -28,6 +29,7 @@ public class ChatMessageService {
 
     private final UserRepository userRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final ChatRoomLatestMessageRepository chatRoomLatestMessageRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final SharedWebSocketStateService sharedWebSocketStateService;
     private final CursorPageFetcher cursorPageFetcher;
@@ -82,6 +84,8 @@ public class ChatMessageService {
 
         Instant lastMessageAt = message.getCreatedAt() != null ? message.getCreatedAt() : Instant.now();
         String lastMessagePreview = ChatRoom.toListPreview(request.content());
+        chatRoomLatestMessageRepository.updateLatestTextMessageIfNewer(
+                roomId, message.getId(), lastMessagePreview, lastMessageAt);
 
         Set<Long> onlineUserIds = sharedWebSocketStateService.getActiveSubscriberUserIds(roomId);
         int participantCount =

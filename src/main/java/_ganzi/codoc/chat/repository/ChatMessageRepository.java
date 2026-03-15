@@ -30,6 +30,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
                 m.type,
                 m.content,
                 null,
+                null,
                 m.createdAt
             )
             from ChatMessage m

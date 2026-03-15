@@ -4,8 +4,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
-import _ganzi.codoc.chat.dto.ParticipantUnreadMessageCount;
-import _ganzi.codoc.chat.dto.UserChatRoomListQueryResult;
+import _ganzi.codoc.chat.dto.ParticipantUnreadMessageCountRow;
+import _ganzi.codoc.chat.dto.RoomParticipantCount;
+import _ganzi.codoc.chat.dto.UserJoinedRoomRow;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -16,99 +17,33 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
 
     @Query(
             """
-            select new _ganzi.codoc.chat.dto.UserChatRoomListQueryResult(
-                p.id,
-                r.id,
-                r.title,
-                count(joinedParticipant.id),
-                lm.content,
-                lm.createdAt
-            )
+            select
+                p.id as participantId,
+                r.id as roomId,
+                r.title as title
             from ChatRoomParticipant p
             join p.chatRoom r
-            join ChatMessage lm on lm.chatRoom = r
-            left join ChatRoomParticipant joinedParticipant
-              on joinedParticipant.chatRoom = r
-             and joinedParticipant.isJoined = true
             where p.userId = :userId
               and p.isJoined = true
               and r.isDeleted = false
-              and lm.id = coalesce(
-                    (
-                        select max(tm.id)
-                        from ChatMessage tm
-                        where tm.chatRoom = r
-                          and tm.type = _ganzi.codoc.chat.enums.ChatMessageType.TEXT
-                    ),
-                    (
-                        select max(im.id)
-                        from ChatMessage im
-                        where im.chatRoom = r
-                          and im.type = _ganzi.codoc.chat.enums.ChatMessageType.INIT
-                    )
-              )
-              and (
-                    :cursorOrderedAt is null
-                    or lm.createdAt < :cursorOrderedAt
-                    or (lm.createdAt = :cursorOrderedAt and r.id < :cursorRoomId)
-              )
-            group by p.id, r.id, r.title, lm.content, lm.createdAt
-            order by lm.createdAt desc, r.id desc
             """)
-    List<UserChatRoomListQueryResult> findLatestJoinedChatRoomsByUserId(
-            @Param("userId") Long userId,
-            @Param("cursorOrderedAt") Instant cursorOrderedAt,
-            @Param("cursorRoomId") Long cursorRoomId,
-            Pageable pageable);
+    List<UserJoinedRoomRow> findJoinedRoomRowsByUserId(@Param("userId") Long userId);
 
     @Query(
             """
-            select new _ganzi.codoc.chat.dto.UserChatRoomListQueryResult(
-                p.id,
-                r.id,
-                r.title,
-                count(joinedParticipant.id),
-                lm.content,
-                lm.createdAt
-            )
+            select
+                p.id as participantId,
+                r.id as roomId,
+                r.title as title
             from ChatRoomParticipant p
             join p.chatRoom r
-            join ChatMessage lm on lm.chatRoom = r
-            left join ChatRoomParticipant joinedParticipant
-              on joinedParticipant.chatRoom = r
-             and joinedParticipant.isJoined = true
             where p.userId = :userId
               and p.isJoined = true
               and r.isDeleted = false
-              and lower(r.title) like lower(concat('%', :keyword, '%'))
-              and lm.id = coalesce(
-                    (
-                        select max(tm.id)
-                        from ChatMessage tm
-                        where tm.chatRoom = r
-                          and tm.type = _ganzi.codoc.chat.enums.ChatMessageType.TEXT
-                    ),
-                    (
-                        select max(im.id)
-                        from ChatMessage im
-                        where im.chatRoom = r
-                          and im.type = _ganzi.codoc.chat.enums.ChatMessageType.INIT
-                    )
-              )
-              and (
-                    :cursorOrderedAt is null
-                    or lm.createdAt < :cursorOrderedAt
-                    or (lm.createdAt = :cursorOrderedAt and r.id < :cursorRoomId)
-              )
-            group by p.id, r.id, r.title, lm.content, lm.createdAt
-            order by lm.createdAt desc, r.id desc
+              and r.title like concat('%', :keyword, '%')
             """)
-    List<UserChatRoomListQueryResult> searchJoinedChatRoomsByKeyword(
-            @Param("userId") Long userId,
-            @Param("keyword") String keyword,
-            @Param("cursorOrderedAt") Instant cursorOrderedAt,
-            @Param("cursorRoomId") Long cursorRoomId,
-            Pageable pageable);
+    List<UserJoinedRoomRow> searchJoinedRoomRowsByKeyword(
+            @Param("userId") Long userId, @Param("keyword") String keyword);
 
     @Query(
             """
@@ -176,18 +111,38 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
             @Param("messageId") long messageId);
 
     @Query(
-            """
-            select new _ganzi.codoc.chat.dto.ParticipantUnreadMessageCount(p.id, count(m.id))
-            from ChatRoomParticipant p
-            left join ChatMessage m
-              on m.chatRoom = p.chatRoom
-             and m.id > p.lastReadMessageId
-             and m.senderId is not null
-            where p.id in :participantIds
-            group by p.id
-            """)
-    List<ParticipantUnreadMessageCount> countUnreadMessagesByParticipantIds(
+            value =
+                    """
+            select
+                p.id as participantId,
+                (
+                    select count(*)
+                    from (
+                        select m.id
+                        from chat_message m
+                        where m.chat_room_id = p.chat_room_id
+                          and m.id > coalesce(p.last_read_message_id, 0)
+                          and m.type = 'TEXT'
+                        limit 1000
+                    ) limited_unread
+                ) as unreadCount
+            from chat_room_participant p
+            where p.id in (:participantIds)
+            """,
+            nativeQuery = true)
+    List<ParticipantUnreadMessageCountRow> countUnreadMessagesByParticipantIds(
             @Param("participantIds") List<Long> participantIds);
+
+    @Query(
+            """
+            select new _ganzi.codoc.chat.dto.RoomParticipantCount(p.chatRoom.id, count(p.id))
+            from ChatRoomParticipant p
+            where p.chatRoom.id in :roomIds
+              and p.isJoined = true
+            group by p.chatRoom.id
+            """)
+    List<RoomParticipantCount> countJoinedParticipantsByRoomIds(
+            @Param("roomIds") List<Long> roomIds);
 
     @Query(
             """
@@ -212,7 +167,7 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
                     from ChatMessage m
                     where m.chatRoom = p.chatRoom
                       and m.id > coalesce(p.lastReadMessageId, 0)
-                      and m.senderId is not null
+                      and m.type = _ganzi.codoc.chat.enums.ChatMessageType.TEXT
               )
             """)
     boolean existsJoinedParticipantWithUnreadMessages(@Param("userId") Long userId);

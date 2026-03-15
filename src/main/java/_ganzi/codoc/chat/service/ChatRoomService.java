@@ -3,6 +3,7 @@ package _ganzi.codoc.chat.service;
 import _ganzi.codoc.chat.config.ChatProperties;
 import _ganzi.codoc.chat.domain.ChatMessage;
 import _ganzi.codoc.chat.domain.ChatRoom;
+import _ganzi.codoc.chat.domain.ChatRoomLatestMessage;
 import _ganzi.codoc.chat.domain.ChatRoomParticipant;
 import _ganzi.codoc.chat.dto.*;
 import _ganzi.codoc.chat.dto.ChatRoomCreateRequest;
@@ -12,23 +13,18 @@ import _ganzi.codoc.chat.exception.ChatRoomInvalidPasswordException;
 import _ganzi.codoc.chat.exception.ChatRoomNotFoundException;
 import _ganzi.codoc.chat.exception.NoChatRoomParticipantException;
 import _ganzi.codoc.chat.repository.ChatMessageRepository;
+import _ganzi.codoc.chat.repository.ChatRoomLatestMessageRepository;
 import _ganzi.codoc.chat.repository.ChatRoomParticipantRepository;
 import _ganzi.codoc.chat.repository.ChatRoomRepository;
 import _ganzi.codoc.global.cursor.CursorPageFetcher;
-import _ganzi.codoc.global.cursor.CursorPayloadConverter;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
-import _ganzi.codoc.global.util.CursorPagingUtils;
-import _ganzi.codoc.global.util.PageLimitResolver;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -46,19 +42,12 @@ public class ChatRoomService {
     private final UserRepository userRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomRepository chatRoomRepository;
+    private final ChatRoomLatestMessageRepository chatRoomLatestMessageRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final PasswordEncoder passwordEncoder;
     private final ChatSystemMessagePublisher systemMessagePublisher;
     private final CursorPageFetcher cursorPageFetcher;
-    private final _ganzi.codoc.global.cursor.CursorCodec cursorCodec;
     private final ChatProperties chatProperties;
-
-    private record UserChatRoomCandidate(
-            Long participantId,
-            Long roomId,
-            String title,
-            String lastMessagePreview,
-            Instant lastMessageAt) {}
 
     @Transactional
     public ChatRoomCreateResponse createChatRoom(Long userId, ChatRoomCreateRequest request) {
@@ -68,6 +57,12 @@ public class ChatRoomService {
 
         ChatMessage initMessage =
                 chatMessageRepository.save(ChatMessage.createInit(chatRoom, ROOM_CREATED_INIT_MESSAGE));
+
+        chatRoomLatestMessageRepository.save(
+                ChatRoomLatestMessage.createInit(
+                        chatRoom,
+                        ChatRoom.toListPreview(initMessage.getContent()),
+                        initMessage.getCreatedAt()));
 
         chatRoomParticipantRepository.save(
                 ChatRoomParticipant.create(userId, chatRoom, initMessage.getId()));
@@ -158,7 +153,11 @@ public class ChatRoomService {
             Long userId, String cursor, Integer limit) {
 
         return fetchUserChatRooms(
-                cursor, limit, () -> chatRoomParticipantRepository.findJoinedRoomRowsByUserId(userId));
+                cursor,
+                limit,
+                (cursorPayload, pageable) ->
+                        chatRoomParticipantRepository.findLatestJoinedChatRoomsByUserId(
+                                userId, cursorPayload.orderedAt(), cursorPayload.roomId(), pageable));
     }
 
     public CursorPagingResponse<UserChatRoomListItem, String> searchUserChatRooms(
@@ -167,7 +166,9 @@ public class ChatRoomService {
         return fetchUserChatRooms(
                 cursor,
                 limit,
-                () -> chatRoomParticipantRepository.searchJoinedRoomRowsByKeyword(userId, keyword));
+                (cursorPayload, pageable) ->
+                        chatRoomParticipantRepository.searchJoinedChatRoomsByKeyword(
+                                userId, keyword, cursorPayload.orderedAt(), cursorPayload.roomId(), pageable));
     }
 
     public UserChatUnreadStatusResponse getUserChatUnreadStatus(Long userId) {
@@ -227,126 +228,42 @@ public class ChatRoomService {
     }
 
     private CursorPagingResponse<UserChatRoomListItem, String> fetchUserChatRooms(
-            String cursor, Integer limit, Supplier<List<UserJoinedRoomRow>> joinedRoomSupplier) {
+            String cursor,
+            Integer limit,
+            BiFunction<UserChatRoomCursorPayload, Pageable, List<UserChatRoomListRow>> queryFunction) {
 
-        int resolvedLimit = PageLimitResolver.resolve(limit);
-        UserChatRoomCursorPayload cursorPayload =
-                CursorPayloadConverter.decodeAndValidate(
-                        cursorCodec,
-                        cursor,
-                        UserChatRoomCursorPayload.class,
-                        UserChatRoomCursorPayload::firstPage);
-
-        List<UserChatRoomListItem> items =
-                buildUserChatRoomItems(
-                        joinedRoomSupplier.get(),
-                        cursorPayload,
-                        CursorPagingUtils.createPageable(resolvedLimit));
-
-        return CursorPagingUtils.apply(
-                items, resolvedLimit, item -> cursorCodec.encode(UserChatRoomCursorPayload.from(item)));
+        return cursorPageFetcher.fetch(
+                cursor,
+                limit,
+                UserChatRoomCursorPayload.class,
+                UserChatRoomCursorPayload::firstPage,
+                queryFunction,
+                this::buildUserChatRoomItems,
+                UserChatRoomCursorPayload::from);
     }
 
-    private List<UserChatRoomListItem> buildUserChatRoomItems(
-            List<UserJoinedRoomRow> rows, UserChatRoomCursorPayload cursorPayload, Pageable pageable) {
+    private List<UserChatRoomListItem> buildUserChatRoomItems(List<UserChatRoomListRow> rows) {
         if (rows.isEmpty()) {
             return List.of();
         }
 
-        List<Long> roomIds = rows.stream().map(UserJoinedRoomRow::getRoomId).distinct().toList();
-
-        Map<Long, RoomMessageSummaryRow> latestMessageByRoomId = getLatestMessageByRoomId(roomIds);
-        Comparator<UserChatRoomCandidate> comparator =
-                Comparator.comparing(UserChatRoomCandidate::lastMessageAt)
-                        .reversed()
-                        .thenComparing(UserChatRoomCandidate::roomId, Comparator.reverseOrder());
-
-        List<UserChatRoomCandidate> candidates =
-                rows.stream()
-                        .map(
-                                row -> {
-                                    RoomMessageSummaryRow message = latestMessageByRoomId.get(row.getRoomId());
-                                    if (message == null) {
-                                        return null;
-                                    }
-
-                                    return new UserChatRoomCandidate(
-                                            row.getParticipantId(),
-                                            row.getRoomId(),
-                                            row.getTitle(),
-                                            ChatRoom.toListPreview(message.getContent()),
-                                            message.getCreatedAt());
-                                })
-                        .filter(item -> item != null)
-                        .filter(item -> matchesCursor(item, cursorPayload))
-                        .sorted(comparator)
-                        .limit(pageable.getPageSize())
-                        .toList();
-
-        if (candidates.isEmpty()) {
-            return List.of();
-        }
-
         List<Long> pagedParticipantIds =
-                candidates.stream().map(UserChatRoomCandidate::participantId).toList();
-        List<Long> pagedRoomIds =
-                candidates.stream().map(UserChatRoomCandidate::roomId).distinct().toList();
+                rows.stream().map(UserChatRoomListRow::getParticipantId).toList();
+        List<Long> pagedRoomIds = rows.stream().map(UserChatRoomListRow::getRoomId).distinct().toList();
         Map<Long, Long> unreadCountByParticipantId = getUnreadCountByParticipantId(pagedParticipantIds);
         Map<Long, Long> participantCountByRoomId = getParticipantCountByRoomId(pagedRoomIds);
 
-        return candidates.stream()
+        return rows.stream()
                 .map(
-                        candidate ->
+                        row ->
                                 new UserChatRoomListItem(
-                                        candidate.roomId(),
-                                        candidate.title(),
-                                        Math.toIntExact(participantCountByRoomId.getOrDefault(candidate.roomId(), 0L)),
-                                        candidate.lastMessagePreview(),
-                                        candidate.lastMessageAt(),
-                                        unreadCountByParticipantId.getOrDefault(candidate.participantId(), 0L)))
+                                        row.getRoomId(),
+                                        row.getTitle(),
+                                        Math.toIntExact(participantCountByRoomId.getOrDefault(row.getRoomId(), 0L)),
+                                        row.getLastMessagePreview(),
+                                        row.getLastMessageAt(),
+                                        unreadCountByParticipantId.getOrDefault(row.getParticipantId(), 0L)))
                 .toList();
-    }
-
-    private boolean matchesCursor(
-            UserChatRoomCandidate item, UserChatRoomCursorPayload cursorPayload) {
-        if (cursorPayload.orderedAt() == null || cursorPayload.roomId() == null) {
-            return true;
-        }
-        return item.lastMessageAt().isBefore(cursorPayload.orderedAt())
-                || (item.lastMessageAt().equals(cursorPayload.orderedAt())
-                        && item.roomId() < cursorPayload.roomId());
-    }
-
-    private Map<Long, RoomMessageSummaryRow> getLatestMessageByRoomId(List<Long> roomIds) {
-        if (roomIds.isEmpty()) {
-            return Map.of();
-        }
-
-        Map<Long, Long> latestMessageIdByRoomId =
-                chatMessageRepository.findLatestTextMessageIdsByRoomIds(roomIds).stream()
-                        .collect(Collectors.toMap(RoomMessageIdRow::getRoomId, RoomMessageIdRow::getMessageId));
-
-        Set<Long> missingRoomIds =
-                roomIds.stream()
-                        .filter(roomId -> !latestMessageIdByRoomId.containsKey(roomId))
-                        .collect(Collectors.toSet());
-
-        if (!missingRoomIds.isEmpty()) {
-            latestMessageIdByRoomId.putAll(
-                    chatMessageRepository
-                            .findLatestInitMessageIdsByRoomIds(List.copyOf(missingRoomIds))
-                            .stream()
-                            .collect(
-                                    Collectors.toMap(RoomMessageIdRow::getRoomId, RoomMessageIdRow::getMessageId)));
-        }
-
-        List<Long> messageIds = latestMessageIdByRoomId.values().stream().distinct().toList();
-        if (messageIds.isEmpty()) {
-            return Map.of();
-        }
-
-        return chatMessageRepository.findMessageSummariesByIds(messageIds).stream()
-                .collect(Collectors.toMap(RoomMessageSummaryRow::getRoomId, row -> row));
     }
 
     private Map<Long, Long> getUnreadCountByParticipantId(List<Long> participantIds) {

@@ -2,7 +2,7 @@ name: backend-cd
 
 on:
   push:
-    branches: [develop, chore/docker_cicd]
+    branches: [develop, main]
   workflow_dispatch: {}
 
 permissions:
@@ -18,17 +18,16 @@ jobs:
     uses: ./.github/workflows/ci.yml
     secrets: inherit
 
-  deploy:
+  deploy-prod:
     needs: [ci]
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
-      IS_PROD: ${{ github.ref_name == 'main' }}
-
-      AWS_REGION: ${{ github.ref_name == 'develop' && secrets.AWS_REGION_DEV || secrets.AWS_REGION }}
-      CODEDEPLOY_APP: ${{ github.ref_name == 'develop' && secrets.CODEDEPLOY_APP_DEV || secrets.CODEDEPLOY_APP }}
-      CODEDEPLOY_GROUP: ${{ github.ref_name == 'develop' && secrets.CODEDEPLOY_GROUP_DEV || secrets.CODEDEPLOY_GROUP }}
-      S3_BUCKET: ${{ github.ref_name == 'develop' && secrets.DEPLOY_BUCKET_DEV || secrets.DEPLOY_BUCKET }}
-      S3_KEY: ${{ github.ref_name == 'develop' && secrets.DEPLOY_KEY_DEV || secrets.DEPLOY_KEY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      CODEDEPLOY_APP: ${{ secrets.CODEDEPLOY_APP }}
+      CODEDEPLOY_GROUP: ${{ secrets.CODEDEPLOY_GROUP }}
+      S3_BUCKET: ${{ secrets.DEPLOY_BUCKET }}
+      S3_KEY: ${{ secrets.DEPLOY_KEY }}
 
     steps:
       - name: Checkout
@@ -47,6 +46,85 @@ jobs:
             --application-name "$CODEDEPLOY_APP" \
             --deployment-group-name "$CODEDEPLOY_GROUP" \
             --revision "revisionType=S3,s3Location={bucket=${S3_BUCKET},key=${S3_KEY},bundleType=zip}"
+
+      - name: Notify Discord
+        if: always()
+        run: |
+          STATUS="${{ job.status == 'success' && '성공' || '실패' }}"
+          COLOR="${{ job.status == 'success' && '65280' || '16711680' }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          curl -X POST -H "Content-Type: application/json" \
+          -d '{
+            "embeds": [{
+              "title": "BE CD 결과 (Backend)",
+              "description": "상태: '"${STATUS}"'\n브랜치: ${{ github.ref_name }}\n담당자: ${{ github.actor }}",
+              "color": '"${COLOR}"',
+              "fields": [
+                {"name": "커밋 메시지", "value": "${{ github.event.head_commit.message || 'Manual Trigger' }}"},
+                {"name": "로그 확인", "value": "'"${RUN_URL}"'"}
+              ]
+            }]
+          }' \
+          ${{ secrets.DISCORD_WEBHOOK }}
+
+  deploy-dev:
+    needs: [ci]
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION_DEV }}
+      DEV_INSTANCE_ID: ${{ secrets.DEV_INSTANCE_ID }}
+      DEV_DEPLOY_SCRIPT: /home/ubuntu/codoc/scripts/deploy-backend-dev.sh
+      ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+      ECR_REPO: ${{ secrets.ECR_REPO }}
+      IMAGE_TAG: ${{ github.sha }}
+      ENV_DEV: ${{ secrets.ENV_DEV }}
+      APP_ENV_PATH: /home/ubuntu/codoc/.env
+      CONTAINER_NAME: codoc-backend
+      HOST_PORT: "8080"
+      APP_PORT: "8080"
+      HEALTH_PATH: /api/health
+
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run Deploy Script via SSM
+        run: |
+          APP_ENV_CONTENT_BASE64=$(printf '%s' "$ENV_DEV" | base64 | tr -d '\n')
+
+          cat <<EOF > ssm-commands.json
+          [
+            "sudo env AWS_REGION='${AWS_REGION}' ECR_REGISTRY='${ECR_REGISTRY}' ECR_REPO='${ECR_REPO}' IMAGE_TAG='${IMAGE_TAG}' APP_ENV_CONTENT_BASE64='${APP_ENV_CONTENT_BASE64}' APP_ENV_PATH='${APP_ENV_PATH}' CONTAINER_NAME='${CONTAINER_NAME}' HOST_PORT='${HOST_PORT}' APP_PORT='${APP_PORT}' HEALTH_PATH='${HEALTH_PATH}' ${DEV_DEPLOY_SCRIPT}"
+          ]
+          EOF
+
+          jq -cn --rawfile commands ssm-commands.json '{commands: ($commands | fromjson)}' > ssm-parameters.json
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$DEV_INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy backend develop ${GITHUB_SHA}" \
+            --parameters file://ssm-parameters.json \
+            --query "Command.CommandId" \
+            --output text)
+
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$DEV_INSTANCE_ID"
+
+          STATUS=$(aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$DEV_INSTANCE_ID" \
+            --query "Status" \
+            --output text)
+
+          test "$STATUS" = "Success"
 
       - name: Notify Discord
         if: always()

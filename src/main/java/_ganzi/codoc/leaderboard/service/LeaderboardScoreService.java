@@ -24,6 +24,7 @@ public class LeaderboardScoreService {
     private final LeaderboardScoreRepository scoreRepository;
     private final LeaderboardGroupMemberRepository groupMemberRepository;
     private final UserRepository userRepository;
+    private final LeaderboardRedisSyncService leaderboardRedisSyncService;
 
     @Transactional
     public void addWeeklyXp(Long userId, int delta) {
@@ -44,6 +45,12 @@ public class LeaderboardScoreService {
                         .findById(scoreId)
                         .orElseGet(() -> scoreRepository.save(createScore(scoreId, season, user)));
         score.addWeeklyXp(delta);
+        leaderboardRedisSyncService.syncScoreAfterCommit(
+                season.getSeasonId(),
+                user.getLeague().getId(),
+                score.getGroupId(),
+                user.getId(),
+                score.getWeeklyXp());
     }
 
     private Optional<LeaderboardSeason> findCurrentSeason() {

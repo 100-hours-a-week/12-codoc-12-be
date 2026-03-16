@@ -1,7 +1,9 @@
 package _ganzi.codoc.chat.relay;
 
 import _ganzi.codoc.chat.dto.ChatMessageBroadcast;
+import _ganzi.codoc.chat.dto.ChatReadAckBroadcast;
 import _ganzi.codoc.chat.dto.ChatRoomUpdateBroadcast;
+import _ganzi.codoc.chat.dto.ChatUnreadStatusBroadcast;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -13,6 +15,8 @@ public record ChatRelayEvent(
         Long userId,
         ChatMessageBroadcast message,
         ChatRoomUpdateBroadcast roomUpdate,
+        ChatUnreadStatusBroadcast unreadStatus,
+        ChatReadAckBroadcast readAck,
         Instant publishedAt) {
 
     public static ChatRelayEvent roomMessage(
@@ -24,6 +28,8 @@ public record ChatRelayEvent(
                 roomId,
                 null,
                 message,
+                null,
+                null,
                 null,
                 Instant.now());
     }
@@ -38,6 +44,38 @@ public record ChatRelayEvent(
                 userId,
                 null,
                 roomUpdate,
+                null,
+                null,
+                Instant.now());
+    }
+
+    public static ChatRelayEvent unreadStatusUpdate(
+            String sourceServerId, Long userId, ChatUnreadStatusBroadcast unreadStatus) {
+        return new ChatRelayEvent(
+                UUID.randomUUID().toString(),
+                sourceServerId,
+                ChatRelayEventType.UNREAD_STATUS_UPDATE,
+                null,
+                userId,
+                null,
+                null,
+                unreadStatus,
+                null,
+                Instant.now());
+    }
+
+    public static ChatRelayEvent readAck(
+            String sourceServerId, Long roomId, ChatReadAckBroadcast readAck) {
+        return new ChatRelayEvent(
+                UUID.randomUUID().toString(),
+                sourceServerId,
+                ChatRelayEventType.READ_ACK,
+                roomId,
+                null,
+                null,
+                null,
+                null,
+                readAck,
                 Instant.now());
     }
 }

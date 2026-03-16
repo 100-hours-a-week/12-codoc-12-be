@@ -1,7 +1,9 @@
 package _ganzi.codoc.chat.service;
 
 import _ganzi.codoc.chat.dto.ChatMessageBroadcast;
+import _ganzi.codoc.chat.dto.ChatReadAckBroadcast;
 import _ganzi.codoc.chat.dto.ChatRoomUpdateBroadcast;
+import _ganzi.codoc.chat.dto.ChatUnreadStatusBroadcast;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
@@ -18,5 +20,13 @@ public class ChatBroadcaster {
 
     public void broadcastRoomUpdate(Long userId, ChatRoomUpdateBroadcast broadcast) {
         messagingTemplate.convertAndSend("/sub/users/" + userId + "/chat-rooms", broadcast);
+    }
+
+    public void broadcastUnreadStatusUpdate(Long userId, ChatUnreadStatusBroadcast broadcast) {
+        messagingTemplate.convertAndSend("/sub/users/" + userId + "/chat-unread-status", broadcast);
+    }
+
+    public void broadcastReadAck(Long roomId, ChatReadAckBroadcast broadcast) {
+        messagingTemplate.convertAndSend("/sub/chat/rooms/" + roomId + "/read-acks", broadcast);
     }
 }

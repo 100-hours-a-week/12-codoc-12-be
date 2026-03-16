@@ -40,6 +40,7 @@ public class LeaderboardSnapshotBatchService {
     private final LeaderboardSnapshotRepository snapshotRepository;
     private final UserRepository userRepository;
     private final NotificationDispatchService notificationDispatchService;
+    private final LeaderboardRedisRebuildService leaderboardRedisRebuildService;
 
     @Transactional
     public void createHourlySnapshot() {
@@ -57,6 +58,7 @@ public class LeaderboardSnapshotBatchService {
             return;
         }
         createSnapshotForSeason(season);
+        leaderboardRedisRebuildService.rebuildSeason(season.getSeasonId());
         notifyActiveUsers(
                 NotificationType.LEADERBOARD_STARTED,
                 SEASON_START_TITLE,
@@ -71,6 +73,7 @@ public class LeaderboardSnapshotBatchService {
             return;
         }
         createSnapshotForSeason(season);
+        leaderboardRedisRebuildService.rebuildSeason(season.getSeasonId());
         notifyActiveUsers(
                 NotificationType.LEADERBOARD_CLOSED,
                 SEASON_END_TITLE,

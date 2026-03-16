@@ -34,6 +34,8 @@ public class RedisChatRelaySubscriber implements MessageListener {
         switch (event.type()) {
             case ROOM_MESSAGE -> broadcastRoomMessage(event);
             case ROOM_LIST_UPDATE -> broadcastRoomListUpdate(event);
+            case UNREAD_STATUS_UPDATE -> broadcastUnreadStatusUpdate(event);
+            case READ_ACK -> broadcastReadAck(event);
         }
     }
 
@@ -60,5 +62,21 @@ public class RedisChatRelaySubscriber implements MessageListener {
             return;
         }
         chatBroadcaster.broadcastRoomUpdate(event.userId(), event.roomUpdate());
+    }
+
+    private void broadcastUnreadStatusUpdate(ChatRelayEvent event) {
+        if (event.userId() == null || event.unreadStatus() == null) {
+            log.warn("잘못된 채팅 unread 상태 릴레이 이벤트입니다. eventId={}", event.eventId());
+            return;
+        }
+        chatBroadcaster.broadcastUnreadStatusUpdate(event.userId(), event.unreadStatus());
+    }
+
+    private void broadcastReadAck(ChatRelayEvent event) {
+        if (event.roomId() == null || event.readAck() == null) {
+            log.warn("잘못된 채팅 읽음 확인 릴레이 이벤트입니다. eventId={}", event.eventId());
+            return;
+        }
+        chatBroadcaster.broadcastReadAck(event.roomId(), event.readAck());
     }
 }

@@ -115,6 +115,21 @@ app:
       period: ${RATE_LIMIT_GLOBAL_PERIOD:10s}
       consume-token: ${RATE_LIMIT_GLOBAL_CONSUME:1}
 
+  schedule:
+    time-zone: ${APP_SCHEDULE_TIME_ZONE:Asia/Seoul}
+    analysis-report-cron: ${APP_SCHEDULE_ANALYSIS_REPORT_CRON:0 0 8 * * MON}
+    recommended-problem-cron: ${APP_SCHEDULE_RECOMMENDED_PROBLEM_CRON:0 0 3 * * *}
+    attendance-notification-cron: ${APP_SCHEDULE_ATTENDANCE_NOTIFICATION_CRON:0 0 12 * * *}
+    quest-daily-cron: ${APP_SCHEDULE_QUEST_DAILY_CRON:0 0 2 * * *}
+    user-dormant-cron: ${APP_SCHEDULE_USER_DORMANT_CRON:0 0 1 * * *}
+    leaderboard-hourly-snapshot-cron: ${APP_SCHEDULE_LEADERBOARD_HOURLY_SNAPSHOT_CRON:0 0 * * * *}
+    leaderboard-season-start-snapshot-cron: ${APP_SCHEDULE_LEADERBOARD_SEASON_START_SNAPSHOT_CRON:0 0 0 * * TUE}
+    leaderboard-season-end-snapshot-cron: ${APP_SCHEDULE_LEADERBOARD_SEASON_END_SNAPSHOT_CRON:0 0 0 * * MON}
+    leaderboard-league-adjustment-cron: ${APP_SCHEDULE_LEADERBOARD_LEAGUE_ADJUSTMENT_CRON:0 0 4 * * MON}
+    leaderboard-season-assign-cron: ${APP_SCHEDULE_LEADERBOARD_SEASON_ASSIGN_CRON:0 0 10 * * MON}
+    leaderboard-redis-rebuild-cron: ${APP_SCHEDULE_LEADERBOARD_REDIS_REBUILD_CRON:0 */10 * * * *}
+    chatbot-session-finish-fixed-rate: ${APP_SCHEDULE_CHATBOT_SESSION_FINISH_FIXED_RATE:600000}
+
 sentry:
   dsn: ${SENTRY_DSN:}
   environment: ${SENTRY_ENVIRONMENT:local}

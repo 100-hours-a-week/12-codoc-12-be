@@ -11,7 +11,9 @@ public class AnalysisReportScheduler {
 
     private final AnalysisReportService analysisReportService;
 
-    @Scheduled(cron = "0 0 8 * * *", zone = "Asia/Seoul")
+    @Scheduled(
+            cron = "${app.schedule.analysis-report-cron:0 0 8 * * *}",
+            zone = "${app.schedule.time-zone:Asia/Seoul}")
     public void issueWeeklyReports() {
         analysisReportService.issueWeeklyReports();
     }

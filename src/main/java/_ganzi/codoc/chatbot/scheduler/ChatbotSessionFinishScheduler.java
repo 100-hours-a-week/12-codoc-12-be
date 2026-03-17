@@ -11,7 +11,7 @@ public class ChatbotSessionFinishScheduler {
 
     private final ChatbotSessionFinishService chatbotSessionFinishService;
 
-    @Scheduled(fixedRate = 600_000)
+    @Scheduled(fixedRateString = "${app.schedule.chatbot-session-finish-fixed-rate:600000}")
     public void notifyFinishedSessions() {
         chatbotSessionFinishService.notifyFinishedSessions();
     }

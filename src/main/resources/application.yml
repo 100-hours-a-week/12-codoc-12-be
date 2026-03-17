@@ -57,6 +57,9 @@ app:
       default-negative-spec: ${APP_CACHE_CAFFEINE_DEFAULT_NEGATIVE_SPEC:maximumSize=2000,expireAfterWrite=1h,recordStats}
   frontend:
     base-url: ${APP_FRONTEND_BASE_URL:http://localhost:5173}
+  storage:
+    bucket:
+      images: ${APP_STORAGE_BUCKET_IMAGES:}
   ai-server:
     base-url: ${APP_AI_SERVER_BASE_URL:http://localhost:8000}
     base-timeout: 3s
@@ -182,3 +185,6 @@ springdoc:
 logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - loadtest=%X{loadtest} %msg%n"
+
+aws:
+  region: ${AWS_REGION:ap-northeast-2}

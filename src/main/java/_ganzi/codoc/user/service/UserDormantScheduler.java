@@ -12,7 +12,9 @@ public class UserDormantScheduler {
 
     private final UserService userService;
 
-    @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
+    @Scheduled(
+            cron = "${app.schedule.user-dormant-cron:0 0 1 * * *}",
+            zone = "${app.schedule.time-zone:Asia/Seoul}")
     public void markDormantUsers() {
         userService.markDormantUsersInactiveForDays(DORMANT_AFTER_DAYS);
     }

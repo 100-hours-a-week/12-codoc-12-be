@@ -14,7 +14,9 @@ public class QuestBatchScheduler {
 
     private final QuestBatchService questBatchService;
 
-    @Scheduled(cron = "0 0 2 * * *", zone = "Asia/Seoul")
+    @Scheduled(
+            cron = "${app.schedule.quest-daily-cron:0 0 2 * * *}",
+            zone = "${app.schedule.time-zone:Asia/Seoul}")
     public void issueDailyQuests() {
         questBatchService.issueDailyQuests(LocalDate.now(SEOUL));
     }

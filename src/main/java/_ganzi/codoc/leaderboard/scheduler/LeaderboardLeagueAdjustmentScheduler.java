@@ -11,7 +11,9 @@ public class LeaderboardLeagueAdjustmentScheduler {
 
     private final LeaderboardLeagueAdjustmentService adjustmentService;
 
-    @Scheduled(cron = "0 0 4 * * MON", zone = "Asia/Seoul")
+    @Scheduled(
+            cron = "${app.schedule.leaderboard-league-adjustment-cron:0 0 4 * * MON}",
+            zone = "${app.schedule.time-zone:Asia/Seoul}")
     public void adjustLeaguesForSeasonEnd() {
         adjustmentService.adjustLeaguesForSeasonEnd();
     }

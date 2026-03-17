@@ -15,7 +15,9 @@ public class LeaderboardRedisRebuildScheduler {
     private final LeaderboardRedisProperties properties;
     private final LeaderboardRedisRebuildService rebuildService;
 
-    @Scheduled(cron = "0 */10 * * * *", zone = "Asia/Seoul")
+    @Scheduled(
+            cron = "${app.schedule.leaderboard-redis-rebuild-cron:0 */10 * * * *}",
+            zone = "${app.schedule.time-zone:Asia/Seoul}")
     public void rebuildIfNeeded() {
         if (!properties.writeEnabled()) {
             return;

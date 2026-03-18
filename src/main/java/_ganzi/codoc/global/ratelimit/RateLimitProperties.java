@@ -10,7 +10,9 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "app.rate-limit")
 public record RateLimitProperties(
-        @NotNull @Valid Policy chatbotStream, @NotNull @Valid Policy global) {
+        @NotNull @Valid Policy chatbotStream,
+        @NotNull @Valid Policy customProblemGenerate,
+        @NotNull @Valid Policy global) {
 
     public record Policy(
             @NotNull Boolean enabled,

@@ -1,7 +1,7 @@
-package _ganzi.codoc.problem.mq;
+package _ganzi.codoc.analysis.mq;
 
-import _ganzi.codoc.problem.config.RecommendMqProperties;
-import _ganzi.codoc.problem.service.recommend.dto.RecommendRequest;
+import _ganzi.codoc.analysis.config.ReportMqProperties;
+import _ganzi.codoc.analysis.dto.AnalysisReportRequest;
 import java.time.Instant;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
@@ -12,21 +12,21 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-@ConditionalOnProperty(prefix = "app.recommend.mq", name = "enabled", havingValue = "true")
-public class RecommendRequestPublisher {
+@ConditionalOnProperty(prefix = "app.report.mq", name = "enabled", havingValue = "true")
+public class ReportRequestPublisher {
 
     private final RabbitTemplate rabbitTemplate;
-    private final RecommendMqProperties properties;
+    private final ReportMqProperties properties;
 
-    public RecommendRequestPublisher(
-            @Qualifier("recommendRabbitTemplate") RabbitTemplate rabbitTemplate,
-            RecommendMqProperties properties) {
+    public ReportRequestPublisher(
+            @Qualifier("reportRabbitTemplate") RabbitTemplate rabbitTemplate,
+            ReportMqProperties properties) {
         this.rabbitTemplate = rabbitTemplate;
         this.properties = properties;
     }
 
-    public void publish(String jobId, RecommendRequest payload, Instant requestedAt) {
-        RecommendRequestMessage message = new RecommendRequestMessage(jobId, requestedAt, payload);
+    public void publish(String jobId, AnalysisReportRequest payload, Instant requestedAt) {
+        ReportRequestMessage message = new ReportRequestMessage(jobId, requestedAt, payload);
         rabbitTemplate.convertAndSend(
                 properties.exchange(),
                 properties.requestRoutingKey(),
@@ -37,6 +37,6 @@ public class RecommendRequestPublisher {
                     return amqpMessage;
                 },
                 new CorrelationData(jobId));
-        log.info("recommend request published. jobId={}", jobId);
+        log.info("analysis report request published. jobId={}", jobId);
     }
 }

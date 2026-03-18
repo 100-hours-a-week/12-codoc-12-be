@@ -5,21 +5,27 @@ import _ganzi.codoc.notification.dto.NotificationMessageItem;
 import jakarta.annotation.PostConstruct;
 import java.time.Instant;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "app.notification.mq", name = "enabled", havingValue = "true")
 public class NotificationEventPublisher {
 
     private final RabbitTemplate rabbitTemplate;
     private final NotificationMqProperties properties;
+
+    public NotificationEventPublisher(
+            @Qualifier("notificationRabbitTemplate") RabbitTemplate rabbitTemplate,
+            NotificationMqProperties properties) {
+        this.rabbitTemplate = rabbitTemplate;
+        this.properties = properties;
+    }
 
     @PostConstruct
     public void initCallbacks() {

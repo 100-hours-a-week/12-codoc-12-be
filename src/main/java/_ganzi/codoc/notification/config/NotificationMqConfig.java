@@ -7,6 +7,7 @@ import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -90,6 +91,16 @@ public class NotificationMqConfig {
     @Bean
     public MessageConverter notificationMessageConverter() {
         return new JacksonJsonMessageConverter();
+    }
+
+    @Bean
+    public RabbitTemplate notificationRabbitTemplate(
+            ConnectionFactory connectionFactory,
+            @Qualifier("notificationMessageConverter") MessageConverter notificationMessageConverter) {
+        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+        rabbitTemplate.setMessageConverter(notificationMessageConverter);
+        rabbitTemplate.setMandatory(true);
+        return rabbitTemplate;
     }
 
     @Bean

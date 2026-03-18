@@ -1,12 +1,17 @@
 package _ganzi.codoc.problem.service;
 
+import _ganzi.codoc.global.exception.ResourceNotFoundException;
 import _ganzi.codoc.notification.dto.NotificationMessageItem;
 import _ganzi.codoc.notification.enums.NotificationType;
 import _ganzi.codoc.notification.service.NotificationDispatchService;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.domain.RecommendedProblem;
+import _ganzi.codoc.problem.domain.job.RecommendationJob;
+import _ganzi.codoc.problem.domain.job.RecommendationJobStatus;
+import _ganzi.codoc.problem.mq.RecommendRequestPublisher;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.problem.repository.RecommendedProblemRepository;
+import _ganzi.codoc.problem.repository.job.RecommendationJobRepository;
 import _ganzi.codoc.problem.service.recommend.RecommendClient;
 import _ganzi.codoc.problem.service.recommend.dto.RecommendRequest;
 import _ganzi.codoc.problem.service.recommend.dto.RecommendResponse;
@@ -23,9 +28,13 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -50,12 +59,26 @@ public class RecommendedProblemService {
     private final EntityManager entityManager;
     private final RecommendClient recommendClient;
     private final NotificationDispatchService notificationDispatchService;
+    private final RecommendationJobRepository recommendationJobRepository;
+    private final ObjectProvider<RecommendRequestPublisher> recommendRequestPublisherProvider;
+
+    @Value("${app.recommend.mq.enabled:false}")
+    private boolean recommendMqEnabled;
+
+    @Value("${app.recommend.mq.request-publish-enabled:false}")
+    private boolean recommendMqRequestPublishEnabled;
 
     @Transactional
     public void issueDailyRecommendations() {
         List<Long> userIds =
                 userRepository.findAllByStatus(UserStatus.ACTIVE).stream().map(User::getId).toList();
         for (Long userId : userIds) {
+            Optional<RecommendationJob> publishedJob =
+                    publishRecommendationJob(userId, RecommendationScenario.DAILY, true);
+            if (publishedJob.isPresent()
+                    && publishedJob.get().getStatus() == RecommendationJobStatus.PUBLISHED) {
+                continue;
+            }
             try {
                 issueRecommendationsForUser(userId, RecommendationScenario.DAILY);
             } catch (WebClientResponseException exception) {
@@ -80,6 +103,12 @@ public class RecommendedProblemService {
     public void replenishIfNeeded(Long userId) {
         long pendingCount = recommendedProblemRepository.countByUserIdAndIsDoneFalse(userId);
         if (pendingCount > REPLENISH_THRESHOLD) {
+            return;
+        }
+        Optional<RecommendationJob> publishedJob =
+                publishRecommendationJob(userId, RecommendationScenario.ON_DEMAND, false);
+        if (publishedJob.isPresent()
+                && publishedJob.get().getStatus() == RecommendationJobStatus.PUBLISHED) {
             return;
         }
         try {
@@ -107,54 +136,45 @@ public class RecommendedProblemService {
             return;
         }
         try {
-            long pendingCount = recommendedProblemRepository.countByUserIdAndIsDoneFalse(userId);
-            if (scenario == RecommendationScenario.ON_DEMAND && pendingCount > REPLENISH_THRESHOLD) {
+            if (scenario == RecommendationScenario.ON_DEMAND
+                    && recommendedProblemRepository.countByUserIdAndIsDoneFalse(userId)
+                            > REPLENISH_THRESHOLD) {
                 return;
             }
-
-            RecommendationFilterInfo filterInfo = buildRecommendationFilterInfo(userId, scenario);
-            List<RecommendationCandidate> candidates = fetchRecommendations(userId, scenario, filterInfo);
-            if (candidates.isEmpty()) {
+            RecommendRequest request = buildRecommendRequest(userId, scenario);
+            RecommendResponse response = recommendClient.requestRecommendations(request);
+            if (response.recommendations().isEmpty()) {
                 return;
             }
+            applyRecommendations(userId, scenario, responseToCandidates(response.recommendations()));
+        } finally {
+            releaseUserLock(userId);
+        }
+    }
 
-            if (scenario == RecommendationScenario.DAILY) {
-                recommendedProblemRepository.markAllDoneByUserId(userId);
-            }
+    @Transactional
+    public RecommendationJob requestOnDemandJob(Long userId) {
+        return publishRecommendationJob(userId, RecommendationScenario.ON_DEMAND, true)
+                .orElseThrow(() -> new IllegalStateException("Failed to create recommendation job"));
+    }
 
-            Set<Long> existingPendingIds =
-                    scenario == RecommendationScenario.ON_DEMAND
-                            ? new HashSet<>(recommendedProblemRepository.findPendingProblemIds(userId))
-                            : Set.of();
+    public RecommendationJob getRecommendationJob(Long userId, String jobId) {
+        return recommendationJobRepository
+                .findByJobIdAndUserId(jobId, userId)
+                .orElseThrow(ResourceNotFoundException::new);
+    }
 
-            User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
-            Set<Long> solvedProblemIds = new HashSet<>(filterInfo.solvedProblemIds());
-            List<RecommendedProblem> toSave = new ArrayList<>();
-            for (RecommendationCandidate candidate : candidates) {
-                if (solvedProblemIds.contains(candidate.problemId())) {
-                    continue;
-                }
-                if (existingPendingIds.contains(candidate.problemId())) {
-                    continue;
-                }
-                Problem problem = problemRepository.findById(candidate.problemId()).orElse(null);
-                if (problem == null) {
-                    continue;
-                }
-                toSave.add(RecommendedProblem.create(user, problem, candidate.reasonMsg()));
+    @Transactional
+    public void applyRecommendationsFromResponse(
+            Long userId, RecommendationScenario scenario, RecommendResponse response) {
+        if (!acquireUserLock(userId)) {
+            return;
+        }
+        try {
+            if (response.recommendations().isEmpty()) {
+                return;
             }
-            if (!toSave.isEmpty()) {
-                recommendedProblemRepository.saveAll(toSave);
-                notificationDispatchService.dispatchAfterCommit(
-                        userId,
-                        new NotificationMessageItem(
-                                NotificationType.AI_RECOMMENDED_PROBLEM_ISSUED,
-                                RECOMMEND_ISSUED_TITLE,
-                                RECOMMEND_ISSUED_BODY,
-                                java.util.Map.of(
-                                        "scenario", scenario.name(),
-                                        "count", String.valueOf(toSave.size()))));
-            }
+            applyRecommendations(userId, scenario, responseToCandidates(response.recommendations()));
         } finally {
             releaseUserLock(userId);
         }
@@ -174,8 +194,8 @@ public class RecommendedProblemService {
         }
     }
 
-    private List<RecommendationCandidate> fetchRecommendations(
-            Long userId, RecommendationScenario scenario, RecommendationFilterInfo filterInfo) {
+    public RecommendRequest buildRecommendRequest(Long userId, RecommendationScenario scenario) {
+        RecommendationFilterInfo filterInfo = buildRecommendationFilterInfo(userId, scenario);
         InitLevel userLevel =
                 userRepository
                         .findById(userId)
@@ -185,13 +205,7 @@ public class RecommendedProblemService {
         if (filterInfo.solvedProblemIds().size() < 5) {
             requestScenario = RecommendationScenario.NEW;
         }
-        RecommendRequest request = RecommendRequest.of(userId, userLevel, requestScenario, filterInfo);
-        RecommendResponse response = recommendClient.requestRecommendations(request);
-        return response.recommendations().stream()
-                .map(
-                        recommendation ->
-                                new RecommendationCandidate(recommendation.problemId(), recommendation.reasonMsg()))
-                .toList();
+        return RecommendRequest.of(userId, userLevel, requestScenario, filterInfo);
     }
 
     private RecommendationFilterInfo buildRecommendationFilterInfo(
@@ -211,6 +225,99 @@ public class RecommendedProblemService {
             challengeIds.addAll(recommendedProblemRepository.findPendingProblemIds(userId));
         }
         return new RecommendationFilterInfo(solvedIds, challengeIds);
+    }
+
+    private Optional<RecommendationJob> publishRecommendationJob(
+            Long userId, RecommendationScenario scenario, boolean forcePublish) {
+        if (!recommendMqEnabled || !recommendMqRequestPublishEnabled) {
+            return Optional.empty();
+        }
+        RecommendRequestPublisher publisher = recommendRequestPublisherProvider.getIfAvailable();
+        if (publisher == null) {
+            return Optional.empty();
+        }
+        if (!forcePublish
+                && scenario == RecommendationScenario.ON_DEMAND
+                && recommendedProblemRepository.countByUserIdAndIsDoneFalse(userId) > REPLENISH_THRESHOLD) {
+            return Optional.empty();
+        }
+        if (recommendationJobRepository.existsByUserIdAndStatus(
+                userId, RecommendationJobStatus.PUBLISHED)) {
+            return recommendationJobRepository.findTopByUserIdAndStatusOrderByCreatedAtDesc(
+                    userId, RecommendationJobStatus.PUBLISHED);
+        }
+
+        String jobId = UUID.randomUUID().toString();
+        Instant requestedAt = Instant.now();
+        RecommendationJob job = RecommendationJob.publish(jobId, userId, scenario, requestedAt);
+        recommendationJobRepository.save(job);
+
+        try {
+            RecommendRequest request = buildRecommendRequest(userId, scenario);
+            publisher.publish(jobId, request, requestedAt);
+            return Optional.of(job);
+        } catch (Exception exception) {
+            job.markPublishFailed("PUBLISH_FAILED", exception.getMessage());
+            log.warn("recommend publish failed. jobId={}, userId={}", jobId, userId, exception);
+            return Optional.of(job);
+        }
+    }
+
+    private void applyRecommendations(
+            Long userId, RecommendationScenario scenario, List<RecommendationCandidate> candidates) {
+        if (candidates.isEmpty()) {
+            return;
+        }
+        if (scenario == RecommendationScenario.ON_DEMAND
+                && recommendedProblemRepository.countByUserIdAndIsDoneFalse(userId) > REPLENISH_THRESHOLD) {
+            return;
+        }
+
+        if (scenario == RecommendationScenario.DAILY) {
+            recommendedProblemRepository.markAllDoneByUserId(userId);
+        }
+
+        RecommendationFilterInfo filterInfo = buildRecommendationFilterInfo(userId, scenario);
+        Set<Long> existingPendingIds =
+                scenario == RecommendationScenario.ON_DEMAND
+                        ? new HashSet<>(recommendedProblemRepository.findPendingProblemIds(userId))
+                        : Set.of();
+
+        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        Set<Long> solvedProblemIds = new HashSet<>(filterInfo.solvedProblemIds());
+        List<RecommendedProblem> toSave = new ArrayList<>();
+        for (RecommendationCandidate candidate : candidates) {
+            if (solvedProblemIds.contains(candidate.problemId())) {
+                continue;
+            }
+            if (existingPendingIds.contains(candidate.problemId())) {
+                continue;
+            }
+            Problem problem = problemRepository.findById(candidate.problemId()).orElse(null);
+            if (problem == null) {
+                continue;
+            }
+            toSave.add(RecommendedProblem.create(user, problem, candidate.reasonMsg()));
+        }
+        if (!toSave.isEmpty()) {
+            recommendedProblemRepository.saveAll(toSave);
+            notificationDispatchService.dispatchAfterCommit(
+                    userId,
+                    new NotificationMessageItem(
+                            NotificationType.AI_RECOMMENDED_PROBLEM_ISSUED,
+                            RECOMMEND_ISSUED_TITLE,
+                            RECOMMEND_ISSUED_BODY,
+                            java.util.Map.of(
+                                    "scenario", scenario.name(),
+                                    "count", String.valueOf(toSave.size()))));
+        }
+    }
+
+    private List<RecommendationCandidate> responseToCandidates(
+            List<RecommendResponse.RecommendationItem> responseItems) {
+        return responseItems.stream()
+                .map(item -> new RecommendationCandidate(item.problemId(), item.reasonMsg()))
+                .toList();
     }
 
     private boolean acquireUserLock(Long userId) {

@@ -94,7 +94,8 @@ public class NotificationMqConfig {
 
     @Bean
     public SimpleRabbitListenerContainerFactory notificationRabbitListenerContainerFactory(
-            ConnectionFactory connectionFactory, MessageConverter notificationMessageConverter) {
+            ConnectionFactory connectionFactory,
+            @Qualifier("notificationMessageConverter") MessageConverter notificationMessageConverter) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         factory.setMessageConverter(notificationMessageConverter);

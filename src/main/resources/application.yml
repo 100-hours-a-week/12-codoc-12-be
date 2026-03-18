@@ -103,6 +103,17 @@ app:
       retry-multiplier: ${APP_NOTIFICATION_MQ_RETRY_MULTIPLIER:2.0}
       retry-max-interval-millis: ${APP_NOTIFICATION_MQ_RETRY_MAX_INTERVAL_MILLIS:5000}
 
+  recommend:
+    mq:
+      enabled: ${APP_RECOMMEND_MQ_ENABLED:false}
+      request-publish-enabled: ${APP_RECOMMEND_MQ_REQUEST_PUBLISH_ENABLED:false}
+      response-consume-enabled: ${APP_RECOMMEND_MQ_RESPONSE_CONSUME_ENABLED:false}
+      exchange: ${APP_RECOMMEND_MQ_EXCHANGE:codoc.recommend.exchange}
+      request-queue: ${APP_RECOMMEND_MQ_REQUEST_QUEUE:recommend.request.q}
+      response-queue: ${APP_RECOMMEND_MQ_RESPONSE_QUEUE:recommend.response.q}
+      request-routing-key: ${APP_RECOMMEND_MQ_REQUEST_ROUTING_KEY:recommend.request}
+      response-routing-key: ${APP_RECOMMEND_MQ_RESPONSE_ROUTING_KEY:recommend.response}
+
   rate-limit:
     chatbot-stream:
       enabled: ${RATE_LIMIT_CHATBOT_STREAM_ENABLED:true}

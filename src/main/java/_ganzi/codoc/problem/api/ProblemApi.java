@@ -9,6 +9,7 @@ import _ganzi.codoc.problem.dto.ProblemListCondition;
 import _ganzi.codoc.problem.dto.ProblemListItem;
 import _ganzi.codoc.problem.dto.ProblemResponse;
 import _ganzi.codoc.problem.dto.ProblemSessionResponse;
+import _ganzi.codoc.problem.dto.RecommendationJobResponse;
 import _ganzi.codoc.problem.dto.RecommendedProblemResponse;
 import _ganzi.codoc.problem.exception.ProblemErrorCode;
 import _ganzi.codoc.user.exception.UserErrorCode;
@@ -265,4 +266,58 @@ public interface ProblemApi {
             },
             problem = {ProblemErrorCode.RECOMMEND_NOT_AVAILABLE})
     ResponseEntity<ApiResponse<RecommendedProblemResponse>> getRecommendedProblem(AuthUser authUser);
+
+    @Operation(summary = "Request recommended problem issue job")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "202",
+                description = "SUCCESS"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "401",
+                description = "AUTH_REQUIRED, UNAUTHORIZED"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "403",
+                description = "FORBIDDEN"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "500",
+                description = "INTERNAL_SERVER_ERROR")
+    })
+    @ErrorCodes(
+            global = {
+                GlobalErrorCode.AUTH_REQUIRED,
+                GlobalErrorCode.UNAUTHORIZED,
+                GlobalErrorCode.FORBIDDEN,
+                GlobalErrorCode.INTERNAL_SERVER_ERROR
+            })
+    ResponseEntity<ApiResponse<RecommendationJobResponse>> requestRecommendedProblemJob(
+            AuthUser authUser);
+
+    @Operation(summary = "Get recommended problem issue job")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "200",
+                description = "SUCCESS"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "401",
+                description = "AUTH_REQUIRED, UNAUTHORIZED"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "403",
+                description = "FORBIDDEN"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "404",
+                description = "RESOURCE_NOT_FOUND"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "500",
+                description = "INTERNAL_SERVER_ERROR")
+    })
+    @ErrorCodes(
+            global = {
+                GlobalErrorCode.AUTH_REQUIRED,
+                GlobalErrorCode.UNAUTHORIZED,
+                GlobalErrorCode.FORBIDDEN,
+                GlobalErrorCode.RESOURCE_NOT_FOUND,
+                GlobalErrorCode.INTERNAL_SERVER_ERROR
+            })
+    ResponseEntity<ApiResponse<RecommendationJobResponse>> getRecommendedProblemJob(
+            AuthUser authUser, String jobId);
 }

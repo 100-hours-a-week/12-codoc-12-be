@@ -11,6 +11,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,5 +45,20 @@ public class CustomProblemController {
                 .body(
                         ApiResponse.success(
                                 customProblemService.createCustomProblem(authUser.userId(), request)));
+    }
+
+    @GetMapping("/{customProblemId}")
+    public ResponseEntity<ApiResponse<CustomProblemDetailResponse>> getCustomProblemDetail(
+            @AuthenticationPrincipal AuthUser authUser, @PathVariable Long customProblemId) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        customProblemService.getCustomProblemDetail(authUser.userId(), customProblemId)));
+    }
+
+    @DeleteMapping("/{customProblemId}")
+    public ResponseEntity<Void> deleteCustomProblem(
+            @AuthenticationPrincipal AuthUser authUser, @PathVariable Long customProblemId) {
+        customProblemService.deleteCustomProblem(authUser.userId(), customProblemId);
+        return ResponseEntity.noContent().build();
     }
 }

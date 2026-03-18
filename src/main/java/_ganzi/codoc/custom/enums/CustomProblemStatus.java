@@ -5,4 +5,8 @@ public enum CustomProblemStatus {
     COMPLETED,
     FAILED,
     ;
+
+    public boolean isCompleted() {
+        return this == COMPLETED;
+    }
 }

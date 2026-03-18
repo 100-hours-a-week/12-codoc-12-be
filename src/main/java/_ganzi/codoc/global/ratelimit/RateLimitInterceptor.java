@@ -3,6 +3,7 @@ package _ganzi.codoc.global.ratelimit;
 import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.auth.support.AuthUserResolver;
 import _ganzi.codoc.chatbot.exception.ChatbotStreamRateLimitExceededException;
+import _ganzi.codoc.custom.exception.CustomProblemGenerateRateLimitExceededException;
 import _ganzi.codoc.global.exception.RateLimitExceededException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,6 +32,8 @@ public class RateLimitInterceptor implements HandlerInterceptor {
                 Map.of(
                         RateLimitApiType.CHATBOT_STREAM,
                         RateLimitPolicy.from(rateLimitProperties.chatbotStream()),
+                        RateLimitApiType.CUSTOM_PROBLEM_GENERATE,
+                        RateLimitPolicy.from(rateLimitProperties.customProblemGenerate()),
                         RateLimitApiType.GLOBAL,
                         RateLimitPolicy.from(rateLimitProperties.global()));
     }
@@ -57,6 +60,12 @@ public class RateLimitInterceptor implements HandlerInterceptor {
                     policyMap.get(apiType),
                     response,
                     ChatbotStreamRateLimitExceededException::new);
+        } else if (apiType == RateLimitApiType.CUSTOM_PROBLEM_GENERATE) {
+            applyRateLimit(
+                    generateKey(prefix, apiType),
+                    policyMap.get(apiType),
+                    response,
+                    CustomProblemGenerateRateLimitExceededException::new);
         }
 
         return true;

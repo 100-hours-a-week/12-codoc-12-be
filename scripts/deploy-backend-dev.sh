@@ -13,6 +13,7 @@ HOST_PORT="${HOST_PORT:-8080}"
 APP_PORT="${APP_PORT:-8080}"
 HEALTH_PATH="${HEALTH_PATH:-/api/health}"
 APP_ENV_PATH="${APP_ENV_PATH:-/home/ubuntu/codoc/.env}"
+APP_FCM_PATH="${APP_FCM_PATH:-/home/ubuntu/codoc/common}"
 LOG_HOST_DIR="${LOG_HOST_DIR:-/home/ubuntu/codoc/logs/backend}"
 IMAGE_TAG="${IMAGE_TAG:-dev}"
 IMAGE_URI="${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}"
@@ -42,6 +43,7 @@ docker run -d \
   --restart unless-stopped \
   --network "${DOCKER_NETWORK}" \
   -p "${HOST_BIND_IP}:${HOST_PORT}:${APP_PORT}" \
+  -v "${APP_FCM_PATH}:${APP_FCM_PATH}" \
   -v "${LOG_HOST_DIR}:/app/logs" \
   --env-file "${APP_ENV_PATH}" \
   "${IMAGE_URI}"

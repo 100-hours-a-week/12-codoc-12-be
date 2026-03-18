@@ -114,6 +114,17 @@ app:
       request-routing-key: ${APP_RECOMMEND_MQ_REQUEST_ROUTING_KEY:recommend.request}
       response-routing-key: ${APP_RECOMMEND_MQ_RESPONSE_ROUTING_KEY:recommend.response}
 
+  report:
+    mq:
+      enabled: ${APP_REPORT_MQ_ENABLED:false}
+      request-publish-enabled: ${APP_REPORT_MQ_REQUEST_PUBLISH_ENABLED:false}
+      response-consume-enabled: ${APP_REPORT_MQ_RESPONSE_CONSUME_ENABLED:false}
+      exchange: ${APP_REPORT_MQ_EXCHANGE:codoc.report.exchange}
+      request-queue: ${APP_REPORT_MQ_REQUEST_QUEUE:report.request.q}
+      response-queue: ${APP_REPORT_MQ_RESPONSE_QUEUE:report.response.q}
+      request-routing-key: ${APP_REPORT_MQ_REQUEST_ROUTING_KEY:report.request}
+      response-routing-key: ${APP_REPORT_MQ_RESPONSE_ROUTING_KEY:report.response}
+
   rate-limit:
     chatbot-stream:
       enabled: ${RATE_LIMIT_CHATBOT_STREAM_ENABLED:true}

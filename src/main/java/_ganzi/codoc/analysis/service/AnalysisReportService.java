@@ -1,10 +1,14 @@
 package _ganzi.codoc.analysis.service;
 
 import _ganzi.codoc.analysis.domain.AnalysisReport;
+import _ganzi.codoc.analysis.domain.job.AnalysisReportJob;
+import _ganzi.codoc.analysis.domain.job.AnalysisReportJobStatus;
 import _ganzi.codoc.analysis.dto.AnalysisPeriod;
 import _ganzi.codoc.analysis.dto.AnalysisReportRequest;
 import _ganzi.codoc.analysis.dto.AnalysisReportResponse;
 import _ganzi.codoc.analysis.infra.AnalysisReportClient;
+import _ganzi.codoc.analysis.mq.ReportRequestPublisher;
+import _ganzi.codoc.analysis.repository.AnalysisReportJobRepository;
 import _ganzi.codoc.analysis.repository.AnalysisReportRepository;
 import _ganzi.codoc.analysis.service.dto.AnalysisReportDetailResponse;
 import _ganzi.codoc.chatbot.domain.ChatbotConversation;
@@ -33,8 +37,12 @@ import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,6 +69,14 @@ public class AnalysisReportService {
     private final ProblemSessionService problemSessionService;
     private final NotificationDispatchService notificationDispatchService;
     private final ObjectMapper objectMapper;
+    private final AnalysisReportJobRepository analysisReportJobRepository;
+    private final ObjectProvider<ReportRequestPublisher> reportRequestPublisherProvider;
+
+    @Value("${app.report.mq.enabled:false}")
+    private boolean reportMqEnabled;
+
+    @Value("${app.report.mq.request-publish-enabled:false}")
+    private boolean reportMqRequestPublishEnabled;
 
     @Transactional
     public void issueWeeklyReports() {
@@ -68,6 +84,7 @@ public class AnalysisReportService {
         List<User> users = userRepository.findAllByStatus(UserStatus.ACTIVE);
 
         int successCount = 0;
+        int publishedCount = 0;
         int dependencyNotReadyCount = 0;
         int unauthorizedCount = 0;
         int failedCount = 0;
@@ -78,6 +95,12 @@ public class AnalysisReportService {
                 window.periodEnd());
 
         for (User user : users) {
+            Optional<AnalysisReportJob> publishedJob = publishReportJob(user, window);
+            if (publishedJob.isPresent()
+                    && publishedJob.get().getStatus() == AnalysisReportJobStatus.PUBLISHED) {
+                publishedCount++;
+                continue;
+            }
             IssueResult result = issueReportForUser(user, window);
             switch (result) {
                 case SUCCESS -> successCount++;
@@ -89,7 +112,9 @@ public class AnalysisReportService {
         }
 
         log.info(
-                "analysis report batch end. success={}, dependencyNotReady={}, unauthorized={}, failed={}",
+                "analysis report batch end. published={}, success={}, dependencyNotReady={},"
+                        + " unauthorized={}, failed={}",
+                publishedCount,
                 successCount,
                 dependencyNotReadyCount,
                 unauthorizedCount,
@@ -111,7 +136,60 @@ public class AnalysisReportService {
     private IssueResult issueReportForUser(User user, AnalysisWindow window) {
         AnalysisReportRequest request = buildRequest(user, window);
         AnalysisReportResponse response = requestReportWithRetry(request, user.getId());
+        return processReportResponse(user, window, response);
+    }
 
+    @Transactional
+    public IssueResult applyReportResponseFromMq(
+            AnalysisReportJob job, AnalysisReportResponse response) {
+        User user = userRepository.findById(job.getUserId()).orElse(null);
+        if (user == null) {
+            return IssueResult.FAILED;
+        }
+        AnalysisWindow window =
+                AnalysisWindow.fromPeriod(job.getPeriodStart(), job.getPeriodEnd(), SEOUL);
+        return processReportResponse(user, window, response);
+    }
+
+    private Optional<AnalysisReportJob> publishReportJob(User user, AnalysisWindow window) {
+        if (!reportMqEnabled || !reportMqRequestPublishEnabled) {
+            return Optional.empty();
+        }
+        ReportRequestPublisher publisher = reportRequestPublisherProvider.getIfAvailable();
+        if (publisher == null) {
+            return Optional.empty();
+        }
+
+        if (analysisReportJobRepository.existsByUserIdAndPeriodStartAndPeriodEndAndStatus(
+                user.getId(),
+                window.periodStart(),
+                window.periodEnd(),
+                AnalysisReportJobStatus.PUBLISHED)) {
+            return analysisReportJobRepository.findTopByUserIdAndStatusOrderByCreatedAtDesc(
+                    user.getId(), AnalysisReportJobStatus.PUBLISHED);
+        }
+
+        String jobId = UUID.randomUUID().toString();
+        Instant requestedAt = Instant.now();
+        AnalysisReportJob job =
+                AnalysisReportJob.publish(
+                        jobId, user.getId(), window.periodStart(), window.periodEnd(), requestedAt);
+        analysisReportJobRepository.save(job);
+
+        try {
+            AnalysisReportRequest request = buildRequest(user, window);
+            publisher.publish(jobId, request, requestedAt);
+            return Optional.of(job);
+        } catch (Exception exception) {
+            job.markPublishFailed("PUBLISH_FAILED", exception.getMessage());
+            log.warn(
+                    "analysis report publish failed. jobId={}, userId={}", jobId, user.getId(), exception);
+            return Optional.of(job);
+        }
+    }
+
+    private IssueResult processReportResponse(
+            User user, AnalysisWindow window, AnalysisReportResponse response) {
         if (response == null || response.code() == null) {
             log.warn("analysis report response empty. userId={}", user.getId());
             return IssueResult.FAILED;
@@ -260,9 +338,16 @@ public class AnalysisReportService {
             return new AnalysisWindow(
                     startAt.toInstant(), endAt.toInstant(), startAt.toLocalDate(), endAt.toLocalDate());
         }
+
+        private static AnalysisWindow fromPeriod(
+                LocalDate periodStart, LocalDate periodEnd, ZoneId zoneId) {
+            ZonedDateTime startAt = periodStart.atTime(1, 0).atZone(zoneId);
+            ZonedDateTime endAt = periodEnd.atStartOfDay(zoneId);
+            return new AnalysisWindow(startAt.toInstant(), endAt.toInstant(), periodStart, periodEnd);
+        }
     }
 
-    private enum IssueResult {
+    public enum IssueResult {
         SUCCESS,
         DEPENDENCY_NOT_READY,
         UNAUTHORIZED,

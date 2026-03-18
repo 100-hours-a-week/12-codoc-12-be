@@ -12,6 +12,7 @@ import _ganzi.codoc.problem.dto.ProblemListItem;
 import _ganzi.codoc.problem.dto.ProblemResponse;
 import _ganzi.codoc.problem.dto.ProblemSearchParam;
 import _ganzi.codoc.problem.dto.ProblemSessionResponse;
+import _ganzi.codoc.problem.dto.RecommendationJobResponse;
 import _ganzi.codoc.problem.dto.RecommendedProblemResponse;
 import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.exception.RecommendNotAvailableException;
@@ -38,6 +39,7 @@ public class ProblemService {
     private final UserProblemResultRepository userProblemResultRepository;
     private final BookmarkRepository bookmarkRepository;
     private final RecommendedProblemRepository recommendedProblemRepository;
+    private final RecommendedProblemService recommendedProblemService;
     private final ProblemContentCacheService problemContentCacheService;
     private final CursorPageFetcher cursorPageFetcher;
 
@@ -134,6 +136,16 @@ public class ProblemService {
                         .orElse(ProblemSolvingStatus.NOT_ATTEMPTED);
         boolean bookmarked = bookmarkRepository.existsByUserIdAndProblemId(userId, problemId);
         return RecommendedProblemResponse.of(recommendedProblem, status, bookmarked);
+    }
+
+    @Transactional
+    public RecommendationJobResponse requestRecommendedProblemJob(Long userId) {
+        return RecommendationJobResponse.from(recommendedProblemService.requestOnDemandJob(userId));
+    }
+
+    public RecommendationJobResponse getRecommendedProblemJob(Long userId, String jobId) {
+        return RecommendationJobResponse.from(
+                recommendedProblemService.getRecommendationJob(userId, jobId));
     }
 
     private ProblemSearchParam createProblemSearchParam(

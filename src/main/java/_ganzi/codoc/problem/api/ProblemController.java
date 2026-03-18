@@ -7,11 +7,13 @@ import _ganzi.codoc.problem.dto.ProblemListCondition;
 import _ganzi.codoc.problem.dto.ProblemListItem;
 import _ganzi.codoc.problem.dto.ProblemResponse;
 import _ganzi.codoc.problem.dto.ProblemSessionResponse;
+import _ganzi.codoc.problem.dto.RecommendationJobResponse;
 import _ganzi.codoc.problem.dto.RecommendedProblemResponse;
 import _ganzi.codoc.problem.service.ProblemBookmarkService;
 import _ganzi.codoc.problem.service.ProblemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -119,6 +121,28 @@ public class ProblemController implements ProblemApi {
             @AuthenticationPrincipal AuthUser authUser) {
 
         RecommendedProblemResponse response = problemService.getRecommendedProblem(authUser.userId());
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Override
+    @PostMapping("/recommended/jobs")
+    public ResponseEntity<ApiResponse<RecommendationJobResponse>> requestRecommendedProblemJob(
+            @AuthenticationPrincipal AuthUser authUser) {
+
+        RecommendationJobResponse response =
+                problemService.requestRecommendedProblemJob(authUser.userId());
+
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.success(response));
+    }
+
+    @Override
+    @GetMapping("/recommended/jobs/{jobId}")
+    public ResponseEntity<ApiResponse<RecommendationJobResponse>> getRecommendedProblemJob(
+            @AuthenticationPrincipal AuthUser authUser, @PathVariable String jobId) {
+
+        RecommendationJobResponse response =
+                problemService.getRecommendedProblemJob(authUser.userId(), jobId);
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }

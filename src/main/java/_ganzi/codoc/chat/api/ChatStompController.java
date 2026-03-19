@@ -3,12 +3,15 @@ package _ganzi.codoc.chat.api;
 import _ganzi.codoc.auth.domain.AuthUser;
 import _ganzi.codoc.chat.dto.ChatMessageReadAckRequest;
 import _ganzi.codoc.chat.dto.ChatMessageSendRequest;
+import _ganzi.codoc.chat.dto.ChatRoomViewStateRequest;
 import _ganzi.codoc.chat.service.ChatMessageService;
+import _ganzi.codoc.chat.service.ChatRoomViewStateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
 @RequiredArgsConstructor
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Controller;
 public class ChatStompController {
 
     private final ChatMessageService chatMessageService;
+    private final ChatRoomViewStateService chatRoomViewStateService;
 
     @MessageMapping("/chat/messages/{roomId}")
     public void sendMessage(
@@ -32,5 +36,15 @@ public class ChatStompController {
             @Valid @Payload ChatMessageReadAckRequest request,
             AuthUser authUser) {
         chatMessageService.ackReadMessage(authUser.userId(), roomId, request);
+    }
+
+    @MessageMapping("/chat/rooms/{roomId}/view-state")
+    public void updateRoomViewState(
+            @DestinationVariable Long roomId,
+            @Payload ChatRoomViewStateRequest request,
+            AuthUser authUser,
+            SimpMessageHeaderAccessor headerAccessor) {
+        chatRoomViewStateService.updateRoomViewState(
+                authUser.userId(), headerAccessor.getSessionId(), roomId, request);
     }
 }

@@ -35,8 +35,8 @@ public class ChatMessageCommitEventListener {
                         participantUserId, ChatUnreadStatusBroadcast.of(totalUnreadCount));
             }
 
-            boolean isRoomSubscriber = event.roomSubscriberUserIds().contains(participantUserId);
-            if (isRoomSubscriber) {
+            boolean isActiveRoomViewer = event.activeRoomViewerUserIds().contains(participantUserId);
+            if (isActiveRoomViewer) {
                 continue;
             }
 

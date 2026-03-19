@@ -16,6 +16,7 @@ public class SharedWebSocketStateRepository {
     private static final String SESSION_PREFIX = "ws:session:";
     private static final String USER_SESSIONS_PREFIX = "ws:user:";
     private static final String ROOM_SESSIONS_PREFIX = "ws:room:";
+    private static final String ROOM_ACTIVE_SESSIONS_PREFIX = "ws:room-active:";
     private static final String PRESENCE_PREFIX = "ws:presence:user:";
     private static final String SESSION_USER_ID_FIELD = "userId";
     private static final String SESSION_SERVER_ID_FIELD = "serverId";
@@ -53,17 +54,26 @@ public class SharedWebSocketStateRepository {
         stringRedisTemplate.opsForSet().add(roomSessionsKey(roomId), sessionId);
     }
 
+    public void addActiveRoomSession(Long roomId, String sessionId) {
+        stringRedisTemplate.opsForSet().add(activeRoomSessionsKey(roomId), sessionId);
+    }
+
     public void removeRoomSession(Long roomId, String sessionId) {
         stringRedisTemplate.opsForSet().remove(roomSessionsKey(roomId), sessionId);
         deleteIfEmpty(roomSessionsKey(roomId));
     }
 
-    public void removeRoomSessions(Long roomId, Collection<String> sessionIds) {
+    public void removeActiveRoomSession(Long roomId, String sessionId) {
+        stringRedisTemplate.opsForSet().remove(activeRoomSessionsKey(roomId), sessionId);
+        deleteIfEmpty(activeRoomSessionsKey(roomId));
+    }
+
+    public void removeActiveRoomSessions(Long roomId, Collection<String> sessionIds) {
         if (sessionIds.isEmpty()) {
             return;
         }
-        stringRedisTemplate.opsForSet().remove(roomSessionsKey(roomId), sessionIds.toArray());
-        deleteIfEmpty(roomSessionsKey(roomId));
+        stringRedisTemplate.opsForSet().remove(activeRoomSessionsKey(roomId), sessionIds.toArray());
+        deleteIfEmpty(activeRoomSessionsKey(roomId));
     }
 
     public void removeSession(String sessionId) {
@@ -102,8 +112,8 @@ public class SharedWebSocketStateRepository {
         return members == null ? Set.of() : members;
     }
 
-    public Set<String> findRoomSessionIds(Long roomId) {
-        Set<String> members = stringRedisTemplate.opsForSet().members(roomSessionsKey(roomId));
+    public Set<String> findActiveRoomSessionIds(Long roomId) {
+        Set<String> members = stringRedisTemplate.opsForSet().members(activeRoomSessionsKey(roomId));
         return members == null ? Set.of() : members;
     }
 
@@ -141,6 +151,10 @@ public class SharedWebSocketStateRepository {
 
     private String roomSessionsKey(Long roomId) {
         return ROOM_SESSIONS_PREFIX + roomId + ":sessions";
+    }
+
+    private String activeRoomSessionsKey(Long roomId) {
+        return ROOM_ACTIVE_SESSIONS_PREFIX + roomId + ":sessions";
     }
 
     private String presenceKey(Long userId) {

@@ -9,12 +9,12 @@ public record ChatMessageCommittedEvent(
         Long roomId,
         ChatMessageBroadcast roomMessage,
         ChatRoomUpdateBroadcast roomUpdate,
-        Set<Long> roomSubscriberUserIds,
+        Set<Long> activeRoomViewerUserIds,
         List<Long> participantUserIds,
         String senderNickname) {
 
     public ChatMessageCommittedEvent {
-        roomSubscriberUserIds = Set.copyOf(roomSubscriberUserIds);
+        activeRoomViewerUserIds = Set.copyOf(activeRoomViewerUserIds);
         participantUserIds = List.copyOf(participantUserIds);
     }
 }

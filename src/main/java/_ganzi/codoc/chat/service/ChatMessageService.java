@@ -91,8 +91,8 @@ public class ChatMessageService {
         chatRoomLatestMessageRepository.updateLatestTextMessageIfNewer(
                 roomId, message.getId(), lastMessagePreview, lastMessageAt);
 
-        Set<Long> roomSubscriberUserIds =
-                sharedWebSocketStateService.getActiveSubscriberUserIds(roomId);
+        Set<Long> activeRoomViewerUserIds =
+                sharedWebSocketStateService.getActiveRoomViewerUserIds(roomId);
         int participantCount =
                 Math.toIntExact(chatRoomParticipantRepository.countJoinedParticipantsByRoomId(roomId));
         int unreadCount = Math.max(0, participantCount - 1);
@@ -116,7 +116,7 @@ public class ChatMessageService {
                         roomId,
                         roomMessage,
                         roomUpdate,
-                        roomSubscriberUserIds,
+                        activeRoomViewerUserIds,
                         allParticipantUserIds,
                         sender.getNickname()));
     }

@@ -43,8 +43,25 @@ public class SharedWebSocketStateService {
     public void removeRoomSubscription(String sessionId, Long roomId) {
         try {
             repository.removeRoomSession(roomId, sessionId);
+            repository.removeActiveRoomSession(roomId, sessionId);
         } catch (RuntimeException e) {
             log.warn("shared room unsubscribe failed. sessionId={}, roomId={}", sessionId, roomId, e);
+        }
+    }
+
+    public void activateRoomView(String sessionId, Long roomId) {
+        try {
+            repository.addActiveRoomSession(roomId, sessionId);
+        } catch (RuntimeException e) {
+            log.warn("shared room view activate failed. sessionId={}, roomId={}", sessionId, roomId, e);
+        }
+    }
+
+    public void deactivateRoomView(String sessionId, Long roomId) {
+        try {
+            repository.removeActiveRoomSession(roomId, sessionId);
+        } catch (RuntimeException e) {
+            log.warn("shared room view deactivate failed. sessionId={}, roomId={}", sessionId, roomId, e);
         }
     }
 
@@ -67,6 +84,7 @@ public class SharedWebSocketStateService {
 
             for (Long roomId : roomIds) {
                 repository.removeRoomSession(roomId, sessionId);
+                repository.removeActiveRoomSession(roomId, sessionId);
             }
         } catch (RuntimeException e) {
             log.warn("shared session cleanup failed. sessionId={}", sessionId, e);
@@ -108,12 +126,9 @@ public class SharedWebSocketStateService {
         }
     }
 
-    public Set<Long> getActiveSubscriberUserIds(Long roomId) {
+    public Set<Long> getActiveRoomViewerUserIds(Long roomId) {
         try {
-            Set<String> sessionIds = repository.findRoomSessionIds(roomId);
-            if (sessionIds.isEmpty()) {
-                return Set.of();
-            }
+            Set<String> sessionIds = repository.findActiveRoomSessionIds(roomId);
 
             Set<Long> activeUserIds = new HashSet<>();
             Set<String> staleSessionIds = new HashSet<>();
@@ -124,13 +139,11 @@ public class SharedWebSocketStateService {
                         .ifPresentOrElse(activeUserIds::add, () -> staleSessionIds.add(sessionId));
             }
 
-            if (!staleSessionIds.isEmpty()) {
-                repository.removeRoomSessions(roomId, staleSessionIds);
-            }
+            repository.removeActiveRoomSessions(roomId, staleSessionIds);
 
             return Set.copyOf(activeUserIds);
         } catch (RuntimeException e) {
-            log.warn("shared room subscriber lookup failed. roomId={}", roomId, e);
+            log.warn("shared active room viewer lookup failed. roomId={}", roomId, e);
             return Set.of();
         }
     }

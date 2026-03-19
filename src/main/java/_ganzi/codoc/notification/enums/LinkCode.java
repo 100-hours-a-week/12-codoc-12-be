@@ -4,5 +4,6 @@ public enum LinkCode {
     HOME,
     MY,
     LEADERBOARD,
-    CHAT;
+    CHAT,
+    CUSTOM_PROBLEM;
 }

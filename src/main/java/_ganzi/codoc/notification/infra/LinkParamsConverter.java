@@ -1,12 +1,11 @@
 package _ganzi.codoc.notification.infra;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-import java.io.IOException;
 import java.util.Map;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 @Converter
 public class LinkParamsConverter implements AttributeConverter<Map<String, String>, String> {
@@ -22,7 +21,7 @@ public class LinkParamsConverter implements AttributeConverter<Map<String, Strin
 
         try {
             return JSON_MAPPER.writeValueAsString(attribute);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalArgumentException("Failed to serialize link params.", exception);
         }
     }
@@ -35,7 +34,7 @@ public class LinkParamsConverter implements AttributeConverter<Map<String, Strin
 
         try {
             return JSON_MAPPER.readValue(dbData, TYPE_REFERENCE);
-        } catch (IOException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalArgumentException("Failed to deserialize link params.", exception);
         }
     }

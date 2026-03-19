@@ -1,7 +1,6 @@
 package _ganzi.codoc.chat.relay;
 
 import _ganzi.codoc.chat.service.ChatBroadcaster;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
         matchIfMissing = true)
 public class RedisChatRelaySubscriber implements MessageListener {
 
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private final ChatBroadcaster chatBroadcaster;
 
     @Override
@@ -41,7 +41,7 @@ public class RedisChatRelaySubscriber implements MessageListener {
 
     private ChatRelayEvent deserialize(String payload) {
         try {
-            return objectMapper.readValue(payload, ChatRelayEvent.class);
+            return jsonMapper.readValue(payload, ChatRelayEvent.class);
         } catch (Exception exception) {
             log.warn("채팅 릴레이 메시지 파싱에 실패했습니다.", exception);
             return null;

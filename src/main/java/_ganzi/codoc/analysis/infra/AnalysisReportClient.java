@@ -3,12 +3,12 @@ package _ganzi.codoc.analysis.infra;
 import _ganzi.codoc.analysis.config.AnalysisServerProperties;
 import _ganzi.codoc.analysis.dto.AnalysisReportRequest;
 import _ganzi.codoc.analysis.dto.AnalysisReportResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Component
@@ -18,15 +18,15 @@ public class AnalysisReportClient {
 
     private final WebClient.Builder analysisServerWebClientBuilder;
     private final AnalysisServerProperties analysisServerProperties;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
 
     public AnalysisReportClient(
             @Qualifier("analysisServerWebClientBuilder") WebClient.Builder analysisServerWebClientBuilder,
             AnalysisServerProperties analysisServerProperties,
-            ObjectMapper objectMapper) {
+            JsonMapper jsonMapper) {
         this.analysisServerWebClientBuilder = analysisServerWebClientBuilder;
         this.analysisServerProperties = analysisServerProperties;
-        this.objectMapper = objectMapper;
+        this.jsonMapper = jsonMapper;
     }
 
     public AnalysisReportResponse requestReport(AnalysisReportRequest request) {
@@ -48,8 +48,8 @@ public class AnalysisReportClient {
         }
 
         try {
-            return objectMapper.readValue(body, AnalysisReportResponse.class);
-        } catch (IOException ex) {
+            return jsonMapper.readValue(body, AnalysisReportResponse.class);
+        } catch (JacksonException ex) {
             log.warn("analysis report response parse failed. body={}", body);
             return null;
         }

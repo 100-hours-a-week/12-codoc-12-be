@@ -27,9 +27,6 @@ import _ganzi.codoc.submission.service.ProblemSessionService;
 import _ganzi.codoc.user.domain.User;
 import _ganzi.codoc.user.enums.UserStatus;
 import _ganzi.codoc.user.repository.UserRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -45,6 +42,8 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -68,7 +67,7 @@ public class AnalysisReportService {
     private final UserProblemResultRepository userProblemResultRepository;
     private final ProblemSessionService problemSessionService;
     private final NotificationDispatchService notificationDispatchService;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private final AnalysisReportJobRepository analysisReportJobRepository;
     private final ObjectProvider<ReportRequestPublisher> reportRequestPublisherProvider;
 
@@ -322,11 +321,7 @@ public class AnalysisReportService {
     }
 
     private String serializeReport(JsonNode report) {
-        try {
-            return objectMapper.writeValueAsString(report);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialize analysis report", e);
-        }
+        return jsonMapper.writeValueAsString(report);
     }
 
     private record AnalysisWindow(

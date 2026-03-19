@@ -5,12 +5,12 @@ import _ganzi.codoc.chat.dto.ChatMessageBroadcast;
 import _ganzi.codoc.chat.dto.ChatReadAckBroadcast;
 import _ganzi.codoc.chat.dto.ChatRoomUpdateBroadcast;
 import _ganzi.codoc.chat.dto.ChatUnreadStatusBroadcast;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 @RequiredArgsConstructor
 @ConditionalOnProperty(
@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 public class RedisChatRelayPublisher {
 
     private final StringRedisTemplate stringRedisTemplate;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private final ChatWebSocketProperties properties;
 
     public void publishRoomMessage(Long roomId, ChatMessageBroadcast broadcast) {
@@ -43,9 +43,9 @@ public class RedisChatRelayPublisher {
 
     private void publish(ChatRelayEvent event) {
         try {
-            String payload = objectMapper.writeValueAsString(event);
+            String payload = jsonMapper.writeValueAsString(event);
             stringRedisTemplate.convertAndSend(properties.relayChannel(), payload);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("채팅 릴레이 이벤트 직렬화에 실패했습니다.", exception);
         }
     }

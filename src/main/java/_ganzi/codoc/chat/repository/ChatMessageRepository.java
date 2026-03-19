@@ -54,12 +54,14 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             from chat_message m
             where m.chat_room_id = :roomId
               and m.type = 'TEXT'
+              and m.sender_id <> :userId
               and m.id > :fromMessageId
               and m.id <= :toMessageId
             """,
             nativeQuery = true)
     long countTextMessagesInRange(
             @Param("roomId") Long roomId,
+            @Param("userId") Long userId,
             @Param("fromMessageId") long fromMessageId,
             @Param("toMessageId") long toMessageId);
 }

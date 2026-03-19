@@ -152,6 +152,7 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
                         where m.chat_room_id = p.chat_room_id
                           and m.id > coalesce(p.last_read_message_id, 0)
                           and m.type = 'TEXT'
+                          and m.sender_id <> p.user_id
                         limit 1000
                     ) limited_unread
                 ) as unreadCount
@@ -176,6 +177,7 @@ public interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomPar
                   on m.chat_room_id = p.chat_room_id
                  and m.id > coalesce(p.last_read_message_id, 0)
                  and m.type = 'TEXT'
+                 and m.sender_id <> p.user_id
                 where p.user_id = :userId
                   and p.is_joined = 1
                 limit 1000

@@ -35,13 +35,13 @@ public class ChatMessageCommitEventListener {
                         participantUserId, ChatUnreadStatusBroadcast.of(totalUnreadCount));
             }
 
-            if (event.onlineSubscriberUserIds().contains(participantUserId)) {
+            boolean isRoomSubscriber = event.roomSubscriberUserIds().contains(participantUserId);
+            if (isRoomSubscriber) {
                 continue;
             }
 
             if (isConnected) {
                 chatRelayService.relayRoomUpdate(participantUserId, event.roomUpdate());
-                continue;
             }
 
             notificationDispatchService.dispatch(

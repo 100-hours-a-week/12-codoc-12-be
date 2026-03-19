@@ -139,7 +139,7 @@ public class ChatMessageService {
 
         long newlyReadTextCount =
                 chatMessageRepository.countTextMessagesInRange(
-                        roomId, previousLastReadMessageId, request.lastReadMessageId());
+                        roomId, userId, previousLastReadMessageId, request.lastReadMessageId());
         chatRoomParticipantRepository.ackLastReadMessageId(roomId, userId, request.lastReadMessageId());
 
         if (newlyReadTextCount > 0) {

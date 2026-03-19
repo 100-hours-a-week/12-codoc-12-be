@@ -25,14 +25,18 @@ public class ChatMessageCommitEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleChatMessageCommitted(ChatMessageCommittedEvent event) {
         chatRelayService.relayRoomMessage(event.roomId(), event.roomMessage());
+        Long senderUserId = event.roomMessage().senderId();
 
         for (Long participantUserId : event.participantUserIds()) {
+            boolean isSender = senderUserId.equals(participantUserId);
             boolean isConnected = sharedWebSocketStateService.isConnected(participantUserId);
-            long totalUnreadCount =
-                    chatUnreadCountService.increaseTotalUnreadCount(participantUserId, 1L, isConnected);
-            if (isConnected && totalUnreadCount >= 0) {
-                chatRelayService.relayUnreadStatusUpdate(
-                        participantUserId, ChatUnreadStatusBroadcast.of(totalUnreadCount));
+            if (!isSender) {
+                long totalUnreadCount =
+                        chatUnreadCountService.increaseTotalUnreadCount(participantUserId, 1L, isConnected);
+                if (isConnected && totalUnreadCount >= 0) {
+                    chatRelayService.relayUnreadStatusUpdate(
+                            participantUserId, ChatUnreadStatusBroadcast.of(totalUnreadCount));
+                }
             }
 
             boolean isActiveRoomViewer = event.activeRoomViewerUserIds().contains(participantUserId);

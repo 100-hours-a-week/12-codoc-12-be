@@ -3,8 +3,6 @@ package _ganzi.codoc.notification.infra;
 import _ganzi.codoc.notification.dto.NotificationMessageItem;
 import _ganzi.codoc.notification.enums.PushNotificationSendResult;
 import _ganzi.codoc.notification.service.PushNotificationSender;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
@@ -15,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -76,7 +76,7 @@ public class FcmPushNotificationSender implements PushNotificationSender {
     private String toJson(Map<String, String> linkParams) {
         try {
             return JSON_MAPPER.writeValueAsString(linkParams);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             log.warn("Failed to serialize linkParams for push payload", exception);
             return null;
         }

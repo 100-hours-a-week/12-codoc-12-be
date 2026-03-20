@@ -4,7 +4,6 @@ import _ganzi.codoc.chat.dto.ChatReadAckBroadcast;
 import _ganzi.codoc.chat.dto.ChatUnreadStatusBroadcast;
 import _ganzi.codoc.chat.service.ChatRelayService;
 import _ganzi.codoc.chat.service.ChatUnreadCountService;
-import _ganzi.codoc.chat.service.SharedWebSocketStateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -15,15 +14,10 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class ChatUnreadTotalEventListener {
 
     private final ChatUnreadCountService chatUnreadCountService;
-    private final SharedWebSocketStateService sharedWebSocketStateService;
     private final ChatRelayService chatRelayService;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleChatUnreadTotalAdjusted(ChatUnreadTotalAdjustedEvent event) {
-        if (!sharedWebSocketStateService.isConnected(event.userId())) {
-            return;
-        }
-
         long totalUnreadCount = chatUnreadCountService.getTotalUnreadCount(event.userId());
         chatRelayService.relayUnreadStatusUpdate(
                 event.userId(), ChatUnreadStatusBroadcast.of(totalUnreadCount));
@@ -31,10 +25,6 @@ public class ChatUnreadTotalEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleChatUnreadTotalSyncRequested(ChatUnreadTotalSyncRequestedEvent event) {
-        if (!sharedWebSocketStateService.isConnected(event.userId())) {
-            return;
-        }
-
         long totalUnreadCount = chatUnreadCountService.getTotalUnreadCount(event.userId());
         chatRelayService.relayUnreadStatusUpdate(
                 event.userId(), ChatUnreadStatusBroadcast.of(totalUnreadCount));

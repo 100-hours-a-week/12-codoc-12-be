@@ -205,7 +205,7 @@ jobs:
       ECR_REPO: ${{ secrets.ECR_REPO }}
       IMAGE_TAG: ${{ github.sha }}
       ECS_CLUSTER: ${{ secrets.ECS_CLUSTER || vars.ECS_CLUSTER || 'codoc-cluster' }}
-      ECS_SERVICE: ${{ secrets.ECS_SERVICE || vars.ECS_SERVICE }}
+      ECS_SERVICE: ${{ secrets.ECS_SERVICE || vars.ECS_SERVICE || 'codoc-backend-service' }}
       ECS_TASK_FAMILY: ${{ secrets.ECS_TASK_FAMILY || vars.ECS_TASK_FAMILY || 'codoc-backend-task' }}
       ECS_CONTAINER_NAME: ${{ secrets.ECS_CONTAINER_NAME || vars.ECS_CONTAINER_NAME || 'backend' }}
       TASK_EXECUTION_ROLE_ARN: ${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN || vars.ECS_TASK_EXECUTION_ROLE_ARN || 'arn:aws:iam::466778915200:role/ecsTaskExecutionRole' }}

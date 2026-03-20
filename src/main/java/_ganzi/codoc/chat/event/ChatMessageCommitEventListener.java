@@ -27,20 +27,15 @@ public class ChatMessageCommitEventListener {
         chatRelayService.relayRoomMessage(event.roomId(), event.roomMessage());
 
         for (Long participantUserId : event.participantUserIds()) {
-            boolean isConnected = sharedWebSocketStateService.isConnected(participantUserId);
-            if (isConnected) {
-                long totalUnreadCount = chatUnreadCountService.getTotalUnreadCount(participantUserId);
-                chatRelayService.relayUnreadStatusUpdate(
-                        participantUserId, ChatUnreadStatusBroadcast.of(totalUnreadCount));
-            }
+            chatRelayService.relayRoomUpdate(participantUserId, event.roomUpdate());
+
+            long totalUnreadCount = chatUnreadCountService.getTotalUnreadCount(participantUserId);
+            chatRelayService.relayUnreadStatusUpdate(
+                    participantUserId, ChatUnreadStatusBroadcast.of(totalUnreadCount));
 
             boolean isActiveRoomViewer = event.activeRoomViewerUserIds().contains(participantUserId);
             if (isActiveRoomViewer) {
                 continue;
-            }
-
-            if (isConnected) {
-                chatRelayService.relayRoomUpdate(participantUserId, event.roomUpdate());
             }
 
             notificationDispatchService.dispatch(

@@ -1,6 +1,7 @@
 package _ganzi.codoc.chatbot.domain;
 
 import _ganzi.codoc.chatbot.enums.ChatbotConversationStatus;
+import _ganzi.codoc.chatbot.enums.ChatbotMessageType;
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNotProcessingException;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNotResumableException;
@@ -36,6 +37,10 @@ public class ChatbotConversation extends BaseTimeEntity {
     @Column(name = "paragraph_type", nullable = false, length = 20)
     private ChatbotParagraphType paragraphType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "message_type", nullable = false, length = 20)
+    private ChatbotMessageType messageType;
+
     @Column(name = "is_correct", nullable = false)
     private boolean isCorrect;
 
@@ -48,23 +53,29 @@ public class ChatbotConversation extends BaseTimeEntity {
             String userMessage,
             String aiMessage,
             ChatbotParagraphType paragraphType,
+            ChatbotMessageType messageType,
             boolean isCorrect,
             ChatbotConversationStatus status) {
         this.problemSession = problemSession;
         this.userMessage = userMessage;
         this.aiMessage = aiMessage;
         this.paragraphType = paragraphType;
+        this.messageType = messageType;
         this.isCorrect = isCorrect;
         this.status = status;
     }
 
     public static ChatbotConversation create(
-            ProblemSession problemSession, String userMessage, ChatbotParagraphType paragraphType) {
+            ProblemSession problemSession,
+            String userMessage,
+            ChatbotParagraphType paragraphType,
+            ChatbotMessageType messageType) {
         return new ChatbotConversation(
                 problemSession,
                 userMessage,
                 null,
                 paragraphType,
+                messageType,
                 false,
                 ChatbotConversationStatus.PROCESSING);
     }

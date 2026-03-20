@@ -1,7 +1,6 @@
 package _ganzi.codoc.submission.domain;
 
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
-import _ganzi.codoc.chatbot.exception.ChatbotSessionAlreadyCompletedException;
 import _ganzi.codoc.global.domain.BaseTimeEntity;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.submission.enums.ProblemSessionStatus;
@@ -98,12 +97,6 @@ public class ProblemSession extends BaseTimeEntity {
     public void close(Instant closedAt) {
         this.status = ProblemSessionStatus.CLOSED;
         this.closedAt = closedAt;
-    }
-
-    public void validateChatbotNotCompleted() {
-        if (chatbotCompletedAt != null) {
-            throw new ChatbotSessionAlreadyCompletedException();
-        }
     }
 
     public void markAiSessionNotified() {

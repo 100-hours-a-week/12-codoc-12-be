@@ -13,6 +13,7 @@ import _ganzi.codoc.chatbot.dto.ChatbotConversationListCondition;
 import _ganzi.codoc.chatbot.dto.ChatbotConversationListItem;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendRequest;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendResponse;
+import _ganzi.codoc.chatbot.enums.ChatbotMessageType;
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNoPermissionException;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNotFoundException;
@@ -70,18 +71,18 @@ public class ChatbotService {
         problemRepository.findById(request.problemId()).orElseThrow(ProblemNotFoundException::new);
 
         String userMessage = request.message();
+        ChatbotMessageType messageType = request.resolveMessageType();
 
         ProblemSession session = problemSessionService.requireActive(userId, request.problemId());
         if (session == null) {
             throw new SessionRequiredException();
         }
-        session.validateChatbotNotCompleted();
 
         ChatbotParagraphType currentParagraph = session.getChatbotParagraphType();
 
         ChatbotConversation chatbotConversation =
                 chatbotConversationRepository.save(
-                        ChatbotConversation.create(session, userMessage, currentParagraph));
+                        ChatbotConversation.create(session, userMessage, currentParagraph, messageType));
 
         AiServerChatbotSendRequest aiServerRequest =
                 AiServerChatbotSendRequest.of(
@@ -91,7 +92,8 @@ public class ChatbotService {
                         userMessage,
                         user.getInitLevel(),
                         session.getId().toString(),
-                        currentParagraph);
+                        currentParagraph,
+                        messageType);
 
         return startStream(chatbotConversation.getId(), aiServerRequest);
     }
@@ -110,7 +112,6 @@ public class ChatbotService {
         if (!currentSession.getId().equals(conversationSession.getId())) {
             throw new ChatbotConversationNotResumableException();
         }
-        currentSession.validateChatbotNotCompleted();
 
         conversation.prepareResume();
 
@@ -124,7 +125,8 @@ public class ChatbotService {
                         conversation.getUserMessage(),
                         conversationSession.getUser().getInitLevel(),
                         currentSession.getId().toString(),
-                        currentParagraph);
+                        currentParagraph,
+                        conversation.getMessageType());
 
         return startStream(conversation.getId(), aiServerRequest);
     }

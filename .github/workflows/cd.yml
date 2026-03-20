@@ -204,13 +204,13 @@ jobs:
       ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
       ECR_REPO: ${{ secrets.ECR_REPO }}
       IMAGE_TAG: ${{ github.sha }}
-      ECS_CLUSTER: ${{ secrets.ECS_CLUSTER || vars.ECS_CLUSTER }}
+      ECS_CLUSTER: ${{ secrets.ECS_CLUSTER || vars.ECS_CLUSTER || 'codoc-cluster' }}
       ECS_SERVICE: ${{ secrets.ECS_SERVICE || vars.ECS_SERVICE }}
       ECS_TASK_FAMILY: ${{ secrets.ECS_TASK_FAMILY || vars.ECS_TASK_FAMILY || 'codoc-backend-task' }}
       ECS_CONTAINER_NAME: ${{ secrets.ECS_CONTAINER_NAME || vars.ECS_CONTAINER_NAME || 'backend' }}
-      TASK_EXECUTION_ROLE_ARN: ${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN }}
-      TASK_ROLE_ARN: ${{ secrets.ECS_TASK_ROLE_ARN }}
-      ENV_FILE_ARN: ${{ secrets.ECS_ENV_FILE_ARN }}
+      TASK_EXECUTION_ROLE_ARN: ${{ secrets.ECS_TASK_EXECUTION_ROLE_ARN || vars.ECS_TASK_EXECUTION_ROLE_ARN || 'arn:aws:iam::466778915200:role/ecsTaskExecutionRole' }}
+      TASK_ROLE_ARN: ${{ secrets.ECS_TASK_ROLE_ARN || vars.ECS_TASK_ROLE_ARN || 'arn:aws:iam::466778915200:role/codoc-backend-task-role' }}
+      ENV_FILE_ARN: ${{ secrets.ECS_ENV_FILE_ARN || vars.ECS_ENV_FILE_ARN || 'arn:aws:s3:::codoc-deploy/env/backend.env' }}
       LOG_GROUP: ${{ secrets.ECS_LOG_GROUP || vars.ECS_LOG_GROUP || '/ecs/codoc-backend' }}
       TASK_DEFINITION_TEMPLATE: .aws/ecs/task-definition.prod.json
 
@@ -236,9 +236,6 @@ jobs:
             ECS_SERVICE
             ECS_TASK_FAMILY
             ECS_CONTAINER_NAME
-            TASK_EXECUTION_ROLE_ARN
-            TASK_ROLE_ARN
-            ENV_FILE_ARN
             LOG_GROUP
           )
 
@@ -249,17 +246,26 @@ jobs:
             fi
           done
 
-      - name: Validate promoted image exists in ECR
+      - name: Resolve promoted image digest
+        id: resolve-image
         run: |
-          aws ecr describe-images \
+          IMAGE_DIGEST=$(aws ecr describe-images \
             --repository-name "$ECR_REPO" \
             --image-ids imageTag="$IMAGE_TAG" \
             --region "$AWS_REGION" \
-            >/dev/null
+            --query 'imageDetails[0].imageDigest' \
+            --output text)
+
+          if [ -z "$IMAGE_DIGEST" ] || [ "$IMAGE_DIGEST" = "None" ]; then
+            echo "Failed to resolve image digest for tag: $IMAGE_TAG"
+            exit 1
+          fi
+
+          echo "image_digest=${IMAGE_DIGEST}" >> "$GITHUB_OUTPUT"
 
       - name: Render ECS task definition
         run: |
-          IMAGE_URI="${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}"
+          IMAGE_URI="${ECR_REGISTRY}/${ECR_REPO}@${{ steps.resolve-image.outputs.image_digest }}"
 
           jq \
             --arg family "$ECS_TASK_FAMILY" \

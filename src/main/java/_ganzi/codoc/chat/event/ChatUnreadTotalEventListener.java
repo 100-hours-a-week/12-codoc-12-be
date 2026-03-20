@@ -20,25 +20,22 @@ public class ChatUnreadTotalEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleChatUnreadTotalAdjusted(ChatUnreadTotalAdjustedEvent event) {
-        long totalUnreadCount =
-                chatUnreadCountService.decreaseTotalUnreadCount(event.userId(), event.delta());
-
         if (!sharedWebSocketStateService.isConnected(event.userId())) {
             return;
         }
 
+        long totalUnreadCount = chatUnreadCountService.getTotalUnreadCount(event.userId());
         chatRelayService.relayUnreadStatusUpdate(
                 event.userId(), ChatUnreadStatusBroadcast.of(totalUnreadCount));
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleChatUnreadTotalSyncRequested(ChatUnreadTotalSyncRequestedEvent event) {
-        long totalUnreadCount = chatUnreadCountService.syncTotalUnreadCount(event.userId());
-
         if (!sharedWebSocketStateService.isConnected(event.userId())) {
             return;
         }
 
+        long totalUnreadCount = chatUnreadCountService.getTotalUnreadCount(event.userId());
         chatRelayService.relayUnreadStatusUpdate(
                 event.userId(), ChatUnreadStatusBroadcast.of(totalUnreadCount));
     }

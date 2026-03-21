@@ -8,5 +8,7 @@ public interface ObjectStorageService {
 
     String issueDownloadUrl(String bucket, String key, Duration expiration);
 
+    long getObjectSize(String bucket, String key);
+
     void assertObjectExists(String bucket, String key);
 }

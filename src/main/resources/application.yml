@@ -95,6 +95,7 @@ app:
 
   custom-problem:
     max-upload-image-count: ${APP_CUSTOM_PROBLEM_MAX_UPLOAD_IMAGE_COUNT:4}
+    max-upload-image-size-bytes: ${APP_CUSTOM_PROBLEM_MAX_UPLOAD_IMAGE_SIZE_BYTES:10485760}
     upload-url-expiration: ${APP_CUSTOM_PROBLEM_UPLOAD_URL_EXPIRATION:10m}
     download-url-expiration: ${APP_CUSTOM_PROBLEM_DOWNLOAD_URL_EXPIRATION:30m}
     async:

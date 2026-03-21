@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "app.custom-problem")
 public record CustomProblemProperties(
         @Min(1) int maxUploadImageCount,
+        @Min(1) long maxUploadImageSizeBytes,
         @NotNull Duration uploadUrlExpiration,
         @NotNull Duration downloadUrlExpiration,
         @NotNull @Valid Async async) {

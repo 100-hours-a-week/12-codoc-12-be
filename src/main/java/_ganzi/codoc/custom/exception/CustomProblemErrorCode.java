@@ -11,6 +11,8 @@ public enum CustomProblemErrorCode implements ErrorCode {
             HttpStatus.BAD_REQUEST, "CUSTOM_PROBLEM_INVALID_FILE_KEY", "잘못된 파일 키입니다."),
     CUSTOM_PROBLEM_INVALID_IMAGE_CONTENT_TYPE(
             HttpStatus.BAD_REQUEST, "CUSTOM_PROBLEM_INVALID_IMAGE_CONTENT_TYPE", "지원하지 않는 이미지 형식입니다."),
+    CUSTOM_PROBLEM_IMAGE_SIZE_EXCEEDED(
+            HttpStatus.BAD_REQUEST, "CUSTOM_PROBLEM_IMAGE_SIZE_EXCEEDED", "이미지 용량은 10MB 이하여야 합니다."),
     CUSTOM_PROBLEM_IMAGE_COUNT_EXCEEDED(
             HttpStatus.BAD_REQUEST, "CUSTOM_PROBLEM_IMAGE_COUNT_EXCEEDED", "허용 가능한 업로드 이미지 수를 초과했습니다."),
     CUSTOM_PROBLEM_DUPLICATE_IMAGE_ORDER(

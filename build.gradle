@@ -13,6 +13,7 @@ description = 'Codoc BE'
 ext {
 	bucket4jVersion = '8.16.1'
 	sentryVersion = "8.33.0"
+	awsSdkVersion = '2.42.13'
 }
 
 java {
@@ -68,6 +69,8 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-gson:0.12.5'
 
 	implementation 'com.google.firebase:firebase-admin:9.7.1'
+	implementation platform("software.amazon.awssdk:bom:${awsSdkVersion}")
+	implementation 'software.amazon.awssdk:s3'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'

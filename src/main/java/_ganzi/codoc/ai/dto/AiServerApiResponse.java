@@ -8,4 +8,8 @@ public record AiServerApiResponse<T>(String code, String message, T data) {
     public static <T> AiServerApiResponse<T> of(String code, String message, T data) {
         return AiServerApiResponse.<T>builder().code(code).message(message).data(data).build();
     }
+
+    public boolean isFailure() {
+        return !"SUCCESS".equals(code);
+    }
 }

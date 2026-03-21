@@ -3,6 +3,7 @@ package _ganzi.codoc.custom.infra;
 import _ganzi.codoc.custom.config.CustomProblemProperties;
 import _ganzi.codoc.custom.dto.CustomProblemUploadUrlsRequest;
 import _ganzi.codoc.custom.dto.CustomProblemUploadUrlsResponse;
+import _ganzi.codoc.custom.exception.CustomProblemImageSizeExceededException;
 import _ganzi.codoc.custom.service.CustomProblemImageRequestValidator;
 import _ganzi.codoc.global.config.StorageBucketProperties;
 import _ganzi.codoc.global.s3.ObjectStorageService;
@@ -56,7 +57,9 @@ public class CustomProblemStorageService {
         fileKeys.forEach(
                 fileKey -> {
                     objectKeyPolicy.validateKeyNamespace(userId, fileKey);
-                    objectStorageService.assertObjectExists(storageBucketProperties.images(), fileKey);
+                    long objectSize =
+                            objectStorageService.getObjectSize(storageBucketProperties.images(), fileKey);
+                    validateImageSize(objectSize);
                 });
     }
 
@@ -70,5 +73,11 @@ public class CustomProblemStorageService {
                                     storageBucketProperties.images(), fileKey, properties.downloadUrlExpiration()));
                 });
         return urls;
+    }
+
+    private void validateImageSize(long imageSizeBytes) {
+        if (imageSizeBytes > properties.maxUploadImageSizeBytes()) {
+            throw new CustomProblemImageSizeExceededException();
+        }
     }
 }

@@ -7,6 +7,7 @@ import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -46,9 +47,18 @@ public class S3ObjectStorageService implements ObjectStorageService {
     }
 
     @Override
+    public long getObjectSize(String bucket, String key) {
+        return getObjectMetadata(bucket, key).contentLength();
+    }
+
+    @Override
     public void assertObjectExists(String bucket, String key) {
+        getObjectMetadata(bucket, key);
+    }
+
+    private HeadObjectResponse getObjectMetadata(String bucket, String key) {
         try {
-            s3Client.headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build());
+            return s3Client.headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build());
         } catch (NoSuchKeyException exception) {
             throw new S3ObjectNotFoundException(exception);
         } catch (SdkException exception) {

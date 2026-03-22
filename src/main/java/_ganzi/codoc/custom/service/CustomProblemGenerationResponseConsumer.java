@@ -12,7 +12,9 @@ public class CustomProblemGenerationResponseConsumer {
 
     private final CustomProblemGenerationResultService resultService;
 
-    @RabbitListener(queues = "${app.custom-problem.mq.response-queue}")
+    @RabbitListener(
+            queues = "${app.custom-problem.mq.response-queue}",
+            containerFactory = "customProblemRabbitListenerContainerFactory")
     public void consume(CustomProblemMqResponse mqResponse) {
         log.info(
                 "Received custom problem generation response. customProblemId={}",

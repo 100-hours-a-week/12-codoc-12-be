@@ -13,7 +13,9 @@ HOST_PORT="${HOST_PORT:-8080}"
 APP_PORT="${APP_PORT:-8080}"
 HEALTH_PATH="${HEALTH_PATH:-/api/health}"
 APP_ENV_PATH="${APP_ENV_PATH:-/home/ubuntu/codoc/.env}"
-APP_FCM_PATH="${APP_FCM_PATH:-/home/ubuntu/codoc/common}"
+APP_FCM_PATH="${APP_FCM_PATH:-/home/ubuntu/be/runtime}"
+FCM_PARAMETER_NAME="${FCM_PARAMETER_NAME:-}"
+FCM_OUTPUT_FILE="${FCM_OUTPUT_FILE:-${APP_FCM_PATH}/creds/gcp-wif-aws.json}"
 LOG_HOST_DIR="${LOG_HOST_DIR:-/home/ubuntu/codoc/logs/backend}"
 IMAGE_TAG="${IMAGE_TAG:-dev}"
 IMAGE_URI="${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}"
@@ -25,6 +27,17 @@ printf '%s' "${APP_ENV_CONTENT_BASE64}" | base64 -d > "${APP_ENV_PATH}"
 echo "[deploy-backend-dev] logging in to ECR"
 aws ecr get-login-password --region "${AWS_REGION}" | \
   docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+
+if [ -n "${FCM_PARAMETER_NAME}" ]; then
+  echo "[deploy-backend-dev] writing FCM credentials from ${FCM_PARAMETER_NAME} to ${FCM_OUTPUT_FILE}"
+  mkdir -p "$(dirname "${FCM_OUTPUT_FILE}")"
+  aws ssm get-parameter \
+    --region "${AWS_REGION}" \
+    --name "${FCM_PARAMETER_NAME}" \
+    --with-decryption \
+    --query "Parameter.Value" \
+    --output text > "${FCM_OUTPUT_FILE}"
+fi
 
 echo "[deploy-backend-dev] pulling image ${IMAGE_URI}"
 docker pull "${IMAGE_URI}"

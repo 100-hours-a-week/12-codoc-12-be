@@ -13,6 +13,7 @@ import _ganzi.codoc.chatbot.dto.ChatbotConversationListCondition;
 import _ganzi.codoc.chatbot.dto.ChatbotConversationListItem;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendRequest;
 import _ganzi.codoc.chatbot.dto.ChatbotMessageSendResponse;
+import _ganzi.codoc.chatbot.enums.ChatbotMessageType;
 import _ganzi.codoc.chatbot.enums.ChatbotParagraphType;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNoPermissionException;
 import _ganzi.codoc.chatbot.exception.ChatbotConversationNotFoundException;
@@ -33,6 +34,7 @@ import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserRepository;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +42,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.json.JsonMapper;
 
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 @Service
@@ -70,18 +73,18 @@ public class ChatbotService {
         problemRepository.findById(request.problemId()).orElseThrow(ProblemNotFoundException::new);
 
         String userMessage = request.message();
+        ChatbotMessageType messageType = request.resolveMessageType();
 
         ProblemSession session = problemSessionService.requireActive(userId, request.problemId());
         if (session == null) {
             throw new SessionRequiredException();
         }
-        session.validateChatbotNotCompleted();
 
         ChatbotParagraphType currentParagraph = session.getChatbotParagraphType();
 
         ChatbotConversation chatbotConversation =
                 chatbotConversationRepository.save(
-                        ChatbotConversation.create(session, userMessage, currentParagraph));
+                        ChatbotConversation.create(session, userMessage, currentParagraph, messageType));
 
         AiServerChatbotSendRequest aiServerRequest =
                 AiServerChatbotSendRequest.of(
@@ -91,7 +94,8 @@ public class ChatbotService {
                         userMessage,
                         user.getInitLevel(),
                         session.getId().toString(),
-                        currentParagraph);
+                        currentParagraph,
+                        messageType);
 
         return startStream(chatbotConversation.getId(), aiServerRequest);
     }
@@ -110,7 +114,6 @@ public class ChatbotService {
         if (!currentSession.getId().equals(conversationSession.getId())) {
             throw new ChatbotConversationNotResumableException();
         }
-        currentSession.validateChatbotNotCompleted();
 
         conversation.prepareResume();
 
@@ -124,7 +127,8 @@ public class ChatbotService {
                         conversation.getUserMessage(),
                         conversationSession.getUser().getInitLevel(),
                         currentSession.getId().toString(),
-                        currentParagraph);
+                        currentParagraph,
+                        conversation.getMessageType());
 
         return startStream(conversation.getId(), aiServerRequest);
     }
@@ -155,11 +159,23 @@ public class ChatbotService {
             cancelResponse =
                     chatbotClient.cancelMessage(conversationId).block(aiServerProperties.baseTimeout());
         } catch (RuntimeException exception) {
+            log.error(
+                    "AI 챗봇 중단 요청 실패: conversationId={}, userId={}, exceptionType={}",
+                    conversationId,
+                    userId,
+                    exception.getClass().getSimpleName(),
+                    exception);
             chatbotConversationStatusService.markCanceled(conversationId);
             throw new ChatbotStreamCancelFailedException();
         }
 
         if (cancelResponse == null || !CODE_SUCCESS.equals(cancelResponse.code())) {
+            log.error(
+                    "AI 챗봇 중단 실패 응답: conversationId={}, userId={}, code={}, message={}",
+                    conversationId,
+                    userId,
+                    cancelResponse != null ? cancelResponse.code() : null,
+                    cancelResponse != null ? cancelResponse.message() : null);
             chatbotConversationStatusService.markCanceled(conversationId);
             throw new ChatbotStreamCancelFailedException();
         }
@@ -174,7 +190,7 @@ public class ChatbotService {
         return Flux.concat(Mono.just(acceptedEvent), chatbotClient.streamMessage(aiServerRequest))
                 .timeout(aiServerProperties.chatbotStreamTimeout())
                 .doOnNext(event -> handleStreamEvent(conversationId, event))
-                .doOnError(error -> markFailedIfProcessing(conversationId))
+                .doOnError(error -> handleStreamError(conversationId, error))
                 .doOnCancel(() -> markDisconnectedIfProcessing(conversationId));
     }
 
@@ -188,6 +204,7 @@ public class ChatbotService {
         }
 
         if (EVENT_ERROR.equals(eventName)) {
+            log.error("AI 챗봇 실패 이벤트 수신: conversationId={}, data={}", conversationId, data);
             markFailedAndThrow(conversationId);
         }
     }
@@ -256,6 +273,13 @@ public class ChatbotService {
     private void markFailedAndThrow(Long conversationId) {
         markFailedIfProcessing(conversationId);
         throw new ChatbotStreamEventException();
+    }
+
+    private void handleStreamError(Long conversationId, Throwable error) {
+        if (!(error instanceof ChatbotStreamEventException)) {
+            log.error("AI 챗봇 스트림 호출 실패: conversationId={}", conversationId, error);
+        }
+        markFailedIfProcessing(conversationId);
     }
 
     private void markDisconnectedIfProcessing(Long conversationId) {

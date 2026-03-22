@@ -84,6 +84,9 @@ jobs:
       IMAGE_TAG: ${{ github.sha }}
       ENV_DEV: ${{ secrets.ENV_DEV }}
       APP_ENV_PATH: /home/ubuntu/codoc/.env
+      APP_FCM_PATH: /home/ubuntu/be/runtime
+      FCM_PARAMETER_NAME: ${{ vars.FCM_PARAMETER_NAME_DEV || '/spring-core-env-dev/fcm' }}
+      FCM_OUTPUT_FILE: /home/ubuntu/be/runtime/creds/gcp-wif-aws.json
       CONTAINER_NAME: codoc-backend
       HOST_PORT: "8080"
       APP_PORT: "8080"
@@ -103,7 +106,7 @@ jobs:
 
           cat <<EOF > ssm-commands.json
           [
-            "sudo env AWS_REGION='${AWS_REGION}' ECR_REGISTRY='${ECR_REGISTRY}' ECR_REPO='${ECR_REPO}' IMAGE_TAG='${IMAGE_TAG}' APP_ENV_CONTENT_BASE64='${APP_ENV_CONTENT_BASE64}' APP_ENV_PATH='${APP_ENV_PATH}' CONTAINER_NAME='${CONTAINER_NAME}' HOST_PORT='${HOST_PORT}' APP_PORT='${APP_PORT}' HEALTH_PATH='${HEALTH_PATH}' ${DEV_DEPLOY_SCRIPT}"
+            "sudo env AWS_REGION='${AWS_REGION}' ECR_REGISTRY='${ECR_REGISTRY}' ECR_REPO='${ECR_REPO}' IMAGE_TAG='${IMAGE_TAG}' APP_ENV_CONTENT_BASE64='${APP_ENV_CONTENT_BASE64}' APP_ENV_PATH='${APP_ENV_PATH}' APP_FCM_PATH='${APP_FCM_PATH}' FCM_PARAMETER_NAME='${FCM_PARAMETER_NAME}' FCM_OUTPUT_FILE='${FCM_OUTPUT_FILE}' CONTAINER_NAME='${CONTAINER_NAME}' HOST_PORT='${HOST_PORT}' APP_PORT='${APP_PORT}' HEALTH_PATH='${HEALTH_PATH}' ${DEV_DEPLOY_SCRIPT}"
           ]
           EOF
 

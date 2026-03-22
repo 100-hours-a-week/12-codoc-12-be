@@ -11,7 +11,11 @@ import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -25,7 +29,8 @@ public class CustomProblemMqConfig {
 
     @Bean
     public CustomProblemGenerationRequestProducer customProblemGenerationRequestProducer(
-            CustomProblemMqProperties properties, RabbitTemplate rabbitTemplate) {
+            CustomProblemMqProperties properties,
+            @Qualifier("customProblemRabbitTemplate") RabbitTemplate rabbitTemplate) {
         return new CustomProblemGenerationRequestProducer(properties, rabbitTemplate);
     }
 
@@ -84,5 +89,31 @@ public class CustomProblemMqConfig {
     public Binding customProblemResponseDlqBinding(
             @Qualifier("customProblemResponseDlq") Queue queue, DirectExchange customProblemExchange) {
         return BindingBuilder.bind(queue).to(customProblemExchange).with(queue.getName());
+    }
+
+    @Bean
+    public MessageConverter customProblemMessageConverter() {
+        return new JacksonJsonMessageConverter();
+    }
+
+    @Bean
+    public RabbitTemplate customProblemRabbitTemplate(
+            ConnectionFactory connectionFactory,
+            @Qualifier("customProblemMessageConverter") MessageConverter customProblemMessageConverter) {
+        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+        rabbitTemplate.setMessageConverter(customProblemMessageConverter);
+        rabbitTemplate.setMandatory(true);
+        return rabbitTemplate;
+    }
+
+    @Bean
+    public SimpleRabbitListenerContainerFactory customProblemRabbitListenerContainerFactory(
+            ConnectionFactory connectionFactory,
+            @Qualifier("customProblemMessageConverter") MessageConverter customProblemMessageConverter) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setMessageConverter(customProblemMessageConverter);
+        factory.setDefaultRequeueRejected(false);
+        return factory;
     }
 }

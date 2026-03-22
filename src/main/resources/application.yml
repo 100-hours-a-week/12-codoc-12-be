@@ -125,6 +125,9 @@ app:
       request-routing-key: ${APP_REPORT_MQ_REQUEST_ROUTING_KEY:report.request}
       response-routing-key: ${APP_REPORT_MQ_RESPONSE_ROUTING_KEY:report.response}
 
+  surprise-event:
+    enabled: ${APP_SURPRISE_EVENT_ENABLED:false}
+
   rate-limit:
     chatbot-stream:
       enabled: ${RATE_LIMIT_CHATBOT_STREAM_ENABLED:true}
@@ -150,6 +153,9 @@ app:
     leaderboard-league-adjustment-cron: ${APP_SCHEDULE_LEADERBOARD_LEAGUE_ADJUSTMENT_CRON:0 0 4 * * MON}
     leaderboard-season-assign-cron: ${APP_SCHEDULE_LEADERBOARD_SEASON_ASSIGN_CRON:0 0 10 * * MON}
     leaderboard-redis-rebuild-cron: ${APP_SCHEDULE_LEADERBOARD_REDIS_REBUILD_CRON:0 */10 * * * *}
+    surprise-event-create-cron: ${APP_SCHEDULE_SURPRISE_EVENT_CREATE_CRON:0 0 0 * * MON}
+    surprise-event-open-cron: ${APP_SCHEDULE_SURPRISE_EVENT_OPEN_CRON:0 0 20 * * FRI}
+    surprise-event-close-cron: ${APP_SCHEDULE_SURPRISE_EVENT_CLOSE_CRON:0 50 20 * * FRI}
     chatbot-session-finish-fixed-rate: ${APP_SCHEDULE_CHATBOT_SESSION_FINISH_FIXED_RATE:600000}
 
 sentry:

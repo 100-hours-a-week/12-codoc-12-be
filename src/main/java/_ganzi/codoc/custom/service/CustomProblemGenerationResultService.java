@@ -74,7 +74,7 @@ public class CustomProblemGenerationResultService {
                             notificationDispatchService.dispatchAfterCommit(
                                     customProblem.getUserId(),
                                     new NotificationMessageItem(
-                                            NotificationType.CUSTOM_PROBLEM_FAILED, "나만의 문제 생성에 실패했어요", "", Map.of()));
+                                            NotificationType.CUSTOM_PROBLEM_COMPLETED, "나만의 문제 생성에 실패했어요", "", Map.of()));
                         });
     }
 }

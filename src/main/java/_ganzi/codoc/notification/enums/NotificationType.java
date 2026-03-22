@@ -13,7 +13,7 @@ public enum NotificationType {
     LEADERBOARD_STARTED(true, LinkCode.LEADERBOARD),
     CHAT(false, LinkCode.CHAT),
     CUSTOM_PROBLEM_COMPLETED(true, LinkCode.CUSTOM_PROBLEM),
-    CUSTOM_PROBLEM_FAILED(true, LinkCode.CUSTOM_PROBLEM);
+    ;
 
     private final boolean inboxVisible;
     private final LinkCode linkCode;

@@ -33,8 +33,11 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -46,7 +49,6 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 public class RecommendedProblemService {
 
     private static final int REPLENISH_THRESHOLD = 1;
-    private static final int BATCH_SIZE = 5;
     private static final int LOCK_TIMEOUT_SECONDS = 2;
     private static final long RATE_LIMIT_BACKOFF_MILLIS = 500;
     private static final String RECOMMEND_ISSUED_TITLE = "AI 추천 문제가 발급됐어요";
@@ -62,6 +64,10 @@ public class RecommendedProblemService {
     private final RecommendationJobRepository recommendationJobRepository;
     private final RecommendationRequestOutboxService recommendationRequestOutboxService;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final ObjectProvider<RecommendedProblemService> recommendedProblemServiceProvider;
+
+    @Qualifier("recommendOnDemandTaskExecutor")
+    private final TaskExecutor recommendOnDemandTaskExecutor;
 
     @Value("${app.recommend.mq.enabled:false}")
     private boolean recommendMqEnabled;
@@ -74,28 +80,7 @@ public class RecommendedProblemService {
         List<Long> userIds =
                 userRepository.findAllByStatus(UserStatus.ACTIVE).stream().map(User::getId).toList();
         for (Long userId : userIds) {
-            Optional<RecommendationJob> publishedJob =
-                    publishRecommendationJob(userId, RecommendationScenario.DAILY, true);
-            if (publishedJob.isPresent() && publishedJob.get().isRequestAccepted()) {
-                continue;
-            }
-            try {
-                issueRecommendationsForUser(userId, RecommendationScenario.DAILY);
-            } catch (WebClientResponseException exception) {
-                if (handleRateLimitOnce(userId, exception)) {
-                    try {
-                        issueRecommendationsForUser(userId, RecommendationScenario.DAILY);
-                    } catch (WebClientResponseException retryException) {
-                        handleIssueFailure(userId, retryException);
-                    } catch (Exception retryException) {
-                        log.warn("Recommend daily issue retry failed. userId={}", userId, retryException);
-                    }
-                } else {
-                    handleIssueFailure(userId, exception);
-                }
-            } catch (Exception exception) {
-                log.warn("Recommend daily issue failed. userId={}", userId, exception);
-            }
+            requestRecommendationJobAsync(userId, RecommendationScenario.DAILY, true);
         }
     }
 
@@ -105,28 +90,7 @@ public class RecommendedProblemService {
         if (pendingCount > REPLENISH_THRESHOLD) {
             return;
         }
-        Optional<RecommendationJob> publishedJob =
-                publishRecommendationJob(userId, RecommendationScenario.ON_DEMAND, false);
-        if (publishedJob.isPresent() && publishedJob.get().isRequestAccepted()) {
-            return;
-        }
-        try {
-            issueRecommendationsForUser(userId, RecommendationScenario.ON_DEMAND);
-        } catch (WebClientResponseException exception) {
-            if (handleRateLimitOnce(userId, exception)) {
-                try {
-                    issueRecommendationsForUser(userId, RecommendationScenario.ON_DEMAND);
-                } catch (WebClientResponseException retryException) {
-                    handleIssueFailure(userId, retryException);
-                } catch (Exception retryException) {
-                    log.warn("Recommend on-demand issue retry failed. userId={}", userId, retryException);
-                }
-            } else {
-                handleIssueFailure(userId, exception);
-            }
-        } catch (Exception exception) {
-            log.warn("Recommend on-demand issue failed. userId={}", userId, exception);
-        }
+        requestRecommendationJobAsync(userId, RecommendationScenario.ON_DEMAND, false);
     }
 
     @Transactional
@@ -153,7 +117,7 @@ public class RecommendedProblemService {
 
     @Transactional
     public RecommendationJob requestOnDemandJob(Long userId) {
-        return publishRecommendationJob(userId, RecommendationScenario.ON_DEMAND, true)
+        return requestRecommendationJobAsync(userId, RecommendationScenario.ON_DEMAND, true)
                 .orElseThrow(() -> new IllegalStateException("Failed to create recommendation job"));
     }
 
@@ -260,6 +224,35 @@ public class RecommendedProblemService {
         }
     }
 
+    private Optional<RecommendationJob> requestRecommendationJobAsync(
+            Long userId, RecommendationScenario scenario, boolean forcePublish) {
+        if (recommendMqEnabled && recommendMqRequestPublishEnabled) {
+            return publishRecommendationJob(userId, scenario, forcePublish);
+        }
+
+        if (!forcePublish
+                && scenario == RecommendationScenario.ON_DEMAND
+                && recommendedProblemRepository.countByUserIdAndIsDoneFalse(userId) > REPLENISH_THRESHOLD) {
+            return Optional.empty();
+        }
+
+        List<RecommendationJobStatus> activeStatuses =
+                List.of(RecommendationJobStatus.REQUESTED, RecommendationJobStatus.PUBLISHED);
+        Optional<RecommendationJob> existing =
+                recommendationJobRepository.findLatestByUserIdAndStatuses(userId, activeStatuses);
+        if (existing.isPresent()) {
+            return existing;
+        }
+
+        String jobId = UUID.randomUUID().toString();
+        Instant requestedAt = Instant.now();
+        RecommendationJob job =
+                recommendationJobRepository.save(
+                        RecommendationJob.publish(jobId, userId, scenario, requestedAt));
+        recommendOnDemandTaskExecutor.execute(() -> processFallbackJob(jobId, userId, scenario));
+        return Optional.of(job);
+    }
+
     private void applyRecommendations(
             Long userId, RecommendationScenario scenario, List<RecommendationCandidate> candidates) {
         if (candidates.isEmpty()) {
@@ -340,33 +333,92 @@ public class RecommendedProblemService {
         return "recommend:" + userId;
     }
 
-    private void handleIssueFailure(Long userId, WebClientResponseException exception) {
-        int statusCode = exception.getStatusCode().value();
-        if (statusCode == 429 || statusCode == 503) {
-            log.warn("Recommend daily issue rate limited. userId={}, status={}", userId, statusCode);
-            sleepMillis(RATE_LIMIT_BACKOFF_MILLIS);
-            return;
-        }
-        log.warn("Recommend daily issue failed. userId={}, status={}", userId, statusCode, exception);
-    }
-
-    private boolean handleRateLimitOnce(Long userId, WebClientResponseException exception) {
-        int statusCode = exception.getStatusCode().value();
-        if (statusCode != 429 && statusCode != 503) {
-            return false;
-        }
-        log.warn(
-                "Recommend daily issue rate limited. userId={}, status={}, retry=1", userId, statusCode);
-        sleepMillis(RATE_LIMIT_BACKOFF_MILLIS);
-        return true;
-    }
-
     private void sleepMillis(long millis) {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    private void processFallbackJob(String jobId, Long userId, RecommendationScenario scenario) {
+        try {
+            issueRecommendationsOnce(userId, scenario);
+            markJobDone(jobId);
+            return;
+        } catch (WebClientResponseException exception) {
+            if (isRateLimitStatus(exception)) {
+                sleepMillis(RATE_LIMIT_BACKOFF_MILLIS);
+                try {
+                    issueRecommendationsOnce(userId, scenario);
+                    markJobDone(jobId);
+                    return;
+                } catch (WebClientResponseException retryException) {
+                    markJobFailed(
+                            jobId,
+                            "RECOMMEND_HTTP_" + retryException.getStatusCode().value(),
+                            summarizeError(retryException));
+                    return;
+                } catch (Exception retryException) {
+                    markJobFailed(jobId, "RECOMMEND_INTERNAL_ERROR", summarizeError(retryException));
+                    return;
+                }
+            }
+            markJobFailed(
+                    jobId, "RECOMMEND_HTTP_" + exception.getStatusCode().value(), summarizeError(exception));
+            return;
+        } catch (Exception exception) {
+            markJobFailed(jobId, "RECOMMEND_INTERNAL_ERROR", summarizeError(exception));
+            return;
+        }
+    }
+
+    private void issueRecommendationsOnce(Long userId, RecommendationScenario scenario) {
+        RecommendedProblemService proxy = recommendedProblemServiceProvider.getIfAvailable();
+        if (proxy != null) {
+            proxy.issueRecommendationsForUser(userId, scenario);
+            return;
+        }
+        issueRecommendationsForUser(userId, scenario);
+    }
+
+    private boolean isRateLimitStatus(WebClientResponseException exception) {
+        int statusCode = exception.getStatusCode().value();
+        return statusCode == 429 || statusCode == 503;
+    }
+
+    private void markJobDone(String jobId) {
+        recommendationJobRepository
+                .findById(jobId)
+                .ifPresent(
+                        job -> {
+                            if (job.isTerminal()) {
+                                return;
+                            }
+                            job.markDone(Instant.now());
+                            recommendationJobRepository.save(job);
+                        });
+    }
+
+    private void markJobFailed(String jobId, String errorCode, String errorMessage) {
+        recommendationJobRepository
+                .findById(jobId)
+                .ifPresent(
+                        job -> {
+                            if (job.isTerminal()) {
+                                return;
+                            }
+                            job.markFailed(errorCode, errorMessage, Instant.now());
+                            recommendationJobRepository.save(job);
+                        });
+    }
+
+    private String summarizeError(Exception exception) {
+        if (exception == null || exception.getMessage() == null || exception.getMessage().isBlank()) {
+            return null;
+        }
+        String message = exception.getMessage();
+        return message.length() <= 500 ? message : message.substring(0, 500);
     }
 
     public record RecommendationCandidate(Long problemId, String reasonMsg) {}

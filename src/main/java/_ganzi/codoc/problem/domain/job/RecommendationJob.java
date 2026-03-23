@@ -62,7 +62,16 @@ public class RecommendationJob extends BaseTimeEntity {
     public static RecommendationJob publish(
             String jobId, Long userId, RecommendationScenario scenario, Instant requestedAt) {
         return new RecommendationJob(
-                jobId, userId, scenario, RecommendationJobStatus.PUBLISHED, requestedAt);
+                jobId, userId, scenario, RecommendationJobStatus.REQUESTED, requestedAt);
+    }
+
+    public void markPublished() {
+        if (isTerminal() || status == RecommendationJobStatus.PUBLISHED) {
+            return;
+        }
+        this.status = RecommendationJobStatus.PUBLISHED;
+        this.errorCode = null;
+        this.errorMessage = null;
     }
 
     public void markDone(Instant respondedAt) {
@@ -80,9 +89,17 @@ public class RecommendationJob extends BaseTimeEntity {
     }
 
     public void markPublishFailed(String errorCode, String errorMessage) {
+        if (isTerminal()) {
+            return;
+        }
         this.status = RecommendationJobStatus.FAILED_PUBLISH;
         this.errorCode = errorCode;
         this.errorMessage = errorMessage;
+    }
+
+    public boolean isRequestAccepted() {
+        return status == RecommendationJobStatus.REQUESTED
+                || status == RecommendationJobStatus.PUBLISHED;
     }
 
     public boolean isTerminal() {

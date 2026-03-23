@@ -8,7 +8,7 @@ import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.domain.RecommendedProblem;
 import _ganzi.codoc.problem.domain.job.RecommendationJob;
 import _ganzi.codoc.problem.domain.job.RecommendationJobStatus;
-import _ganzi.codoc.problem.event.RecommendationPublishRequestedEvent;
+import _ganzi.codoc.problem.event.RecommendationOutboxPublishRequestedEvent;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.problem.repository.RecommendedProblemRepository;
 import _ganzi.codoc.problem.repository.job.RecommendationJobRepository;
@@ -60,6 +60,7 @@ public class RecommendedProblemService {
     private final RecommendClient recommendClient;
     private final NotificationDispatchService notificationDispatchService;
     private final RecommendationJobRepository recommendationJobRepository;
+    private final RecommendationRequestOutboxService recommendationRequestOutboxService;
     private final ApplicationEventPublisher applicationEventPublisher;
 
     @Value("${app.recommend.mq.enabled:false}")
@@ -248,8 +249,9 @@ public class RecommendedProblemService {
 
         try {
             RecommendRequest request = buildRecommendRequest(userId, scenario);
+            recommendationRequestOutboxService.enqueue(jobId, requestedAt, request);
             applicationEventPublisher.publishEvent(
-                    new RecommendationPublishRequestedEvent(jobId, request, requestedAt));
+                    new RecommendationOutboxPublishRequestedEvent(jobId, request, requestedAt));
             return Optional.of(job);
         } catch (Exception exception) {
             job.markPublishFailed("PUBLISH_FAILED", exception.getMessage());

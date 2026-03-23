@@ -493,7 +493,7 @@ public class LeaderboardQueryService {
                 scoreRepository.findLeagueSlice(context.seasonId(), context.leagueId(), offset, limit);
         long totalCount =
                 scoreRepository.countByIdSeasonIdAndLeagueId(context.seasonId(), context.leagueId());
-        return toScopedRankPageFromScores(startRank, scores, context.seasonId(), totalCount);
+        return toLocalRankPageFromScores(startRank, scores, totalCount);
     }
 
     private LeaderboardGroupPageResponse getGroupLeaderboardFromScore(
@@ -505,8 +505,7 @@ public class LeaderboardQueryService {
                 scoreRepository.findGroupSlice(context.seasonId(), context.groupId(), offset, limit);
         long totalCount =
                 scoreRepository.countByIdSeasonIdAndGroupId(context.seasonId(), context.groupId());
-        LeaderboardRankPageResponse page =
-                toScopedRankPageFromScores(startRank, scores, context.seasonId(), totalCount);
+        LeaderboardRankPageResponse page = toLocalRankPageFromScores(startRank, scores, totalCount);
         return new LeaderboardGroupPageResponse(
                 context.seasonId(),
                 context.groupId(),
@@ -655,7 +654,7 @@ public class LeaderboardQueryService {
                 leaderboardRedisKeyFactory.leagueKey(
                         participant.seasonId(), participant.leagueId().intValue());
         LeaderboardRankPageResponse page =
-                readRankPageFromRedis(leagueKey, globalKey, startRank, limit);
+                toLocalRankPage(readRankPageFromRedis(leagueKey, globalKey, startRank, limit));
         if (startRank == 1 && page.ranks().isEmpty()) {
             return Optional.empty();
         }
@@ -673,7 +672,8 @@ public class LeaderboardQueryService {
         String globalKey = leaderboardRedisKeyFactory.globalKey(participant.seasonId());
         String groupKey =
                 leaderboardRedisKeyFactory.groupKey(participant.seasonId(), participant.groupId());
-        LeaderboardRankPageResponse page = readRankPageFromRedis(groupKey, globalKey, startRank, limit);
+        LeaderboardRankPageResponse page =
+                toLocalRankPage(readRankPageFromRedis(groupKey, globalKey, startRank, limit));
         if (startRank == 1 && page.ranks().isEmpty()) {
             return Optional.empty();
         }
@@ -759,7 +759,7 @@ public class LeaderboardQueryService {
         String leagueKey =
                 leaderboardRedisKeyFactory.leagueKey(context.seasonId(), context.leagueId().intValue());
         LeaderboardRankPageResponse page =
-                readRankPageFromRedis(leagueKey, globalKey, startRank, limit);
+                toLocalRankPage(readRankPageFromRedis(leagueKey, globalKey, startRank, limit));
         if (startRank == 1 && page.ranks().isEmpty()) {
             return Optional.empty();
         }
@@ -772,7 +772,8 @@ public class LeaderboardQueryService {
         SnapshotParticipantContext context = resolveSnapshotParticipant(userId);
         String globalKey = leaderboardRedisKeyFactory.globalKey(context.seasonId());
         String groupKey = leaderboardRedisKeyFactory.groupKey(context.seasonId(), context.groupId());
-        LeaderboardRankPageResponse page = readRankPageFromRedis(groupKey, globalKey, startRank, limit);
+        LeaderboardRankPageResponse page =
+                toLocalRankPage(readRankPageFromRedis(groupKey, globalKey, startRank, limit));
         if (startRank == 1 && page.ranks().isEmpty()) {
             return Optional.empty();
         }
@@ -945,6 +946,42 @@ public class LeaderboardQueryService {
         int endRank = ranks.isEmpty() ? startRank - 1 : startRank + ranks.size() - 1;
         boolean hasMore = endRank < totalCount;
         return new LeaderboardRankPageResponse(startRank, endRank, hasMore, ranks);
+    }
+
+    private LeaderboardRankPageResponse toLocalRankPageFromScores(
+            int startRank, List<LeaderboardScore> scores, long totalCount) {
+        List<LeaderboardRankItem> ranks = new ArrayList<>();
+        for (int index = 0; index < scores.size(); index++) {
+            LeaderboardScore score = scores.get(index);
+            User user = score.getUser();
+            ranks.add(
+                    new LeaderboardRankItem(
+                            startRank + index,
+                            user.getId(),
+                            user.getAvatar().getImageUrl(),
+                            user.getNickname(),
+                            score.getWeeklyXp()));
+        }
+        int endRank = ranks.isEmpty() ? startRank - 1 : startRank + ranks.size() - 1;
+        boolean hasMore = endRank < totalCount;
+        return new LeaderboardRankPageResponse(startRank, endRank, hasMore, ranks);
+    }
+
+    private LeaderboardRankPageResponse toLocalRankPage(LeaderboardRankPageResponse page) {
+        List<LeaderboardRankItem> localRanks = new ArrayList<>();
+        for (int index = 0; index < page.ranks().size(); index++) {
+            LeaderboardRankItem item = page.ranks().get(index);
+            localRanks.add(
+                    new LeaderboardRankItem(
+                            page.startRank() + index,
+                            item.userId(),
+                            item.avatarUrl(),
+                            item.nickname(),
+                            item.weeklyXp()));
+        }
+        int endRank =
+                localRanks.isEmpty() ? page.startRank() - 1 : page.startRank() + localRanks.size() - 1;
+        return new LeaderboardRankPageResponse(page.startRank(), endRank, page.hasMore(), localRanks);
     }
 
     private LocalDate toLocalDate(Instant instant) {

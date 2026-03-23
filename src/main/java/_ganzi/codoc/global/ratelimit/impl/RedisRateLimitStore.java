@@ -10,10 +10,16 @@ import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.EstimationProbe;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @RequiredArgsConstructor
 @Component
+@ConditionalOnProperty(
+        prefix = "app.rate-limit",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = true)
 public class RedisRateLimitStore implements RateLimitStore {
 
     private static final String redisKeyPrefix = "ratelimit";

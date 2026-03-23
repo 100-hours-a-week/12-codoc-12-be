@@ -123,6 +123,15 @@ app:
       retry-max-interval-millis: ${APP_NOTIFICATION_MQ_RETRY_MAX_INTERVAL_MILLIS:5000}
 
   recommend:
+    outbox:
+      batch-size: ${APP_RECOMMEND_OUTBOX_BATCH_SIZE:100}
+      max-batches-per-run: ${APP_RECOMMEND_OUTBOX_MAX_BATCHES_PER_RUN:10}
+      publish-fixed-delay: ${APP_RECOMMEND_OUTBOX_PUBLISH_FIXED_DELAY:1m}
+      processing-timeout: ${APP_RECOMMEND_OUTBOX_PROCESSING_TIMEOUT:5m}
+      retry-initial-interval: ${APP_RECOMMEND_OUTBOX_RETRY_INITIAL_INTERVAL:10s}
+      retry-multiplier: ${APP_RECOMMEND_OUTBOX_RETRY_MULTIPLIER:2.0}
+      retry-max-interval: ${APP_RECOMMEND_OUTBOX_RETRY_MAX_INTERVAL:5m}
+      max-publish-attempts: ${APP_RECOMMEND_OUTBOX_MAX_PUBLISH_ATTEMPTS:20}
     mq:
       enabled: ${APP_RECOMMEND_MQ_ENABLED:false}
       request-publish-enabled: ${APP_RECOMMEND_MQ_REQUEST_PUBLISH_ENABLED:false}

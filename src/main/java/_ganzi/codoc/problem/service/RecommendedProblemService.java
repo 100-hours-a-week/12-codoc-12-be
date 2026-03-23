@@ -8,7 +8,7 @@ import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.domain.RecommendedProblem;
 import _ganzi.codoc.problem.domain.job.RecommendationJob;
 import _ganzi.codoc.problem.domain.job.RecommendationJobStatus;
-import _ganzi.codoc.problem.mq.RecommendRequestPublisher;
+import _ganzi.codoc.problem.event.RecommendationPublishRequestedEvent;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.problem.repository.RecommendedProblemRepository;
 import _ganzi.codoc.problem.repository.job.RecommendationJobRepository;
@@ -33,8 +33,8 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -60,7 +60,7 @@ public class RecommendedProblemService {
     private final RecommendClient recommendClient;
     private final NotificationDispatchService notificationDispatchService;
     private final RecommendationJobRepository recommendationJobRepository;
-    private final ObjectProvider<RecommendRequestPublisher> recommendRequestPublisherProvider;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Value("${app.recommend.mq.enabled:false}")
     private boolean recommendMqEnabled;
@@ -75,8 +75,7 @@ public class RecommendedProblemService {
         for (Long userId : userIds) {
             Optional<RecommendationJob> publishedJob =
                     publishRecommendationJob(userId, RecommendationScenario.DAILY, true);
-            if (publishedJob.isPresent()
-                    && publishedJob.get().getStatus() == RecommendationJobStatus.PUBLISHED) {
+            if (publishedJob.isPresent() && publishedJob.get().isRequestAccepted()) {
                 continue;
             }
             try {
@@ -107,8 +106,7 @@ public class RecommendedProblemService {
         }
         Optional<RecommendationJob> publishedJob =
                 publishRecommendationJob(userId, RecommendationScenario.ON_DEMAND, false);
-        if (publishedJob.isPresent()
-                && publishedJob.get().getStatus() == RecommendationJobStatus.PUBLISHED) {
+        if (publishedJob.isPresent() && publishedJob.get().isRequestAccepted()) {
             return;
         }
         try {
@@ -232,19 +230,15 @@ public class RecommendedProblemService {
         if (!recommendMqEnabled || !recommendMqRequestPublishEnabled) {
             return Optional.empty();
         }
-        RecommendRequestPublisher publisher = recommendRequestPublisherProvider.getIfAvailable();
-        if (publisher == null) {
-            return Optional.empty();
-        }
         if (!forcePublish
                 && scenario == RecommendationScenario.ON_DEMAND
                 && recommendedProblemRepository.countByUserIdAndIsDoneFalse(userId) > REPLENISH_THRESHOLD) {
             return Optional.empty();
         }
-        if (recommendationJobRepository.existsByUserIdAndStatus(
-                userId, RecommendationJobStatus.PUBLISHED)) {
-            return recommendationJobRepository.findTopByUserIdAndStatusOrderByCreatedAtDesc(
-                    userId, RecommendationJobStatus.PUBLISHED);
+        List<RecommendationJobStatus> activeStatuses =
+                List.of(RecommendationJobStatus.REQUESTED, RecommendationJobStatus.PUBLISHED);
+        if (recommendationJobRepository.existsByUserIdAndStatuses(userId, activeStatuses)) {
+            return recommendationJobRepository.findLatestByUserIdAndStatuses(userId, activeStatuses);
         }
 
         String jobId = UUID.randomUUID().toString();
@@ -254,7 +248,8 @@ public class RecommendedProblemService {
 
         try {
             RecommendRequest request = buildRecommendRequest(userId, scenario);
-            publisher.publish(jobId, request, requestedAt);
+            applicationEventPublisher.publishEvent(
+                    new RecommendationPublishRequestedEvent(jobId, request, requestedAt));
             return Optional.of(job);
         } catch (Exception exception) {
             job.markPublishFailed("PUBLISH_FAILED", exception.getMessage());

@@ -15,10 +15,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @Configuration
 @ConditionalOnProperty(prefix = "app.recommend.mq", name = "enabled", havingValue = "true")
-@EnableConfigurationProperties(RecommendMqProperties.class)
+@EnableConfigurationProperties({RecommendMqProperties.class, RecommendDlqProperties.class})
 public class RecommendMqConfig {
 
     @Bean
@@ -28,17 +29,33 @@ public class RecommendMqConfig {
 
     @Bean
     public Queue recommendRequestQueue(RecommendMqProperties properties) {
-        return QueueBuilder.durable(properties.requestQueue()).build();
+        return QueueBuilder.durable(properties.requestQueue())
+                .deadLetterExchange(properties.exchange())
+                .deadLetterRoutingKey(properties.requestDlqRoutingKey())
+                .build();
+    }
+
+    @Bean
+    public Queue recommendRequestDlq(RecommendMqProperties properties) {
+        return QueueBuilder.durable(properties.requestDlq()).build();
     }
 
     @Bean
     public Queue recommendResponseQueue(RecommendMqProperties properties) {
-        return QueueBuilder.durable(properties.responseQueue()).build();
+        return QueueBuilder.durable(properties.responseQueue())
+                .deadLetterExchange(properties.exchange())
+                .deadLetterRoutingKey(properties.responseDlqRoutingKey())
+                .build();
+    }
+
+    @Bean
+    public Queue recommendResponseDlq(RecommendMqProperties properties) {
+        return QueueBuilder.durable(properties.responseDlq()).build();
     }
 
     @Bean
     public Binding recommendRequestBinding(
-            Queue recommendRequestQueue,
+            @Qualifier("recommendRequestQueue") Queue recommendRequestQueue,
             DirectExchange recommendExchange,
             RecommendMqProperties properties) {
         return BindingBuilder.bind(recommendRequestQueue)
@@ -48,12 +65,32 @@ public class RecommendMqConfig {
 
     @Bean
     public Binding recommendResponseBinding(
-            Queue recommendResponseQueue,
+            @Qualifier("recommendResponseQueue") Queue recommendResponseQueue,
             DirectExchange recommendExchange,
             RecommendMqProperties properties) {
         return BindingBuilder.bind(recommendResponseQueue)
                 .to(recommendExchange)
                 .with(properties.responseRoutingKey());
+    }
+
+    @Bean
+    public Binding recommendRequestDlqBinding(
+            @Qualifier("recommendRequestDlq") Queue recommendRequestDlq,
+            DirectExchange recommendExchange,
+            RecommendMqProperties properties) {
+        return BindingBuilder.bind(recommendRequestDlq)
+                .to(recommendExchange)
+                .with(properties.requestDlqRoutingKey());
+    }
+
+    @Bean
+    public Binding recommendResponseDlqBinding(
+            @Qualifier("recommendResponseDlq") Queue recommendResponseDlq,
+            DirectExchange recommendExchange,
+            RecommendMqProperties properties) {
+        return BindingBuilder.bind(recommendResponseDlq)
+                .to(recommendExchange)
+                .with(properties.responseDlqRoutingKey());
     }
 
     @Bean
@@ -80,5 +117,16 @@ public class RecommendMqConfig {
         factory.setMessageConverter(recommendMessageConverter);
         factory.setDefaultRequeueRejected(false);
         return factory;
+    }
+
+    @Bean(name = "recommendDlqTaskExecutor")
+    public ThreadPoolTaskExecutor recommendDlqTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("recommend-dlq-");
+        executor.initialize();
+        return executor;
     }
 }

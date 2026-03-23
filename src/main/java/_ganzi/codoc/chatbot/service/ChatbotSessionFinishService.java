@@ -36,7 +36,10 @@ public class ChatbotSessionFinishService {
     private void notifyAiServer(ProblemSession session) {
         AiServerSessionFinishRequest request =
                 AiServerSessionFinishRequest.of(
-                        session.getId().toString(), session.getUser().getId(), session.getProblem().getId());
+                        session.getId().toString(),
+                        session.getUser().getId(),
+                        session.getProblem().getId(),
+                        session.getUser().getInitLevel());
 
         try {
             AiServerApiResponse<Void> response =

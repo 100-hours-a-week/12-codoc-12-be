@@ -20,6 +20,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     private final RateLimitService rateLimitService;
     private final AuthUserResolver authUserResolver;
+    private final boolean rateLimitEnabled;
     private final Map<RateLimitApiType, RateLimitPolicy> policyMap;
 
     public RateLimitInterceptor(
@@ -28,6 +29,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             RateLimitProperties rateLimitProperties) {
         this.rateLimitService = rateLimitService;
         this.authUserResolver = authUserResolver;
+        this.rateLimitEnabled = rateLimitProperties.enabled();
         this.policyMap =
                 Map.of(
                         RateLimitApiType.CHATBOT_STREAM,
@@ -43,6 +45,9 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             HttpServletRequest request, HttpServletResponse response, Object handler) {
 
         if (!(handler instanceof HandlerMethod handlerMethod)) {
+            return true;
+        }
+        if (!rateLimitEnabled) {
             return true;
         }
 

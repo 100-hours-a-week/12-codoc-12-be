@@ -9,6 +9,10 @@ public record RecommendMqProperties(
         boolean responseConsumeEnabled,
         String exchange,
         String requestQueue,
+        String requestDlq,
         String responseQueue,
+        String responseDlq,
         String requestRoutingKey,
-        String responseRoutingKey) {}
+        String requestDlqRoutingKey,
+        String responseRoutingKey,
+        String responseDlqRoutingKey) {}

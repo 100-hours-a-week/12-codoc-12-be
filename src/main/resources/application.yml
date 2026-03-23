@@ -138,9 +138,21 @@ app:
       response-consume-enabled: ${APP_RECOMMEND_MQ_RESPONSE_CONSUME_ENABLED:false}
       exchange: ${APP_RECOMMEND_MQ_EXCHANGE:codoc.recommend.exchange}
       request-queue: ${APP_RECOMMEND_MQ_REQUEST_QUEUE:recommend.request.q}
+      request-dlq: ${APP_RECOMMEND_MQ_REQUEST_DLQ:recommend.request.dlq.q}
       response-queue: ${APP_RECOMMEND_MQ_RESPONSE_QUEUE:recommend.response.q}
+      response-dlq: ${APP_RECOMMEND_MQ_RESPONSE_DLQ:recommend.response.dlq.q}
       request-routing-key: ${APP_RECOMMEND_MQ_REQUEST_ROUTING_KEY:recommend.request}
+      request-dlq-routing-key: ${APP_RECOMMEND_MQ_REQUEST_DLQ_ROUTING_KEY:recommend.request.dlq}
       response-routing-key: ${APP_RECOMMEND_MQ_RESPONSE_ROUTING_KEY:recommend.response}
+      response-dlq-routing-key: ${APP_RECOMMEND_MQ_RESPONSE_DLQ_ROUTING_KEY:recommend.response.dlq}
+    dlq:
+      alert-enabled: ${APP_RECOMMEND_DLQ_ALERT_ENABLED:true}
+      alert-burst-threshold: ${APP_RECOMMEND_DLQ_ALERT_BURST_THRESHOLD:20}
+      alert-window: ${APP_RECOMMEND_DLQ_ALERT_WINDOW:5m}
+      monitor-fixed-delay: ${APP_RECOMMEND_DLQ_MONITOR_FIXED_DELAY:1m}
+      reprocess-default-limit: ${APP_RECOMMEND_DLQ_REPROCESS_DEFAULT_LIMIT:20}
+      reprocess-max-limit: ${APP_RECOMMEND_DLQ_REPROCESS_MAX_LIMIT:100}
+      reprocess-single-scan-limit: ${APP_RECOMMEND_DLQ_REPROCESS_SINGLE_SCAN_LIMIT:1000}
 
   report:
     mq:
@@ -157,6 +169,7 @@ app:
     enabled: ${APP_SURPRISE_EVENT_ENABLED:false}
 
   rate-limit:
+    enabled: ${APP_RATE_LIMIT_ENABLED:true}
     chatbot-stream:
       enabled: ${RATE_LIMIT_CHATBOT_STREAM_ENABLED:true}
       limit: ${RATE_LIMIT_CHATBOT_STREAM_LIMIT:5}
@@ -172,6 +185,10 @@ app:
       limit: ${RATE_LIMIT_GLOBAL_LIMIT:100}
       period: ${RATE_LIMIT_GLOBAL_PERIOD:10s}
       consume-token: ${RATE_LIMIT_GLOBAL_CONSUME:1}
+
+  alert:
+    discord:
+      webhook-url: ${APP_ALERT_DISCORD_WEBHOOK_URL:}
 
   schedule:
     time-zone: ${APP_SCHEDULE_TIME_ZONE:Asia/Seoul}

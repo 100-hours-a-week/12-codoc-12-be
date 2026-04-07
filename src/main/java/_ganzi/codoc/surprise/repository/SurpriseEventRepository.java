@@ -27,19 +27,21 @@ public interface SurpriseEventRepository extends JpaRepository<SurpriseEvent, Lo
             SurpriseEventStatus status, Instant startsAt);
 
     @Query(
-            "select e from SurpriseEvent e join fetch e.quizPool "
-                    + "where e.status = :status and e.startsAt <= :now and e.endsAt > :now "
-                    + "order by e.startsAt desc")
-    List<SurpriseEvent> findCurrentOpenEvents(
-            @Param("status") SurpriseEventStatus status, @Param("now") Instant now, Pageable pageable);
+            """
+            select e from SurpriseEvent e join fetch e.quizPool
+            where e.startsAt <= :now and e.endsAt > :now
+            order by e.startsAt desc
+            """)
+    List<SurpriseEvent> findCurrentActiveEvents(@Param("now") Instant now, Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query(
-            "select e from SurpriseEvent e join fetch e.quizPool "
-                    + "where e.status = :status and e.startsAt <= :now and e.endsAt > :now "
-                    + "order by e.startsAt desc")
-    List<SurpriseEvent> findCurrentOpenEventsForUpdate(
-            @Param("status") SurpriseEventStatus status, @Param("now") Instant now, Pageable pageable);
+            """
+            select e from SurpriseEvent e join fetch e.quizPool
+            where e.startsAt <= :now and e.endsAt > :now
+            order by e.startsAt desc
+            """)
+    List<SurpriseEvent> findCurrentActiveEventsForUpdate(@Param("now") Instant now, Pageable pageable);
 
     List<SurpriseEvent> findAllByStatusAndEndsAtLessThanEqualAndSettledAtIsNull(
             SurpriseEventStatus status, Instant endsAt);

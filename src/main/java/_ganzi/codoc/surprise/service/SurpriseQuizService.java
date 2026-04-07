@@ -9,6 +9,7 @@ import _ganzi.codoc.surprise.dto.SurpriseQuizSubmitResponse;
 import _ganzi.codoc.surprise.dto.SurpriseQuizViewResponse;
 import _ganzi.codoc.surprise.exception.SurpriseEventNotFoundException;
 import _ganzi.codoc.surprise.exception.SurpriseEventNotOpenException;
+import _ganzi.codoc.surprise.exception.SurpriseEventRewardExhaustedException;
 import _ganzi.codoc.surprise.exception.SurpriseEventSubmissionClosedException;
 import _ganzi.codoc.surprise.exception.SurpriseInvalidChoiceNoException;
 import _ganzi.codoc.surprise.exception.SurpriseQuizAlreadySubmittedException;
@@ -23,6 +24,7 @@ import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -47,7 +49,7 @@ public class SurpriseQuizService {
     private final StringRedisTemplate stringRedisTemplate;
 
     public SurpriseQuizViewResponse getCurrentQuiz(Long userId) {
-        SurpriseEvent event = resolveCurrentOpenEvent();
+        SurpriseEvent event = resolveCurrentActiveEvent();
         return getQuizInternal(userId, event);
     }
 
@@ -62,7 +64,7 @@ public class SurpriseQuizService {
     @Transactional
     public SurpriseQuizSubmitResponse submitCurrentQuiz(
             Long userId, SurpriseQuizSubmitRequest request) {
-        SurpriseEvent event = resolveCurrentOpenEventForUpdate();
+        SurpriseEvent event = resolveCurrentActiveEventForUpdate();
         return submitQuizInternal(userId, event, request);
     }
 
@@ -111,39 +113,45 @@ public class SurpriseQuizService {
 
         boolean correct = event.getQuizPool().getAnswerChoiceNo().intValue() == request.choiceNo();
         long elapsedMillis = Duration.between(event.getStartsAt(), now).toMillis();
-        Integer rankNo = null;
-        if (correct) {
-            long correctCount = surpriseQuizSubmissionRepository.countByEventIdAndCorrectTrue(eventId);
-            rankNo = (int) correctCount + 1;
-        }
+        Integer rankNo = correct ? event.recordCorrectSubmission(now) : null;
 
         SurpriseQuizSubmission submission =
                 SurpriseQuizSubmission.submit(event, user, correct, now, elapsedMillis, rankNo);
-        surpriseQuizSubmissionRepository.save(submission);
+        saveSubmission(submission);
 
         return new SurpriseQuizSubmitResponse(correct, rankNo, elapsedMillis);
     }
 
-    private SurpriseEvent resolveCurrentOpenEvent() {
+    private SurpriseEvent resolveCurrentActiveEvent() {
         Instant now = Instant.now();
         List<SurpriseEvent> events =
-                surpriseEventRepository.findCurrentOpenEvents(
-                        SurpriseEventStatus.OPEN, now, CURRENT_EVENT_PAGE);
+                surpriseEventRepository.findCurrentActiveEvents(now, CURRENT_EVENT_PAGE);
         if (events.isEmpty()) {
             throw new SurpriseEventNotOpenException();
         }
-        return events.get(0);
+        return events.getFirst();
     }
 
-    private SurpriseEvent resolveCurrentOpenEventForUpdate() {
+    private SurpriseEvent resolveCurrentActiveEventForUpdate() {
         Instant now = Instant.now();
         List<SurpriseEvent> events =
-                surpriseEventRepository.findCurrentOpenEventsForUpdate(
-                        SurpriseEventStatus.OPEN, now, CURRENT_EVENT_PAGE);
+                surpriseEventRepository.findCurrentActiveEventsForUpdate(now, CURRENT_EVENT_PAGE);
         if (events.isEmpty()) {
             throw new SurpriseEventNotOpenException();
         }
-        return events.get(0);
+        return events.getFirst();
+    }
+
+    private void validateEventOpenAndSubmittable(SurpriseEvent event, Instant now) {
+        if (event.isRewardExhausted()) {
+            throw new SurpriseEventRewardExhaustedException();
+        }
+        if (!event.isOpenAt(now)) {
+            if (event.getStatus() != SurpriseEventStatus.OPEN) {
+                throw new SurpriseEventNotOpenException();
+            }
+            throw new SurpriseEventSubmissionClosedException();
+        }
     }
 
     private void validateChoiceNo(Integer choiceNo) {
@@ -152,12 +160,11 @@ public class SurpriseQuizService {
         }
     }
 
-    private void validateEventOpenAndSubmittable(SurpriseEvent event, Instant now) {
-        if (!event.isOpenAt(now)) {
-            if (event.getStatus() != SurpriseEventStatus.OPEN) {
-                throw new SurpriseEventNotOpenException();
-            }
-            throw new SurpriseEventSubmissionClosedException();
+    private void saveSubmission(SurpriseQuizSubmission submission) {
+        try {
+            surpriseQuizSubmissionRepository.saveAndFlush(submission);
+        } catch (DataIntegrityViolationException exception) {
+            throw new SurpriseQuizAlreadySubmittedException();
         }
     }
 

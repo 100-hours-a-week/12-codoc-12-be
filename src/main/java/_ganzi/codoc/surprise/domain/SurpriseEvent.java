@@ -1,6 +1,7 @@
 package _ganzi.codoc.surprise.domain;
 
 import _ganzi.codoc.global.domain.BaseTimeEntity;
+import _ganzi.codoc.surprise.exception.SurpriseEventRewardExhaustedException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -47,23 +48,49 @@ public class SurpriseEvent extends BaseTimeEntity {
     @Column(name = "settled_at")
     private Instant settledAt;
 
+    @Column(name = "max_reward_count")
+    private Integer maxRewardCount;
+
+    @Column(name = "remaining_reward_count", nullable = false)
+    private int remainingRewardCount;
+
+    @Column(name = "reward_exhausted_at")
+    private Instant rewardExhaustedAt;
+
     private SurpriseEvent(
             SurpriseQuizPool quizPool,
             String eventWeekKey,
             SurpriseEventStatus status,
             Instant startsAt,
-            Instant endsAt) {
+            Instant endsAt,
+            Integer maxRewardCount,
+            int remainingRewardCount,
+            Instant rewardExhaustedAt) {
         this.quizPool = quizPool;
         this.eventWeekKey = eventWeekKey;
         this.status = status;
         this.startsAt = startsAt;
         this.endsAt = endsAt;
+        this.maxRewardCount = maxRewardCount;
+        this.remainingRewardCount = remainingRewardCount;
+        this.rewardExhaustedAt = rewardExhaustedAt;
     }
 
     public static SurpriseEvent schedule(
-            SurpriseQuizPool quizPool, String eventWeekKey, Instant startsAt, Instant endsAt) {
+            SurpriseQuizPool quizPool,
+            String eventWeekKey,
+            Instant startsAt,
+            Instant endsAt,
+            Integer maxRewardCount) {
         return new SurpriseEvent(
-                quizPool, eventWeekKey, SurpriseEventStatus.SCHEDULED, startsAt, endsAt);
+                quizPool,
+                eventWeekKey,
+                SurpriseEventStatus.SCHEDULED,
+                startsAt,
+                endsAt,
+                maxRewardCount,
+                maxRewardCount,
+                null);
     }
 
     public boolean isOpenAt(Instant now) {
@@ -78,6 +105,23 @@ public class SurpriseEvent extends BaseTimeEntity {
         return settledAt != null;
     }
 
+    public boolean isRewardExhausted() {
+        return rewardExhaustedAt != null || remainingRewardCount <= 0;
+    }
+
+    public int recordCorrectSubmission(Instant now) {
+        if (isRewardExhausted()) {
+            throw new SurpriseEventRewardExhaustedException();
+        }
+        int rank = maxRewardCount - remainingRewardCount + 1;
+        this.remainingRewardCount--;
+        if (remainingRewardCount <= 0) {
+            markRewardExhausted(now);
+            close();
+        }
+        return rank;
+    }
+
     public void close() {
         this.status = SurpriseEventStatus.CLOSED;
     }
@@ -88,5 +132,11 @@ public class SurpriseEvent extends BaseTimeEntity {
 
     public void markSettled(Instant now) {
         this.settledAt = now;
+    }
+
+    public void markRewardExhausted(Instant now) {
+        if (rewardExhaustedAt == null) {
+            this.rewardExhaustedAt = now;
+        }
     }
 }

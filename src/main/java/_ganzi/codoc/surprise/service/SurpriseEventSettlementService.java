@@ -12,9 +12,7 @@ import _ganzi.codoc.surprise.repository.SurpriseQuizSubmissionRepository;
 import _ganzi.codoc.user.exception.UserNotFoundException;
 import _ganzi.codoc.user.repository.UserStatsRepository;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class SurpriseEventSettlementService {
 
     private static final String REWARD_TYPE_XP = "XP";
-    private static final int WRONG_ANSWER_XP = 10;
 
     private final SurpriseEventRepository surpriseEventRepository;
     private final SurpriseQuizSubmissionRepository surpriseQuizSubmissionRepository;
@@ -72,25 +69,15 @@ public class SurpriseEventSettlementService {
             return;
         }
 
-        List<SurpriseQuizSubmission> correctSubmissions =
-                surpriseQuizSubmissionRepository
-                        .findAllByEventIdAndCorrectTrueOrderByElapsedMillisAscSubmittedAtAscUserIdAsc(eventId);
-        Map<Long, Integer> rankByUserId = new HashMap<>();
-        for (int i = 0; i < correctSubmissions.size(); i++) {
-            SurpriseQuizSubmission submission = correctSubmissions.get(i);
-            int rank = i + 1;
-            submission.assignRank(rank);
-            rankByUserId.put(submission.getUser().getId(), rank);
-        }
-
         List<SurpriseQuizSubmission> allSubmissions =
                 surpriseQuizSubmissionRepository.findAllByEventId(eventId);
         for (SurpriseQuizSubmission submission : allSubmissions) {
             Long userId = submission.getUser().getId();
-            Integer rank = rankByUserId.get(userId);
-            int rewardXp = resolveRewardXp(submission.isCorrect(), rank);
-            submission.assignRank(rank);
+            int rewardXp = resolveRewardXp(submission.isCorrect(), submission.getRankNo());
             submission.assignEarnedXp(rewardXp);
+            if (rewardXp <= 0) {
+                continue;
+            }
 
             String idempotencyKey = rewardIdempotencyKey(eventId, userId);
             if (surpriseEventRewardLogRepository.existsByIdempotencyKey(idempotencyKey)) {
@@ -113,15 +100,12 @@ public class SurpriseEventSettlementService {
                 "surprise event settled. eventId={}, submissions={}, correct={}",
                 eventId,
                 allSubmissions.size(),
-                correctSubmissions.size());
+                allSubmissions.stream().filter(SurpriseQuizSubmission::isCorrect).count());
     }
 
     private int resolveRewardXp(boolean correct, Integer rank) {
-        if (!correct) {
-            return WRONG_ANSWER_XP;
-        }
-        if (rank == null) {
-            return 50;
+        if (!correct || rank == null) {
+            return 0;
         }
         if (rank == 1) {
             return 300;

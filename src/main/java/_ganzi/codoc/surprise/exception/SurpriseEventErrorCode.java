@@ -16,6 +16,8 @@ public enum SurpriseEventErrorCode implements ErrorCode {
             HttpStatus.BAD_REQUEST, "SURPRISE_INVALID_CHOICE_NO", "선지 번호는 1부터 4까지만 가능합니다."),
     SURPRISE_QUIZ_CONTENT_INVALID(
             HttpStatus.INTERNAL_SERVER_ERROR, "SURPRISE_QUIZ_CONTENT_INVALID", "기습 퀴즈 데이터가 올바르지 않습니다."),
+    SURPRISE_EVENT_REWARD_EXHAUSTED(
+            HttpStatus.CONFLICT, "SURPRISE_EVENT_REWARD_EXHAUSTED", "선착순 보상이 모두 소진되었습니다."),
     ;
 
     private final HttpStatus status;

@@ -4,6 +4,7 @@ import _ganzi.codoc.surprise.domain.SurpriseEvent;
 import _ganzi.codoc.surprise.domain.SurpriseEventStatus;
 import _ganzi.codoc.surprise.domain.SurpriseQuizPool;
 import _ganzi.codoc.surprise.domain.SurpriseQuizPoolStatus;
+import _ganzi.codoc.surprise.config.SurpriseEventProperties;
 import _ganzi.codoc.surprise.repository.SurpriseEventRepository;
 import _ganzi.codoc.surprise.repository.SurpriseQuizPoolRepository;
 import java.time.DayOfWeek;
@@ -33,6 +34,7 @@ public class SurpriseEventLifecycleService {
 
     private final SurpriseEventRepository surpriseEventRepository;
     private final SurpriseQuizPoolRepository surpriseQuizPoolRepository;
+    private final SurpriseEventProperties surpriseEventProperties;
 
     @Transactional
     public void createWeeklyEventIfAbsent() {
@@ -56,9 +58,11 @@ public class SurpriseEventLifecycleService {
         }
 
         quizPool.markInProgress();
+        Integer maxReward = surpriseEventProperties.maxRewardCount();
         SurpriseEvent event =
                 SurpriseEvent.schedule(
-                        quizPool, weekKey, startsAtSeoul.toInstant(), endsAtSeoul.toInstant());
+                        quizPool, weekKey, startsAtSeoul.toInstant(), endsAtSeoul.toInstant(),
+                        maxReward);
         surpriseEventRepository.save(event);
         log.info("surprise event scheduled. eventId={}, weekKey={}", event.getId(), weekKey);
     }

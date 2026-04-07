@@ -167,6 +167,7 @@ app:
 
   surprise-event:
     enabled: ${APP_SURPRISE_EVENT_ENABLED:false}
+    max-reward-count: ${APP_SURPRISE_EVENT_MAX_REWARD_COUNT:0}
 
   rate-limit:
     enabled: ${APP_RATE_LIMIT_ENABLED:true}

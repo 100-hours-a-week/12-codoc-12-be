@@ -10,10 +10,5 @@ public interface SurpriseQuizSubmissionRepository
 
     Optional<SurpriseQuizSubmission> findByEventIdAndUserId(Long eventId, Long userId);
 
-    long countByEventIdAndCorrectTrue(Long eventId);
-
-    List<SurpriseQuizSubmission>
-            findAllByEventIdAndCorrectTrueOrderByElapsedMillisAscSubmittedAtAscUserIdAsc(Long eventId);
-
     List<SurpriseQuizSubmission> findAllByEventId(Long eventId);
 }

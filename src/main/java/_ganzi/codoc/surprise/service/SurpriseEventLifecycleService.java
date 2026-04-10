@@ -7,6 +7,7 @@ import _ganzi.codoc.surprise.domain.SurpriseQuizPoolStatus;
 import _ganzi.codoc.surprise.config.SurpriseEventProperties;
 import _ganzi.codoc.surprise.repository.SurpriseEventRepository;
 import _ganzi.codoc.surprise.repository.SurpriseQuizPoolRepository;
+import _ganzi.codoc.surprise.dto.SurpriseEventSnapshot;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
@@ -35,6 +36,7 @@ public class SurpriseEventLifecycleService {
     private final SurpriseEventRepository surpriseEventRepository;
     private final SurpriseQuizPoolRepository surpriseQuizPoolRepository;
     private final SurpriseEventProperties surpriseEventProperties;
+    private final SurpriseEventRedisService surpriseEventRedisService;
 
     @Transactional
     public void createWeeklyEventIfAbsent() {
@@ -75,8 +77,18 @@ public class SurpriseEventLifecycleService {
                         SurpriseEventStatus.SCHEDULED, now);
         for (SurpriseEvent event : dueEvents) {
             event.open();
+            warmEventSnapshot(event, now);
             log.info(
                     "surprise event opened. eventId={}, weekKey={}", event.getId(), event.getEventWeekKey());
+        }
+    }
+
+    private void warmEventSnapshot(SurpriseEvent event, Instant now) {
+        try {
+            SurpriseEventSnapshot snapshot = SurpriseEventSnapshot.from(event);
+            surpriseEventRedisService.cacheEventSnapshot(snapshot, now);
+        } catch (Exception exception) {
+            log.warn("event snapshot warm-up failed. eventId={}", event.getId(), exception);
         }
     }
 }

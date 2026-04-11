@@ -1,5 +1,8 @@
 services:
   api:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: codoc-api:latest
     container_name: codoc-api
     restart: unless-stopped
@@ -7,8 +10,9 @@ services:
       - "8080:8080"
     volumes:
       - ${LOG_DIR}:/app/logs
+      - ./sentry-opentelemetry-agent-8.33.0.jar:/app/sentry-opentelemetry-agent-8.33.0.jar:ro
     env_file:
-      - .env
+      - .env.loadtest
     depends_on:
       mysql:
         condition: service_healthy
@@ -71,7 +75,7 @@ services:
     image: prom/prometheus:latest
     ports: [ "127.0.0.1:9090:9090" ]
     volumes: [ "./prometheus.yml:/etc/prometheus/prometheus.yml" ]
-    command: "--config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus --web.enable-lifecycle --web.enable-remote-write-receiver"
+    command: "--config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus --web.enable-lifecycle --web.enable-remote-write-receiver --enable-feature=native-histograms"
 
   grafana:
     image: grafana/grafana:latest
@@ -87,7 +91,7 @@ services:
     environment:
       - K6_OUT=experimental-prometheus-rw
       - K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write
-      - K6_PROMETHEUS_RW_TREND_STATS=p(95),p(99),min,max
+      - K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=true
     depends_on: [ prometheus ]
 
 volumes:

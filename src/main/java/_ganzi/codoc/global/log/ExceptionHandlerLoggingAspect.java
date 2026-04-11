@@ -9,6 +9,7 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -19,6 +20,9 @@ public class ExceptionHandlerLoggingAspect {
 
     private static final Logger errorLog = LoggerFactory.getLogger("ERROR_LOG");
     private static final String MDC_HAS_EXCEPTION = "has_exception";
+
+    @Value("${app.error-log.enabled:false}")
+    private boolean errorLogEnabled;
 
     @Around("@annotation(org.springframework.web.bind.annotation.ExceptionHandler)")
     public Object logExceptionHandler(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -33,6 +37,10 @@ public class ExceptionHandlerLoggingAspect {
 
         // Filter의 http_error 중복 방지
         MDC.put(MDC_HAS_EXCEPTION, "1");
+
+        if (!errorLogEnabled) {
+            return joinPoint.proceed();
+        }
 
         // 사용자가 원하는 error object의 type/stacktrace를 채움
         MDC.put("error.type", ex.getClass().getSimpleName());

@@ -168,6 +168,12 @@ app:
   surprise-event:
     enabled: ${APP_SURPRISE_EVENT_ENABLED:false}
 
+  access-log:
+    enabled: ${APP_ACCESS_LOG_ENABLED:false}
+
+  error-log:
+    enabled: ${APP_ERROR_LOG_ENABLED:false}
+
   rate-limit:
     enabled: ${APP_RATE_LIMIT_ENABLED:true}
     chatbot-stream:
@@ -215,6 +221,10 @@ sentry:
   release: ${SENTRY_RELEASE:codoc-be@}
   send-default-pii: ${SENTRY_SEND_DEFAULT_PII:false}
   traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.0}
+  max-queue-size: ${SENTRY_MAX_QUEUE_SIZE:30}
+  flush-timeout-millis: ${SENTRY_FLUSH_TIMEOUT_MILLIS:15000}
+  shutdown-timeout-millis: ${SENTRY_SHUTDOWN_TIMEOUT_MILLIS:2000}
+  debug: ${SENTRY_DEBUG:false}
   profile-session-sample-rate: ${SENTRY_PROFILE_SESSION_SAMPLE_RATE:0.0}
   profile-lifecycle: ${SENTRY_PROFILE_LIFECYCLE:MANUAL}
   logs:

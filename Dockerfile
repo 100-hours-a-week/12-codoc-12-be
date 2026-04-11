@@ -4,14 +4,15 @@ FROM eclipse-temurin:21-jdk AS builder
 
 WORKDIR /app
 
-# Cache Gradle dependencies
-COPY gradlew settings.gradle* build.gradle* gradle/ ./
+# Copy Gradle wrapper & build scripts (layer cache for dependency resolution)
+COPY gradlew settings.gradle* build.gradle* ./
+COPY gradle/ gradle/
 RUN chmod +x ./gradlew
-RUN ./gradlew --no-daemon dependencies || true
 
-# Build
+# Build — cache Gradle home between builds to skip re-downloading deps
 COPY . .
-RUN ./gradlew clean bootJar --no-daemon
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew bootJar --no-daemon
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app

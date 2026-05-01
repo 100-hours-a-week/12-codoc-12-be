@@ -3,18 +3,15 @@ package _ganzi.codoc.problem.service;
 import _ganzi.codoc.global.cursor.CursorPageFetcher;
 import _ganzi.codoc.global.dto.CursorPagingResponse;
 import _ganzi.codoc.global.exception.ResourceNotFoundException;
-import _ganzi.codoc.problem.domain.Problem;
-import _ganzi.codoc.problem.domain.Quiz;
 import _ganzi.codoc.problem.domain.RecommendedProblem;
-import _ganzi.codoc.problem.domain.SummaryCard;
 import _ganzi.codoc.problem.dto.ProblemListCondition;
 import _ganzi.codoc.problem.dto.ProblemListItem;
+import _ganzi.codoc.problem.dto.ProblemContent;
 import _ganzi.codoc.problem.dto.ProblemResponse;
 import _ganzi.codoc.problem.dto.ProblemSearchParam;
 import _ganzi.codoc.problem.dto.ProblemSessionResponse;
 import _ganzi.codoc.problem.dto.RecommendationJobResponse;
 import _ganzi.codoc.problem.dto.RecommendedProblemResponse;
-import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.exception.RecommendNotAvailableException;
 import _ganzi.codoc.problem.repository.BookmarkRepository;
 import _ganzi.codoc.problem.repository.ProblemRepository;
@@ -23,7 +20,6 @@ import _ganzi.codoc.submission.domain.UserProblemResult;
 import _ganzi.codoc.submission.enums.ProblemSolvingStatus;
 import _ganzi.codoc.submission.repository.UserProblemResultRepository;
 import _ganzi.codoc.submission.service.ProblemSessionService;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -68,16 +64,7 @@ public class ProblemService {
     }
 
     public ProblemResponse getProblemDetail(Long userId, Long problemId) {
-        if (problemContentCacheService.isNegativeProblem(problemId)) {
-            throw new ProblemNotFoundException();
-        }
-        Problem problem;
-        try {
-            problem = problemContentCacheService.getProblem(problemId);
-        } catch (ProblemNotFoundException exception) {
-            problemContentCacheService.cacheNegativeProblem(problemId);
-            throw exception;
-        }
+        ProblemContent problemContent = problemContentCacheService.getProblemContent(problemId);
 
         ProblemSolvingStatus status =
                 userProblemResultRepository
@@ -86,19 +73,17 @@ public class ProblemService {
                         .orElse(ProblemSolvingStatus.NOT_ATTEMPTED);
 
         boolean bookmarked = bookmarkRepository.existsByUserIdAndProblemId(userId, problemId);
+        boolean hasActiveSession = problemSessionService.requireActive(userId, problemId) != null;
 
-        return ProblemResponse.of(problem, status, bookmarked);
+        return ProblemResponse.of(problemContent, status, bookmarked, hasActiveSession);
     }
 
     @Transactional
     public ProblemSessionResponse startProblemSession(Long userId, Long problemId) {
         var session = problemSessionService.resolveOrCreate(userId, problemId);
-        Long sessionProblemId = session.getProblem().getId();
-
-        List<SummaryCard> summaryCards = problemContentCacheService.getSummaryCards(sessionProblemId);
-        List<Quiz> quizzes = problemContentCacheService.getQuizzes(sessionProblemId);
-
-        return ProblemSessionResponse.of(session, summaryCards, quizzes);
+        ProblemContent problemContent =
+                problemContentCacheService.getProblemContent(session.getProblem().getId());
+        return ProblemSessionResponse.of(session, problemContent);
     }
 
     public ProblemSessionResponse getActiveProblemSession(Long userId) {
@@ -107,12 +92,9 @@ public class ProblemService {
             throw new ResourceNotFoundException();
         }
 
-        Long sessionProblemId = session.getProblem().getId();
-
-        List<SummaryCard> summaryCards = problemContentCacheService.getSummaryCards(sessionProblemId);
-        List<Quiz> quizzes = problemContentCacheService.getQuizzes(sessionProblemId);
-
-        return ProblemSessionResponse.of(session, summaryCards, quizzes);
+        ProblemContent problemContent =
+                problemContentCacheService.getProblemContent(session.getProblem().getId());
+        return ProblemSessionResponse.of(session, problemContent);
     }
 
     @Transactional

@@ -1,17 +1,20 @@
 package _ganzi.codoc.problem.service;
 
-import _ganzi.codoc.global.constants.CacheNames;
+import _ganzi.codoc.problem.config.ProblemCacheConfig;
 import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.domain.Quiz;
 import _ganzi.codoc.problem.domain.SummaryCard;
+import _ganzi.codoc.problem.dto.ProblemContent;
 import _ganzi.codoc.problem.exception.ProblemNotFoundException;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.problem.repository.QuizRepository;
 import _ganzi.codoc.problem.repository.SummaryCardRepository;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,48 +23,35 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ProblemContentCacheService {
 
+    private final CacheManager problemCacheManager;
     private final ProblemRepository problemRepository;
     private final SummaryCardRepository summaryCardRepository;
     private final QuizRepository quizRepository;
 
-    @Cacheable(
-            cacheManager = CacheNames.CAFFEINE_CACHE_MANAGER,
-            cacheNames = CacheNames.PROBLEM_DETAIL,
-            key = "#problemId")
-    public Problem getProblem(Long problemId) {
-        return problemRepository.findById(problemId).orElseThrow(ProblemNotFoundException::new);
-    }
+    public ProblemContent getProblemContent(Long problemId) {
+        Cache nullCache = Objects.requireNonNull(problemCacheManager.getCache(ProblemCacheConfig.PROBLEM_NULL));
+        if (nullCache.get(problemId) != null) {
+            throw new ProblemNotFoundException();
+        }
 
-    @Cacheable(
-            cacheManager = CacheNames.CAFFEINE_CACHE_MANAGER,
-            cacheNames = CacheNames.PROBLEM_NEGATIVE,
-            key = "#problemId",
-            unless = "#result == false")
-    public boolean isNegativeProblem(Long problemId) {
-        return false;
-    }
+        CaffeineCache contentCache = (CaffeineCache) Objects.requireNonNull(
+                problemCacheManager.getCache(ProblemCacheConfig.PROBLEM_CONTENT));
 
-    @CachePut(
-            cacheManager = CacheNames.CAFFEINE_CACHE_MANAGER,
-            cacheNames = CacheNames.PROBLEM_NEGATIVE,
-            key = "#problemId")
-    public boolean cacheNegativeProblem(Long problemId) {
-        return true;
-    }
+        ProblemContent content = (ProblemContent) contentCache.getNativeCache().get(problemId, key -> {
+            Problem problem = problemRepository.findById((Long) key).orElse(null);
+            if (problem == null) {
+                return null;
+            }
+            List<SummaryCard> summaryCards = summaryCardRepository.findByProblemIdOrderByParagraphOrderAsc((Long) key);
+            List<Quiz> quizzes = quizRepository.findByProblemIdOrderBySequenceAsc((Long) key);
+            return ProblemContent.of(problem, summaryCards, quizzes);
+        });
 
-    @Cacheable(
-            cacheManager = CacheNames.CAFFEINE_CACHE_MANAGER,
-            cacheNames = CacheNames.PROBLEM_SUMMARY_CARDS,
-            key = "#problemId")
-    public List<SummaryCard> getSummaryCards(Long problemId) {
-        return List.copyOf(summaryCardRepository.findByProblemIdOrderByParagraphOrderAsc(problemId));
-    }
+        if (content == null) {
+            nullCache.put(problemId, Boolean.TRUE);
+            throw new ProblemNotFoundException();
+        }
 
-    @Cacheable(
-            cacheManager = CacheNames.CAFFEINE_CACHE_MANAGER,
-            cacheNames = CacheNames.PROBLEM_QUIZZES,
-            key = "#problemId")
-    public List<Quiz> getQuizzes(Long problemId) {
-        return List.copyOf(quizRepository.findByProblemIdOrderBySequenceAsc(problemId));
+        return content;
     }
 }

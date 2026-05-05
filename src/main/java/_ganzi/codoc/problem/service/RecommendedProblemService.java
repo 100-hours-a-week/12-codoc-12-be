@@ -8,7 +8,6 @@ import _ganzi.codoc.problem.domain.Problem;
 import _ganzi.codoc.problem.domain.RecommendedProblem;
 import _ganzi.codoc.problem.domain.job.RecommendationJob;
 import _ganzi.codoc.problem.domain.job.RecommendationJobStatus;
-import _ganzi.codoc.problem.event.RecommendationOutboxPublishRequestedEvent;
 import _ganzi.codoc.problem.repository.ProblemRepository;
 import _ganzi.codoc.problem.repository.RecommendedProblemRepository;
 import _ganzi.codoc.problem.repository.job.RecommendationJobRepository;
@@ -36,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,7 +61,6 @@ public class RecommendedProblemService {
     private final NotificationDispatchService notificationDispatchService;
     private final RecommendationJobRepository recommendationJobRepository;
     private final RecommendationRequestOutboxService recommendationRequestOutboxService;
-    private final ApplicationEventPublisher applicationEventPublisher;
     private final ObjectProvider<RecommendedProblemService> recommendedProblemServiceProvider;
 
     @Qualifier("recommendOnDemandTaskExecutor")
@@ -214,8 +211,6 @@ public class RecommendedProblemService {
         try {
             RecommendRequest request = buildRecommendRequest(userId, scenario);
             recommendationRequestOutboxService.enqueue(jobId, requestedAt, request);
-            applicationEventPublisher.publishEvent(
-                    new RecommendationOutboxPublishRequestedEvent(jobId, request, requestedAt));
             return Optional.of(job);
         } catch (Exception exception) {
             job.markPublishFailed("PUBLISH_FAILED", exception.getMessage());

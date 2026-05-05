@@ -126,7 +126,7 @@ app:
     outbox:
       batch-size: ${APP_RECOMMEND_OUTBOX_BATCH_SIZE:100}
       max-batches-per-run: ${APP_RECOMMEND_OUTBOX_MAX_BATCHES_PER_RUN:10}
-      publish-fixed-delay: ${APP_RECOMMEND_OUTBOX_PUBLISH_FIXED_DELAY:1m}
+      publish-fixed-delay: ${APP_RECOMMEND_OUTBOX_PUBLISH_FIXED_DELAY:5s}
       processing-timeout: ${APP_RECOMMEND_OUTBOX_PROCESSING_TIMEOUT:5m}
       retry-initial-interval: ${APP_RECOMMEND_OUTBOX_RETRY_INITIAL_INTERVAL:10s}
       retry-multiplier: ${APP_RECOMMEND_OUTBOX_RETRY_MULTIPLIER:2.0}

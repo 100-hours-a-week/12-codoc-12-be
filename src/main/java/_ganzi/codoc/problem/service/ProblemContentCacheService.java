@@ -54,4 +54,9 @@ public class ProblemContentCacheService {
 
         return content;
     }
+
+    public void evict(Long problemId) {
+        Objects.requireNonNull(problemCacheManager.getCache(ProblemCacheConfig.PROBLEM_CONTENT)).evict(problemId);
+        Objects.requireNonNull(problemCacheManager.getCache(ProblemCacheConfig.PROBLEM_NULL)).evict(problemId);
+    }
 }

@@ -54,6 +54,10 @@ app:
     problem-content:
       problem-content: ${APP_CACHE_PROBLEM_CONTENT_SPEC:maximumSize=1000,expireAfterWrite=1h,recordStats}
       problem-null: ${APP_CACHE_PROBLEM_NULL_SPEC:maximumSize=100,expireAfterWrite=10m,recordStats}
+      invalidation:
+        enabled: ${APP_PROBLEM_CONTENT_CACHE_INVALIDATION_ENABLED:true}
+        channel: ${APP_PROBLEM_CONTENT_CACHE_INVALIDATION_CHANNEL:problem.content.cache.invalidation}
+        server-id: ${APP_PROBLEM_CONTENT_CACHE_INVALIDATION_SERVER_ID:${HOSTNAME:local}}
   frontend:
     base-url: ${APP_FRONTEND_BASE_URL:http://localhost:5173}
   storage:
